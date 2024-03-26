@@ -161,7 +161,7 @@ jobs:
         echo "------------------------"
         awk '/ramips/ { print }' .config
         echo "------------------------"
-        awk '/DOCKER/ { print }' .config
+        awk '/dnsmasq/ { print }' .config
         echo "------------------------"
         awk '/store/ { print }' .config
         echo "------------------------"
