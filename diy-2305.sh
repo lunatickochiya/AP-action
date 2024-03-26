@@ -174,7 +174,6 @@ patch_kiddin9
 add_full_istore_luci_for_ws1508
 elif [ "$1" == "ramips-iptables" ]; then
 autosetver
-patch_openwrt
 remove_error_package_not_install
 patch_package
 patch_luci
@@ -182,14 +181,13 @@ patch_kiddin9
 add_ramips_iptables_packages
 elif [ "$1" == "ramips-nftables" ]; then
 autosetver
-patch_openwrt
 remove_error_package_not_install
 patch_package
 patch_luci
 patch_kiddin9
 add_ramips_nftables_packages
-elif [ "$1" == "rockpatch" ]; then
-patch_rockchip
+elif [ "$1" == "patchop" ]; then
+patch_openwrt
 elif [ "$1" == "firewallremove" ]; then
 remove_firewall
 else

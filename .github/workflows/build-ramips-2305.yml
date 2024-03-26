@@ -89,6 +89,7 @@ jobs:
         cd openwrt
         sed -i '$a src-git kiddin9 https://github.com/lunatickochiya/actionbased-openwrt-packages.git' feeds.conf.default
         $GITHUB_WORKSPACE/$DIY_SH firewallremove
+        ls
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 增加磁盘空间
@@ -104,8 +105,11 @@ jobs:
       if: steps.clone.outputs.status == 'success'
       id: files
       run: |
-        [ -d openwrt-2305/mypatch-2305 ] && mv -f openwrt-2305/mypatch-2305 openwrt/mypatch
         [ -d package ] && mv -f package/* openwrt/package
+        [ -d openwrt-2305/mypatch-2305-${{matrix.target}} ] && mv -f openwrt-2305/mypatch-2305-${{matrix.target}} openwrt/mypatch
+        cd openwrt
+        $GITHUB_WORKSPACE/$DIY_SH patchop
+        ls
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 更新 & 安装 feeds
@@ -122,7 +126,7 @@ jobs:
       id: config
       run: |
         [ -d openwrt-2305/kiddin9-revert ] && mv -f openwrt-2305/kiddin9-revert openwrt/feeds/kiddin9/kiddin9-revert
-        [ -d openwrt-2305/luci-patch-2305-ramips ] && mv -f openwrt-2305/luci-patch-2305 openwrt/feeds/luci/luci-patch-2305
+        [ -d openwrt-2305/luci-patch-2305-ramips ] && mv -f openwrt-2305/luci-patch-2305-ramips openwrt/feeds/luci/luci-patch-2305
         [ -d openwrt-2305/feeds-package-patch-2305 ] && mv -f openwrt-2305/feeds-package-patch-2305 openwrt/feeds/packages/feeds-package-patch-2305
         [ -e files ] && mv files openwrt/files
         [ -e package-configs ] && mv package-configs openwrt/package-configs
@@ -153,9 +157,9 @@ jobs:
       run: |
         awk '/${{matrix.target}}/ { print }' .config
         echo "------------------------"
-        awk '/mediatek/ { print }' .config
+        awk '/wpad/ { print }' .config
         echo "------------------------"
-        awk '/docker/ { print }' .config
+        awk '/ramips/ { print }' .config
         echo "------------------------"
         awk '/DOCKER/ { print }' .config
         echo "------------------------"
