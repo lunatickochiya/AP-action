@@ -1,0 +1,35 @@
+diff --git a/include/target.mk b/include/target.mk
+index 7526224972..bd95442c43 100644
+--- a/include/target.mk
++++ b/include/target.mk
+@@ -17,7 +17,7 @@ DEFAULT_PACKAGES:=\
+ 	fstools \
+ 	libc \
+ 	libgcc \
+-	libustream-wolfssl \
++	libustream-openssl \
+ 	logd \
+ 	mtd \
+ 	netifd \
+@@ -43,7 +43,7 @@ DEFAULT_PACKAGES.nas:=\
+ 	mdadm
+ # For router targets
+ DEFAULT_PACKAGES.router:=\
+-	dnsmasq \
++	dnsmasq-full \
+ 	firewall \
+ 	ip6tables \
+ 	iptables \
+diff --git a/target/linux/ath79/nand/target.mk b/target/linux/ath79/nand/target.mk
+index 7ea9b57f45..cdc5080282 100644
+--- a/target/linux/ath79/nand/target.mk
++++ b/target/linux/ath79/nand/target.mk
+@@ -2,7 +2,7 @@ BOARDNAME := Generic devices with NAND flash
+ 
+ FEATURES += nand
+ 
+-DEFAULT_PACKAGES += wpad-basic-wolfssl
++DEFAULT_PACKAGES += wpad-mesh-openssl
+ 
+ define Target/Description
+ 	Firmware for boards using Qualcomm Atheros, MIPS-based SoCs

@@ -76,6 +76,10 @@ elif [ "$1" == "kmod-istoreos" ]; then
 refine_istoreos_kmod_config
 elif [ "$1" == "ramips-iptables" ]; then
 refine_ramips_iptables_config
+elif [ "$1" == "ath79-nand-2102" ]; then
+refine_ramips_iptables_config
+elif [ "$1" == "ramips-mt7620-2102" ]; then
+refine_ramips_iptables_config
 elif [ "$1" == "ramips-nftables" ]; then
 refine_ramips_nftables_config
 else
