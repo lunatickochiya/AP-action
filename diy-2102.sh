@@ -127,18 +127,18 @@ function patch_openwrt() {
         done
         }
 function patch_package() {
-        for packagepatch in $( ls feeds/packages/feeds-package-patch-2305 ); do
+        for packagepatch in $( ls feeds/packages/feeds-package-patch-2102 ); do
             cd feeds/packages/
-            echo Applying feeds-package-patch-2305 $packagepatch
-            patch -p1 --no-backup-if-mismatch < feeds-package-patch-2305/$packagepatch
+            echo Applying feeds-package-patch-2102 $packagepatch
+            patch -p1 --no-backup-if-mismatch < feeds-package-patch-2102/$packagepatch
             cd ../..
         done
         }
 function patch_luci() {
-        for lucipatch in $( ls feeds/luci/luci-patch-2305 ); do
+        for lucipatch in $( ls feeds/luci/luci-patch-2102 ); do
             cd feeds/luci/
-            echo Applying luci-patch-2305 $lucipatch
-            patch -p1 --no-backup-if-mismatch < luci-patch-2305/$lucipatch
+            echo Applying luci-patch-2102 $lucipatch
+            patch -p1 --no-backup-if-mismatch < luci-patch-2102/$lucipatch
             cd ../..
         done
         }

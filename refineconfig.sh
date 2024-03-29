@@ -57,10 +57,10 @@ sed -n  '/^# CONFIG_PACKAGE_kmod/p' .config | sed '/# CONFIG_PACKAGE_kmod is not
 #sed -i -n '/CONFIG_PACKAGE_kmod/p' .config
 }
 
-function refine_istoreos_kmod_config() {
-if [ -n "$(sed -n '/^kmod_compile_exclude_list=/p' package-configs/kmod_exclude_list_istoreos.config | sed -e "s/=[my]\([,]\{0,1\}\)/\1/g" -e 's/.*=//')" ];then
-  kmod_compile_exclude_list=$(sed -n '/^kmod_compile_exclude_list=/p' package-configs/kmod_exclude_list_istoreos.config | sed -e "s/=[my]\([,]\{0,1\}\)/\1/g" -e 's/.*=//' -e 's/,$//g' -e 's#^#\\(#' -e "s#,#\\\|#g" -e "s/$/\\\)/g" )
-  echo "::notice ::kmod编译排除列表：$(sed -n '/^kmod_compile_exclude_list=/p' package-configs/kmod_exclude_list_istoreos.config | sed -e "s/=[my]\([,]\{0,1\}\)/\1/g" -e 's/.*=//')"
+function refine_2102_kmod_config() {
+if [ -n "$(sed -n '/^kmod_compile_exclude_list=/p' package-configs/kmod_exclude_list_2102.config | sed -e "s/=[my]\([,]\{0,1\}\)/\1/g" -e 's/.*=//')" ];then
+  kmod_compile_exclude_list=$(sed -n '/^kmod_compile_exclude_list=/p' package-configs/kmod_exclude_list_2102.config | sed -e "s/=[my]\([,]\{0,1\}\)/\1/g" -e 's/.*=//' -e 's/,$//g' -e 's#^#\\(#' -e "s#,#\\\|#g" -e "s/$/\\\)/g" )
+  echo "::notice ::kmod编译排除列表：$(sed -n '/^kmod_compile_exclude_list=/p' package-configs/kmod_exclude_list_2102.config | sed -e "s/=[my]\([,]\{0,1\}\)/\1/g" -e 's/.*=//')"
 else
   echo "::warning ::kmod编译排除列表无法获取或为空，这很有可能导致编译失败。"
 fi
@@ -72,8 +72,8 @@ if [ "$1" == "meson" ]; then
 refine_meson_config
 elif [ "$1" == "kmod" ]; then
 refine_kmod_config
-elif [ "$1" == "kmod-istoreos" ]; then
-refine_istoreos_kmod_config
+elif [ "$1" == "kmod-2102" ]; then
+refine_2102_kmod_config
 elif [ "$1" == "ramips-iptables" ]; then
 refine_ramips_iptables_config
 elif [ "$1" == "ath79-nand-2102" ]; then
