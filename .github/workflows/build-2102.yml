@@ -87,7 +87,7 @@ jobs:
         git clone $REPO_URL -b $REPO_BRANCH openwrt --single-branch
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
         cd openwrt
-        sed -i '$a src-git kiddin9 https://github.com/lunatickochiya/actionbased-openwrt-packages.git' feeds.conf.default
+        sed -i '$a src-git lunatic7 https://github.com/lunatickochiya/actionbased-openwrt-packages.git' feeds.conf.default
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 增加磁盘空间
@@ -123,7 +123,7 @@ jobs:
       if: steps.feeds.outputs.status == 'success'
       id: config
       run: |
-        [ -d openwrt-2102/kiddin9-revert ] && mv -f openwrt-2102/kiddin9-revert openwrt/feeds/kiddin9/kiddin9-revert
+        [ -d openwrt-2102/lunatic7-revert ] && mv -f openwrt-2102/lunatic7-revert openwrt/feeds/lunatic7/lunatic7-revert
         [ -d openwrt-2102/luci-patch-2102 ] && mv -f openwrt-2102/luci-patch-2102 openwrt/feeds/luci/luci-patch-2102
         [ -d openwrt-2102/feeds-package-patch-2102 ] && mv -f openwrt-2102/feeds-package-patch-2102 openwrt/feeds/packages/feeds-package-patch-2102
         [ -e files ] && mv files openwrt/files

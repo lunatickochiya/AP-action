@@ -1,4 +1,4 @@
-name: Build mt798x 23.05
+name: Build openwrt 23.05
 
 # Fix for broken build: https://github.com/softprops/action-gh-release/issues/236
 permissions:
@@ -28,6 +28,8 @@ jobs:
         include:
           - target: mt798x-iptables
           - target: mt798x-nftables
+          - target: ramips-iptables
+          - target: ramips-nftables
     
     steps:
     - name: 检查
@@ -87,7 +89,7 @@ jobs:
         git clone $REPO_URL -b $REPO_BRANCH openwrt --single-branch
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
         cd openwrt
-        sed -i '$a src-git kiddin9 https://github.com/lunatickochiya/actionbased-openwrt-packages.git' feeds.conf.default
+        sed -i '$a src-git lunatic7 https://github.com/lunatickochiya/actionbased-openwrt-packages.git' feeds.conf.default
         $GITHUB_WORKSPACE/$DIY_SH firewallremove
         echo "status=success" >> $GITHUB_OUTPUT
 
@@ -128,7 +130,7 @@ jobs:
       if: steps.feeds.outputs.status == 'success'
       id: config
       run: |
-        [ -d openwrt-2305/kiddin9-revert ] && mv -f openwrt-2305/kiddin9-revert openwrt/feeds/kiddin9/kiddin9-revert
+        [ -d openwrt-2305/lunatic7-revert ] && mv -f openwrt-2305/lunatic7-revert openwrt/feeds/lunatic7/lunatic7-revert
         [ -d openwrt-2305/luci-patch-2305 ] && mv -f openwrt-2305/luci-patch-2305 openwrt/feeds/luci/luci-patch-2305
         [ -d openwrt-2305/feeds-package-patch-2305 ] && mv -f openwrt-2305/feeds-package-patch-2305 openwrt/feeds/packages/feeds-package-patch-2305
         [ -e files ] && mv files openwrt/files

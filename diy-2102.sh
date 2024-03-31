@@ -38,7 +38,7 @@ done
 
 directories=(
     "feeds/luci/applications/luci-app-dockerman"
-    "feeds/kiddin9/rtl8821cu"
+    "feeds/lunatic7/rtl8821cu"
     "feeds/packages/net/xray-core"
 )
 
@@ -72,31 +72,31 @@ done
 
 directories=(
     "feeds/luci/applications/luci-app-dockerman"
-    "feeds/kiddin9/rtl8821cu"
+    "feeds/lunatic7/rtl8821cu"
     "feeds/packages/net/xray-core"
-    "feeds/kiddin9/dae"
-    "feeds/kiddin9/daed"
-    "feeds/kiddin9/daed-next"
-    "feeds/kiddin9/luci-app-apinger"
-    "feeds/kiddin9/luci-app-daed"
-    "feeds/kiddin9/luci-app-daed-next"
-    "feeds/kiddin9/dufs"
-    "feeds/kiddin9/luci-app-dufs"
-    "feeds/kiddin9/pcat-manager"
-    "feeds/kiddin9/rustdesk-server"
-    "feeds/kiddin9/shadowsocks-rust"
-    "feeds/kiddin9/spotifyd"
-    "feeds/kiddin9/luci-app-spotifyd"
-    "feeds/kiddin9/luci-app-music-remote-center"
-    "feeds/kiddin9/tuic-server"
-    "feeds/kiddin9/firewall4"
-    "feeds/kiddin9/luci-app-lorawan-basicstation"
-    "feeds/kiddin9/luci-app-keepalived"
-    "feeds/kiddin9/luci-app-rclone"
-    "feeds/kiddin9/sing-box"
-    "feeds/kiddin9/luci-app-passwall2"
-    "feeds/kiddin9/ntfs3-mount"
-    "feeds/kiddin9/automount"
+    "feeds/lunatic7/dae"
+    "feeds/lunatic7/daed"
+    "feeds/lunatic7/daed-next"
+    "feeds/lunatic7/luci-app-apinger"
+    "feeds/lunatic7/luci-app-daed"
+    "feeds/lunatic7/luci-app-daed-next"
+    "feeds/lunatic7/dufs"
+    "feeds/lunatic7/luci-app-dufs"
+    "feeds/lunatic7/pcat-manager"
+    "feeds/lunatic7/rustdesk-server"
+    "feeds/lunatic7/shadowsocks-rust"
+    "feeds/lunatic7/spotifyd"
+    "feeds/lunatic7/luci-app-spotifyd"
+    "feeds/lunatic7/luci-app-music-remote-center"
+    "feeds/lunatic7/tuic-server"
+    "feeds/lunatic7/firewall4"
+    "feeds/lunatic7/luci-app-lorawan-basicstation"
+    "feeds/lunatic7/luci-app-keepalived"
+    "feeds/lunatic7/luci-app-rclone"
+    "feeds/lunatic7/sing-box"
+    "feeds/lunatic7/luci-app-passwall2"
+    "feeds/lunatic7/ntfs3-mount"
+    "feeds/lunatic7/automount"
 )
 
 for directory in "${directories[@]}"; do
@@ -144,11 +144,11 @@ function patch_luci() {
             cd ../..
         done
         }
-function patch_kiddin9() {
-        for kiddin9patch in $( ls feeds/kiddin9/kiddin9-revert ); do
-            cd feeds/kiddin9/
-            echo Revert kiddin9 $kiddin9patch
-            patch -p1 -R --no-backup-if-mismatch < kiddin9-revert/$kiddin9patch
+function patch_lunatic7() {
+        for lunatic7patch in $( ls feeds/lunatic7/lunatic7-revert ); do
+            cd feeds/lunatic7/
+            echo Revert lunatic7 $lunatic7patch
+            patch -p1 -R --no-backup-if-mismatch < lunatic7-revert/$lunatic7patch
             cd ../..
         done
         }
@@ -198,21 +198,21 @@ remove_error_package
 patch_openwrt
 patch_package
 patch_luci
-patch_kiddin9
+patch_lunatic7
 add_full_istore_luci_for_ws1508
 elif [ "$1" == "ath79-nand-2102" ]; then
 autosetver
 remove_error_package_not_install
 patch_package
 patch_luci
-patch_kiddin9
+patch_lunatic7
 add_ath79_nand_2102_packages
 elif [ "$1" == "ramips-mt7620-2102" ]; then
 autosetver
 remove_error_package_not_install
 patch_package
 patch_luci
-patch_kiddin9
+patch_lunatic7
 add_ramips_mt7620_2102_packages
 elif [ "$1" == "patchop" ]; then
 patch_openwrt
