@@ -96,6 +96,7 @@ directories=(
     "feeds/kiddin9/sing-box"
     "feeds/kiddin9/luci-app-passwall2"
     "feeds/kiddin9/ntfs3-mount"
+    "feeds/kiddin9/automount"
 )
 
 for directory in "${directories[@]}"; do

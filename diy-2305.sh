@@ -163,6 +163,25 @@ echo "$(cat package-configs/ramips-common-nftables.config)" >> package-configs/.
 mv -f package-configs/.config .config
 }
 
+function add_mt798x_iptables_packages() {
+echo "$(cat package-configs/mt798x-common-iptables.config)" >> package-configs/.config
+mv -f package-configs/.config .config
+}
+
+function add_mt798x_nftables_packages() {
+echo "$(cat package-configs/mt798x-common-nftables.config)" >> package-configs/.config
+mv -f package-configs/.config .config
+}
+
+function add_mt798x_packages() {
+echo "$(cat package-configs/mt798x-common.config)" >> package-configs/.config
+mv -f package-configs/.config .config
+}
+
+function add_mt798x_istore_packages() {
+echo "$(cat package-configs/mt798x-common-istore.config)" >> package-configs/.config
+mv -f package-configs/.config .config
+}
 
 if [ "$1" == "ws1508-istore" ]; then
 autosetver
@@ -172,6 +191,28 @@ patch_package
 patch_luci
 patch_kiddin9
 add_full_istore_luci_for_ws1508
+elif [ "$1" == "mt798x-iptables" ]; then
+autosetver
+remove_error_package_not_install
+patch_package
+patch_luci
+patch_kiddin9
+add_mt798x_iptables_packages
+elif [ "$1" == "mt798x-nftables" ]; then
+autosetver
+remove_error_package_not_install
+patch_package
+patch_luci
+patch_kiddin9
+add_mt798x_nftables_packages
+elif [ "$1" == "mt798x-istore" ]; then
+autosetver
+patch_openwrt
+remove_error_package_not_install
+patch_package
+patch_luci
+patch_kiddin9
+add_mt798x_istore_packages
 elif [ "$1" == "ramips-iptables" ]; then
 autosetver
 remove_error_package_not_install
