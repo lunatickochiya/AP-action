@@ -27,8 +27,8 @@ index 5224e996a4..384c03d7ae 100644
 -	kmod-nft-offload \
 +	dnsmasq-full \
 +	firewall \
-+	iptables \
-+	ip6tables \
++	iptables-zz-legacy \
++	ip6tables-zz-legacy \
  	odhcp6c \
  	odhcpd-ipv6only \
  	ppp \
