@@ -79,6 +79,10 @@ if [ "$1" == "mt798x-iptables" ]; then
 refine_mt798x_iptables_config
 elif [ "$1" == "mt798x-nftables" ]; then
 refine_mt798x_nftables_config
+elif [ "$1" == "mt798x-nousb-iptables" ]; then
+refine_mt798x_nftables_config
+elif [ "$1" == "mt798x-nousb-nftables" ]; then
+refine_mt798x_nftables_config
 elif [ "$1" == "kmod" ]; then
 refine_kmod_config
 elif [ "$1" == "kmod-2102" ]; then

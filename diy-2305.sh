@@ -173,6 +173,16 @@ echo "$(cat package-configs/mt798x-common-nftables.config)" >> package-configs/.
 mv -f package-configs/.config .config
 }
 
+function add_mt798x_nousb_nftables_packages() {
+echo "$(cat package-configs/mt798x-no-usb-nftables.config)" >> package-configs/.config
+mv -f package-configs/.config .config
+}
+
+function add_mt798x_nousb_iptables_packages() {
+echo "$(cat package-configs/mt798x-no-usb-iptables.config)" >> package-configs/.config
+mv -f package-configs/.config .config
+}
+
 function add_mt798x_packages() {
 echo "$(cat package-configs/mt798x-common.config)" >> package-configs/.config
 mv -f package-configs/.config .config
@@ -197,6 +207,20 @@ patch_package
 patch_luci
 patch_lunatic7
 add_mt798x_nftables_packages
+elif [ "$1" == "mt798x-nousb-nftables" ]; then
+autosetver
+remove_error_package_not_install
+patch_package
+patch_luci
+patch_lunatic7
+add_mt798x_nousb_nftables_packages
+elif [ "$1" == "mt798x-nousb-iptables" ]; then
+autosetver
+remove_error_package_not_install
+patch_package
+patch_luci
+patch_lunatic7
+add_mt798x_nousb_iptables_packages
 elif [ "$1" == "mt798x-istore" ]; then
 autosetver
 patch_openwrt

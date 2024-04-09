@@ -28,6 +28,8 @@ jobs:
         include:
           - target: mt798x-iptables
           - target: mt798x-nftables
+          - target: mt798x-nousb-iptables
+          - target: mt798x-nousb-nftables
           - target: ramips-iptables
           - target: ramips-nftables
     
