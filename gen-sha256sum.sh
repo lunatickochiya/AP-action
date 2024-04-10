@@ -26,9 +26,9 @@ echo $kernelversion >> release.txt
 function feeds_git_log() {
 echo "当前feeds git日志：" >> release.txt
 for dir in ./openwrt/feeds/*; do
-  if [ -d "$dir" ]; then
+  if [[ -d "$dir" && ! "$dir" =~ \.tmp$ ]]; then
     echo "当前目录: $dir" >> release.txt
-    (cd "$dir" && git log -n 2)
+    (cd "$dir" && git log -n 2 --oneline)
   fi
 done >> release.txt
 }
@@ -37,7 +37,7 @@ function feeds_lunatic_git_log() {
 echo "当前 lunatic7 git日志：" >> release.txt
 for dir2 in ./openwrt/feeds/lunatic7; do
   if [ -d "$dir2" ]; then
-    (cd "$dir2" && git log -n 1)
+    (cd "$dir2" && git log -n 1 --oneline)
   fi
 done >> release.txt
 }
@@ -46,9 +46,13 @@ function git_log() {
 echo "当前 openwrt git日志：" >> release.txt
 for dir1 in ./openwrt; do
   if [ -d "$dir1" ]; then
-    (cd "$dir1" && git log -n 1)
+    (cd "$dir1" && git log -n 1 --oneline)
   fi
 done >> release.txt
+}
+
+function refine_log() {
+sed -i '/firmware\//d' release.txt
 }
 
 git_log
@@ -56,5 +60,5 @@ kernel_ver
 feeds_lunatic_git_log
 gen_sha256sum
 put_sha256sum
-
+refine_log
 

@@ -100,6 +100,14 @@ function patch_openwrt() {
             patch -p1 --no-backup-if-mismatch < mypatch/$i
         done
         }
+
+function patch_openwrt_2305() {
+        for i in $( ls mypatch-2305 ); do
+            echo Applying mypatch-2305 $i
+            patch -p1 --no-backup-if-mismatch < mypatch-2305/$i
+        done
+        }
+
 function patch_package() {
         for packagepatch in $( ls feeds/packages/feeds-package-patch-2305 ); do
             cd feeds/packages/
@@ -223,7 +231,6 @@ patch_lunatic7
 add_mt798x_nousb_iptables_packages
 elif [ "$1" == "mt798x-istore" ]; then
 autosetver
-patch_openwrt
 remove_error_package_not_install
 patch_package
 patch_luci
@@ -244,6 +251,7 @@ patch_luci
 patch_lunatic7
 add_ramips_nftables_packages
 elif [ "$1" == "patch-openwrt" ]; then
+patch_openwrt_2305
 patch_openwrt
 elif [ "$1" == "firewallremove" ]; then
 remove_firewall
