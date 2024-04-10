@@ -52,7 +52,7 @@ done >> release.txt
 }
 
 function refine_log() {
-sed -i '/firmware\//d' release.txt
+sed -i 's/firmware\//------/g' release.txt
 }
 
 git_log
