@@ -33,6 +33,15 @@ for dir in ./openwrt/feeds/*; do
 done >> release.txt
 }
 
+function feeds_lunatic_git_log() {
+echo "当前 lunatic7 git日志：" >> release.txt
+for dir2 in ./openwrt/feeds/lunatic7; do
+  if [ -d "$dir2" ]; then
+    (cd "$dir2" && git log -n 1)
+  fi
+done >> release.txt
+}
+
 function git_log() {
 echo "当前 openwrt git日志：" >> release.txt
 for dir1 in ./openwrt; do
@@ -44,7 +53,7 @@ done >> release.txt
 
 git_log
 kernel_ver
-feeds_git_log
+feeds_lunatic_git_log
 gen_sha256sum
 put_sha256sum
 
