@@ -1,0 +1,345 @@
+From 2b1777af30e86bfe07878ae16a519136f078bfb5 Mon Sep 17 00:00:00 2001
+From: lunatickochiya <125438787@qq.com>
+Date: Fri, 12 Apr 2024 15:26:37 +0800
+Subject: [PATCH 2/2] mediatek: add Nokia EA0326GMP support ubootmod 110M
+ version
+
+---
+ .../dts/mt7981b-nokia-ea0326gmp-ubootmod.dts  | 257 ++++++++++++++++++
+ .../filogic/base-files/etc/board.d/01_leds    |   1 +
+ .../filogic/base-files/etc/board.d/02_network |   1 +
+ .../base-files/lib/upgrade/platform.sh        |   1 +
+ target/linux/mediatek/image/filogic.mk        |  17 ++
+ 5 files changed, 277 insertions(+)
+ create mode 100644 target/linux/mediatek/dts/mt7981b-nokia-ea0326gmp-ubootmod.dts
+
+diff --git a/target/linux/mediatek/dts/mt7981b-nokia-ea0326gmp-ubootmod.dts b/target/linux/mediatek/dts/mt7981b-nokia-ea0326gmp-ubootmod.dts
+new file mode 100644
+index 0000000000..3315663685
+--- /dev/null
++++ b/target/linux/mediatek/dts/mt7981b-nokia-ea0326gmp-ubootmod.dts
+@@ -0,0 +1,257 @@
++// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
++
++/dts-v1/;
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/input/input.h>
++
++#include "mt7981.dtsi"
++
++/ {
++	model = "Nokia EA0326GMP";
++	compatible = "nokia,ea0326gmp-ubootmod", "mediatek,mt7981";
++
++	aliases {
++		led-boot = &power_led;
++		led-running = &power_led;
++		led-failsafe = &power_led;
++		led-upgrade = &power_led;
++	};
++
++	chosen {
++		bootargs = "console=ttyS0,115200n1 loglevel=8 earlycon=uart8250,mmio32,0x11002000";
++	};
++
++	memory@40000000 {
++		reg = <0 0x40000000 0 0x10000000>;
++	};
++
++	gpio-keys {
++		compatible = "gpio-keys";
++
++		button-reset {
++			label = "reset";
++			linux,code = <KEY_RESTART>;
++			gpios = <&pio 1 GPIO_ACTIVE_LOW>;
++		};
++
++		button-wps {
++			label = "wps";
++			linux,code = <KEY_WPS_BUTTON>;
++			gpios = <&pio 0 GPIO_ACTIVE_HIGH>;
++		};
++	};
++
++	gpio-leds {
++		compatible = "gpio-leds";
++
++		power_led: led-0 {
++			label = "green:power";
++			gpios = <&pio 4 GPIO_ACTIVE_LOW>;
++		};
++
++		led-1 {
++			label = "green:wan";
++			gpios = <&pio 5 GPIO_ACTIVE_LOW>;
++		};
++
++		led-2 {
++			label = "red:wan";
++			gpios = <&pio 6 GPIO_ACTIVE_LOW>;
++		};
++
++		led-3 {
++			label = "green:lan";
++			gpios = <&pio 7 GPIO_ACTIVE_LOW>;
++		};
++
++		led-4 {
++			label = "green:wlan";
++			gpios = <&pio 8 GPIO_ACTIVE_LOW>;
++		};
++
++		led-5 {
++			label = "green:wps";
++			gpios = <&pio 9 GPIO_ACTIVE_LOW>;
++		};
++	};
++
++	gsw: gsw@0 {
++		compatible = "mediatek,mt753x";
++		mediatek,ethsys = <&ethsys>;
++		#address-cells = <1>;
++		#size-cells = <0>;
++	};
++
++	nmbm_spim_nand {
++		compatible = "generic,nmbm";
++
++		#address-cells = <1>;
++		#size-cells = <1>;
++
++		lower-mtd-device = <&spi_nand>;
++		forced-create;
++
++		partitions {
++			compatible = "fixed-partitions";
++			#address-cells = <1>;
++			#size-cells = <1>;
++
++			partition@0 {
++				label = "BL2";
++				reg = <0x0 0x100000>;
++			};
++
++			partition@100000 {
++				label = "u-boot-env";
++				reg = <0x100000 0x80000>;
++			};
++
++			partition@180000 {
++				label = "Factory";
++				reg = <0x180000 0x200000>;
++			};
++
++			partition@380000 {
++				label = "FIP";
++				reg = <0x380000 0x200000>;
++			};
++
++			partition@580000 {
++				label = "Config";
++				reg = <0x580000 0x200000>;
++			};
++
++			partition@780000 {
++				label = "Config2";
++				reg = <0x780000 0x200000>;
++			};
++
++			partition@980000 {
++				label = "ubi";
++				reg = <0x980000 0x6e00000>;
++			};
++
++			/* Leave last 8.5 MiB for NMBM bad block table */
++		};
++	};
++};
++
++&eth {
++	status = "okay";
++
++	gmac0: mac@0 {
++		compatible = "mediatek,eth-mac";
++		reg = <0>;
++		phy-mode = "2500base-x";
++
++		fixed-link {
++			speed = <2500>;
++			full-duplex;
++			pause;
++		};
++	};
++
++	gmac1: mac@1 {
++		compatible = "mediatek,eth-mac";
++		reg = <1>;
++		phy-mode = "gmii";
++		phy-handle = <&phy0>;
++	};
++
++	mdio: mdio-bus {
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		phy0: ethernet-phy@0 {
++			compatible = "ethernet-phy-id03a2.9461";
++			reg = <0>;
++			phy-mode = "gmii";
++			nvmem-cells = <&phy_calibration>;
++			nvmem-cell-names = "phy-cal-data";
++		};
++	};
++};
++
++&gsw {
++	mediatek,mdio = <&mdio>;
++	mediatek,mdio_master_pinmux = <0>;
++	reset-gpios = <&pio 39 0>;
++	interrupt-parent = <&pio>;
++	interrupts = <38 IRQ_TYPE_LEVEL_HIGH>;
++	status = "okay";
++
++	port6: port@6 {
++		compatible = "mediatek,mt753x-port";
++		mediatek,ssc-on;
++		reg = <6>;
++		phy-mode = "sgmii";
++
++		fixed-link {
++			speed = <2500>;
++			full-duplex;
++		};
++	};
++};
++
++&hnat {
++        mtketh-wan = "eth1";
++        mtketh-lan = "eth0";
++        mtketh-max-gmac = <2>;
++        status = "okay";
++};
++
++&spi0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&spi0_flash_pins>;
++	status = "okay";
++
++	spi_nand: flash@0 {
++		#address-cells = <1>;
++		#size-cells = <1>;
++		compatible = "spi-nand";
++		reg = <0>;
++		spi-max-frequency = <52000000>;
++
++		spi-cal-enable;
++		spi-cal-mode = "read-data";
++		spi-cal-datalen = <7>;
++		spi-cal-data = /bits/ 8 <0x53 0x50 0x49 0x4E 0x41 0x4E 0x44>;
++		spi-cal-addrlen = <5>;
++		spi-cal-addr = /bits/ 32 <0x0 0x0 0x0 0x0 0x0>;
++
++		spi-tx-bus-width = <4>;
++		spi-rx-bus-width = <4>;
++		mediatek,nmbm;
++		mediatek,bmt-max-ratio = <1>;
++		mediatek,bmt-max-reserved-blocks = <64>;
++	};
++};
++
++&pio {
++	spi0_flash_pins: spi0-pins {
++		mux {
++			function = "spi";
++			groups = "spi0", "spi0_wp_hold";
++		};
++
++		conf-pu {
++			pins = "SPI0_CS", "SPI0_HOLD", "SPI0_WP";
++			drive-strength = <8>;
++			bias-pull-up = <103>;
++		};
++
++		conf-pd {
++			pins = "SPI0_CLK", "SPI0_MOSI", "SPI0_MISO";
++			drive-strength = <8>;
++			bias-pull-down = <103>;
++		};
++	};
++};
++
++&uart0 {
++	status = "okay";
++};
++
++&watchdog {
++	status = "okay";
++};
+diff --git a/target/linux/mediatek/filogic/base-files/etc/board.d/01_leds b/target/linux/mediatek/filogic/base-files/etc/board.d/01_leds
+index e67d6c3eff..2616960232 100644
+--- a/target/linux/mediatek/filogic/base-files/etc/board.d/01_leds
++++ b/target/linux/mediatek/filogic/base-files/etc/board.d/01_leds
+@@ -18,6 +18,7 @@ cudy,re3000-v1)
+ cudy,wr3000-v1)
+ 	ucidef_set_led_netdev "wan" "wan" "blue:wan" "wan"
+ 	;;
++nokia,ea0326gmp-ubootmod|\
+ nokia,ea0326gmp)
+ 	ucidef_set_led_netdev "wan" "WAN" "green:wan" "eth1" "link"
+ 	ucidef_set_led_netdev "lan" "LAN" "green:lan" "br-lan" "link"
+diff --git a/target/linux/mediatek/filogic/base-files/etc/board.d/02_network b/target/linux/mediatek/filogic/base-files/etc/board.d/02_network
+index c0f3052bef..a920fbef46 100644
+--- a/target/linux/mediatek/filogic/base-files/etc/board.d/02_network
++++ b/target/linux/mediatek/filogic/base-files/etc/board.d/02_network
+@@ -37,6 +37,7 @@ mediatek_setup_interfaces()
+ 	cmcc,rax3000m-nand-ubootmod|\
+ 	cmcc,rax3000m|\
+ 	nokia,ea0326gmp|\
++	nokia,ea0326gmp-ubootmod|\
+ 	h3c,magic-nx30-pro)
+ 		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3" eth1
+ 		;;
+diff --git a/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh b/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
+index 8ffb5f1203..0b4cb3640b 100755
+--- a/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
++++ b/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
+@@ -119,6 +119,7 @@ platform_do_upgrade() {
+ 	jcg,q30-pro|\
+ 	mediatek,mt7981-rfb|\
+ 	nokia,ea0326gmp|\
++	nokia,ea0326gmp-ubootmod|\
+ 	qihoo,360t7|\
+ 	tplink,tl-xdr4288|\
+ 	tplink,tl-xdr6086|\
+diff --git a/target/linux/mediatek/image/filogic.mk b/target/linux/mediatek/image/filogic.mk
+index ab75eb7cc1..4b02cd65cd 100644
+--- a/target/linux/mediatek/image/filogic.mk
++++ b/target/linux/mediatek/image/filogic.mk
+@@ -652,6 +652,23 @@ define Device/nokia_ea0326gmp
+ endef
+ TARGET_DEVICES += nokia_ea0326gmp
+ 
++define Device/nokia_ea0326gmp_ubootmod
++  DEVICE_VENDOR := Nokia
++  DEVICE_MODEL := EA0326GMP-Ubootmod
++  DEVICE_DTS := mt7981b-nokia-ea0326gmp-ubootmod
++  DEVICE_DTS_DIR := ../dts
++  SUPPORTED_DEVICES := nokia,ea0326gmp-ubootmod
++  UBINIZE_OPTS := -E 5
++  BLOCKSIZE := 128k
++  PAGESIZE := 2048
++  IMAGE_SIZE := 112640k
++  KERNEL_IN_UBI := 1
++  IMAGES += factory.bin
++  IMAGE/factory.bin := append-ubi | check-size $$$$(IMAGE_SIZE)
++  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
++endef
++TARGET_DEVICES += nokia_ea0326gmp_ubootmod
++
+ define Device/qihoo_360t7
+   DEVICE_VENDOR := Qihoo
+   DEVICE_MODEL := 360T7
+-- 
+2.34.1
+

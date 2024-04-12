@@ -1,7 +1,7 @@
-From 3ada6ccc9603a6acacb7671e9e1c7bb29e592920 Mon Sep 17 00:00:00 2001
+From c09874d7618ccdd64370c21e38d7276ac72d51a5 Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
-Date: Tue, 9 Apr 2024 21:00:33 +0800
-Subject: [PATCH] mediatek: add Nokia EA0326GMP support
+Date: Thu, 11 Apr 2024 19:10:55 +0800
+Subject: [PATCH 1/2] mediatek: add Nokia EA0326GMP support
 
 From 1444c9da8e63e47444528ca35ff55d64b444f2d6 Mon Sep 17 00:00:00 2001
 From: Tianling Shen <cnsztl@immortalwrt.org>
@@ -67,14 +67,13 @@ Signed-off-by: Tianling Shen <cnsztl@immortalwrt.org>
  .../uboot-envtools/files/mediatek_filogic     |   1 +
  package/boot/uboot-mediatek/Makefile          |  13 +
  .../patches/453-add-nokia_ea0326gmp.patch     | 412 ++++++++++++++++++
- package/utils/util-linux/Makefile             |   3 +-
  .../mediatek/dts/mt7981b-nokia-ea0326gmp.dts  | 284 ++++++++++++
  .../filogic/base-files/etc/board.d/01_leds    |   5 +
  .../filogic/base-files/etc/board.d/02_network |   1 +
  .../etc/hotplug.d/ieee80211/11_fix_wifi_mac   |   5 +
  .../base-files/lib/upgrade/platform.sh        |   1 +
  target/linux/mediatek/image/filogic.mk        |  24 +
- 10 files changed, 748 insertions(+), 1 deletion(-)
+ 9 files changed, 746 insertions(+)
  create mode 100644 package/boot/uboot-mediatek/patches/453-add-nokia_ea0326gmp.patch
  create mode 100644 target/linux/mediatek/dts/mt7981b-nokia-ea0326gmp.dts
 
@@ -539,27 +538,6 @@ index 0000000000..bee5bc4384
 ++_firstboot=setenv _firstboot ; run _switch_to_menu ; run _init_env ; run boot_first
 ++_switch_to_menu=setenv _switch_to_menu ; setenv bootdelay 3 ; setenv bootmenu_delay 3 ; setenv bootmenu_0 $bootmenu_0d ; setenv bootmenu_0d ; run _bootmenu_update_title
 ++_bootmenu_update_title=setenv _bootmenu_update_title ; setenv bootmenu_title "$bootmenu_title       [33m$ver[0m"
-diff --git a/package/utils/util-linux/Makefile b/package/utils/util-linux/Makefile
-index 90724eb3f6..7497f92f40 100644
---- a/package/utils/util-linux/Makefile
-+++ b/package/utils/util-linux/Makefile
-@@ -452,6 +452,7 @@ define Package/script-utils
- $(call Package/util-linux/Default)
-   TITLE:=make and replay typescript of terminal session
-   SUBMENU=Terminal
-+  ALTERNATIVES:=200:/usr/bin/script:/usr/bin/util-linux-script
- endef
- 
- define Package/script-utils/description
-@@ -846,7 +847,7 @@ endef
- 
- define Package/script-utils/install
- 	$(INSTALL_DIR) $(1)/usr/bin
--	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/bin/script $(1)/usr/bin/
-+	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/bin/script $(1)/usr/bin/util-linux-script
- 	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/bin/scriptreplay $(1)/usr/bin/
- endef
- 
 diff --git a/target/linux/mediatek/dts/mt7981b-nokia-ea0326gmp.dts b/target/linux/mediatek/dts/mt7981b-nokia-ea0326gmp.dts
 new file mode 100644
 index 0000000000..dc8a218f51
