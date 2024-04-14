@@ -8,13 +8,13 @@
 # 生成每个固件文件的 SHA-256 哈希值并保存为 .sha 文件
 function gen_sha256sum() {
     for f in firmware/*; do
-        sha256sum "$f" >"${f}.sha"
+        sha256sum "$f" | awk '{print $1}' >"${f}.sha"
     done
 }
 
 # 将所有 .sha 文件的内容放入 Markdown 格式的 release.txt 文件中
 function put_sha256sum() {
-    echo "# Firmware SHA-256 Hashes" > release.txt
+    echo "# Firmware SHA-256 Hashes" >> release.txt
     echo "" >> release.txt
     for a in firmware/*.sha; do
         # 提取文件名和哈希值
