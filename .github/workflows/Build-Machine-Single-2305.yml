@@ -1,4 +1,4 @@
-name: Build 23.05 Machine
+name: Build 23.05 Single Machine
 
 # Fix for broken build: https://github.com/softprops/action-gh-release/issues/236
 permissions:
