@@ -56,8 +56,9 @@ env:
 jobs:
   prepare:
     runs-on: ubuntu-22.04
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
     strategy:
-      fail-fast: false
       matrix:
         include:
         - mt798x: rax3000m-emmc
@@ -69,44 +70,36 @@ jobs:
         - ramips: d-team_newifi-d2
 
     steps:
-    - name: 检查
-      uses: actions/checkout@main
-
-    - name: 导入matrix
-      run: |
-        if [ "${{ github.event.inputs.MACH }}" == "${{ matrix.mt798x }}" ]; then
-          echo "MTARGET1=mt798x-iptables" >> $GITHUB_ENV
-          echo "MTARGET2=mt798x-nftables" >> $GITHUB_ENV
-          echo "----mt798x--------"
-        fi
-
-        if [ "${{ github.event.inputs.MACH }}" == "${{ matrix.mt798x-nousb }}" ]; then
-          echo "MTARGET1=mt798x-nousb-iptables" >> $GITHUB_ENV
-          echo "MTARGET2=mt798x-nousb-nftables" >> $GITHUB_ENV
-          echo "----mt798x--nousb------"
-        fi
-
-        if [ "${{ github.event.inputs.MACH }}" == "${{ matrix.ramips }}" ]; then
-          echo "MTARGET1=ramips-iptables" >> $GITHUB_ENV
-          echo "MTARGET2=ramips-nftables" >> $GITHUB_ENV
-          echo "----ramips------"
-        fi
+      - name: 检查
+        uses: actions/checkout@main
+      
+      - name: 生成矩阵配置
+        id: set-matrix
+        run: |
+          if [ "${{ github.event.inputs.MACH }}" == "${{ matrix.mt798x }}" ]; then
+            matrix={"\"include\":[{\"target\":\"mt798x-iptables\"},{\"target\":\"mt798x-nftables\"}]}"
+          elif [ "${{ github.event.inputs.MACH }}" == "${{ matrix.mt798x-nousb }}" ]; then
+            matrix={"\"include\":[{\"target\":\"mt798x-nousb-iptables\"},{\"target\":\"mt798x-nousb-nftables\"}]}"
+          elif [ "${{ github.event.inputs.MACH }}" == "${{ matrix.ramips }}" ]; then
+            matrix={"\"include\":[{\"target\":\"ramips-iptables\"},{\"target\":\"ramips-nftables\"}]}"
+          fi
+          echo "Generated matrix: $matrix"
+          echo "matrix=$matrix" >> $GITHUB_OUTPUT
  
   build:
     runs-on: Ubuntu-22.04
     needs: prepare
-    if: (github.event.repository.owner.id == github.event.sender.id)
-    name: Build ${{github.event.inputs.MACH}} openwrt 23.05
     strategy:
-      fail-fast: false
-      matrix:
-        include:
-        - target: ${MTARGET1}
-        - target: ${MTARGET2}
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    name: Build ${{github.event.inputs.MACH}} openwrt 23.05
 
     steps:
     - name: 检查
       uses: actions/checkout@main
+
+    - name: Print matrix from prepare
+      run: |
+         echo "Matrix from prepare: ${{ needs.prepare.outputs.matrix }}"
 
     - name: 初始化环境
       env:
