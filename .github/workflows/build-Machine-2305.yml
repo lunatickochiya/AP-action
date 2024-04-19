@@ -17,6 +17,22 @@ on:
         options:
         - 'true'
         - 'false'
+      Cache:
+        description: 'Use Cache'
+        required: true
+        default: 'true'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
+      UPLOAD_RELEASE:
+        description: 'UPLOAD To RELEASE'
+        required: true
+        default: 'true'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
       MACH:
         description: 'Choose machine'
         required: true
@@ -250,6 +266,8 @@ jobs:
       run: |
         awk '/${{matrix.target}}/ { print }' .config
         echo "------------------------"
+        awk '/${{github.event.inputs.MACH}}/ { print }' .config
+        echo "------------------------"
         awk '/mediatek/ { print }' .config
         echo "------------------------"
         awk '/wpad/ { print }' .config
@@ -275,7 +293,7 @@ jobs:
 
     - name: 缓存
       uses: stupidloud/cachewrtbuild@main
-      if: env.USE_Cache == 'true' && !cancelled()
+      if: github.event.inputs.Cache == 'true' && !cancelled()
       with:
         ccache: 'true'
         mixkey: ${{ matrix.target }}
@@ -316,8 +334,8 @@ jobs:
       if: env.UPLOAD_FIRMWARE == 'true' && steps.afb.outputs.status == 'success' && !cancelled()
       run: |
         mkdir firmware ipks
-        [ $UPLOAD_RELEASE = true ] && cp -u -f openwrt/kernelipks.zip firmware
-        [ $UPLOAD_RELEASE = true ] && cp -u -f openwrt/ipks.zip firmware
+        [ ${{github.event.inputs.UPLOAD_RELEASE}} = true ] && cp -u -f openwrt/kernelipks.zip firmware
+        [ ${{github.event.inputs.UPLOAD_RELEASE}} = true ] && cp -u -f openwrt/ipks.zip firmware
         cp -u -f openwrt/kernelipks.zip ipks
         cp -u -f openwrt/ipks.zip ipks
         mv -f openwrt/bin/targets/*/*/{*combined*,*ext4*,*sdk*,*imagebuilder*,*buildinfo*,*manifest*,*json*,*sha256sums*} ./firmware/ 2>/dev/null || true
@@ -369,7 +387,7 @@ jobs:
 
     - name: 生成发布标签
       id: tag
-      if: steps.organize.outputs.status == 'success' && env.UPLOAD_RELEASE == 'true' && !cancelled()
+      if: steps.organize.outputs.status == 'success' && github.event.inputs.UPLOAD_RELEASE == 'true' && !cancelled()
       run: |
         touch release.txt
         $GITHUB_WORKSPACE/gen-sha256sum.sh
@@ -384,8 +402,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         files: "${{ env.FIRMWARE }}/*"
-        name: ${{ env.date2 }} ${{matrix.target}}-openwrt-2305
-        tag_name: ${{ env.date }}_${{matrix.target}}-openwrt-2305
+        name: ${{ env.date }} ${{matrix.target}}-${{github.event.inputs.UPLOAD_RELEASE}}-openwrt-2305
+        tag_name: ${{ env.date }}_${{matrix.target}}-${{github.event.inputs.UPLOAD_RELEASE}}-openwrt-2305
         body_path: release.txt
 
     - name: 删除工作流
@@ -396,7 +414,7 @@ jobs:
 
     - name: 删除旧版本
       uses: dev-drprasad/delete-older-releases@master
-      if: env.UPLOAD_RELEASE == 'true' && !cancelled()
+      if: github.event.inputs.UPLOAD_RELEASE == 'true' && !cancelled()
       with:
         keep_latest: 24
         delete_tags: true
