@@ -9,14 +9,6 @@ on:
   repository_dispatch:
   workflow_dispatch:
     inputs:
-      Single:
-        description: 'Single Profile'
-        required: true
-        default: 'true'
-        type: choice
-        options:
-        - 'true'
-        - 'false'
       Cache:
         description: 'Use Cache'
         required: true
@@ -46,6 +38,20 @@ on:
         - 'lenovo_newifi-d1'
         - 'd-team_newifi-d2'
         - 'lenovo_newifi-y1'
+      USE_NX30PRO_EEPROM:
+        description: 'Use nx30pro eeprom'
+        default: 'false'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
+      USE_52MHZ:
+        description: 'Use 52MHz max-frequency'
+        default: 'false'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
       ssh:
         description: 'SSH connection to Actions'
         required: false
@@ -148,7 +154,6 @@ jobs:
         chmod +x $DIY_SH $DIY_SH_AFB $DIY_SH_RFC gen-sha256sum.sh
 
     - name: 导入机器及安装包config
-      if: github.event.inputs.Single == 'true'
       run: |
         if [ ${{matrix.target}} == 'mt798x-iptables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-iptables' ] || [ ${{ matrix.target }} == 'ramips-iptables' ]; then
                 mv -f machine-configs/single/${{github.event.inputs.MACH}}-iptables.config machine-configs/${{matrix.target}}.config
@@ -212,6 +217,24 @@ jobs:
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_SH patch-openwrt
         cd ../
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: 设置是否使用 nx30pro eeprom
+      if: github.event.inputs.USE_NX30PRO_EEPROM == 'true'
+      id: eeprom
+      run: |
+        mkdir -p openwrt/target/linux/mediatek/filogic/base-files/lib/firmware/mediatek
+        cp eeprom/nx30pro_eeprom.bin openwrt/target/linux/mediatek/filogic/base-files/lib/firmware/mediatek
+        sed -i -e '/caldata_extract_mmc "factory" 0x0 0x1000/ a\           cp /lib/firmware/mediatek/nx30pro_eeprom.bin /lib/firmware/mediatek/mt7981_eeprom_mt7976_dbdc.bin' openwrt/target/linux/mediatek/filogic/base-files/etc/hotplug.d/firmware/11-mt76-caldata
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: 设置 dts 闪存频率
+      if: github.event.inputs.USE_52MHZ == 'true'
+      id: frequency
+      run: |
+        sed -i -e '/bus-width = <8>;/ a\	cap-mmc-highspeed;' openwrt/target/linux/mediatek/dts/mt7981b-cmcc-rax3000m-emmc-ubootmod.dts
+        sed -i 's/26000000/52000000/g' openwrt/target/linux/mediatek/dts/mt7981b-cmcc-rax3000m-emmc-ubootmod.dts
+        grep max-frequency openwrt/target/linux/mediatek/dts/mt7981b-cmcc-rax3000m-emmc-ubootmod.dts
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 更新 & 安装 feeds
@@ -384,6 +407,8 @@ jobs:
       run: |
         touch release.txt
         $GITHUB_WORKSPACE/gen-sha256sum.sh
+        [ ${{matrix.target}} = mt798x* ] && [ -e openwrt/target/linux/mediatek/filogic/base-files/lib/firmware/mediatek/nx30pro_eeprom.bin ] && echo "- eeprom 使用 H3C NX30 Pro 提取版本" >> release.txt
+        [ ${{github.event.inputs.MACH}} = rax3000m-emmc ] && echo "- 使用闪存频率: ($(grep -oP "max-frequency = <\K[0-9]*" openwrt/target/linux/mediatek/dts/mt7981b-cmcc-rax3000m-emmc-ubootmod.dts)) Hz" >> release.txt
         [ $UPLOAD_COWTRANSFER = true ] && echo "🔗 [Cowtransfer](${{ steps.cowtransfer.outputs.url }})" >> release.txt
         [ $UPLOAD_WETRANSFER = true ] && echo "🔗 [WeTransfer](${{ steps.wetransfer.outputs.url }})" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
@@ -395,12 +420,13 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         files: "${{ env.FIRMWARE }}/*"
-        name: ${{ env.date }} ${{matrix.target}}-${{github.event.inputs.UPLOAD_RELEASE}}-openwrt-2305
-        tag_name: ${{ env.date }}_${{matrix.target}}-${{github.event.inputs.UPLOAD_RELEASE}}-openwrt-2305
+        name: ${{ env.date }} ${{matrix.target}}-${{github.event.inputs.MACH}}-openwrt-2305
+        tag_name: ${{ env.date }}_${{matrix.target}}-${{github.event.inputs.MACH}}-openwrt-2305
         body_path: release.txt
 
     - name: 删除工作流
       uses: Mattraks/delete-workflow-runs@main
+      continue-on-error: true
       with:
         retain_days: 2
         keep_minimum_runs: 3
@@ -408,6 +434,7 @@ jobs:
     - name: 删除旧版本
       uses: dev-drprasad/delete-older-releases@master
       if: github.event.inputs.UPLOAD_RELEASE == 'true' && !cancelled()
+      continue-on-error: true
       with:
         keep_latest: 24
         delete_tags: true
