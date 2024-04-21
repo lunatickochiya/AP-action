@@ -395,7 +395,7 @@ jobs:
       continue-on-error: true
       if: steps.organize.outputs.status == 'success' && env.UPLOAD_FIRMWARE == 'true'
       with:
-        name: ${{ env.VERSION }}_${{matrix.target}}_firmware_23.05-${{github.event.inputs.MACH}}
+        name: ${{ env.VERSION }}_${{matrix.target}}_firmware_23.05-${{github.event.inputs.MACH}}-${{ github.event.inputs.SETIP }}
         path: |
           firmware
 
@@ -432,6 +432,7 @@ jobs:
       run: |
         touch release.txt
         $GITHUB_WORKSPACE/gen-sha256sum.sh
+        echo "# 当前固件IP地址："${{ github.event.inputs.SETIP }}" " >> release.txt
         [ ${{matrix.target}} = mt798x* ] && [ -e openwrt/target/linux/mediatek/filogic/base-files/lib/firmware/mediatek/nx30pro_eeprom.bin ] && echo "- eeprom 使用 H3C NX30 Pro 提取版本" >> release.txt
         [ ${{github.event.inputs.MACH}} = rax3000m-emmc ] && echo "- 使用闪存频率: ($(grep -oP "max-frequency = <\K[0-9]*" openwrt/target/linux/mediatek/dts/mt7981b-cmcc-rax3000m-emmc-ubootmod.dts)) Hz" >> release.txt
         [ $UPLOAD_COWTRANSFER = true ] && echo "🔗 [Cowtransfer](${{ steps.cowtransfer.outputs.url }})" >> release.txt
