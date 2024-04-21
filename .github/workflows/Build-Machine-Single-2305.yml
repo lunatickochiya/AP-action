@@ -45,13 +45,25 @@ on:
         options:
         - 'true'
         - 'false'
-      USE_52MHZ:
-        description: 'Use 52MHz max-frequency'
-        default: 'false'
+#      USE_52MHZ:
+#        description: 'Use 52MHz max-frequency'
+#        default: 'false'
+#        type: choice
+#        options:
+#        - 'true'
+#        - 'false'
+      SETIP:
+        description: 'Set ip address'
+        default: '192.168.10.1'
+        required: false
         type: choice
         options:
-        - 'true'
-        - 'false'
+        - '192.168.10.1'
+        - '192.168.8.1'
+        - '192.168.16.1'
+        - '192.168.19.1'
+        - '192.168.9.1'
+        - '192.168.166.1'
       ssh:
         description: 'SSH connection to Actions'
         required: false
@@ -83,13 +95,13 @@ jobs:
         id: set-matrix
         run: |
           if [ "${{ github.event.inputs.MACH }}" == "${{ matrix.mt798x }}" ]; then
-            matrix={"\"include\":[{\"target\":\"mt798x-iptables\"},{\"target\":\"mt798x-nftables\"}]}"
+            matrix={\"include\":[{\"target\":\"mt798x-iptables\"},{\"target\":\"mt798x-nftables\"}]}
           elif [ "${{ github.event.inputs.MACH }}" == "${{ matrix.mt798x-nousb }}" ]; then
-            matrix={"\"include\":[{\"target\":\"mt798x-nousb-iptables\"},{\"target\":\"mt798x-nousb-nftables\"}]}"
+            matrix={\"include\":[{\"target\":\"mt798x-nousb-iptables\"},{\"target\":\"mt798x-nousb-nftables\"}]}
           elif [ "${{ github.event.inputs.MACH }}" == "${{ matrix.ramips }}" ]; then
-            matrix={"\"include\":[{\"target\":\"ramips-iptables\"},{\"target\":\"ramips-nftables\"}]}"
+            matrix={\"include\":[{\"target\":\"ramips-iptables\"},{\"target\":\"ramips-nftables\"}]}
           fi
-          echo "Generated matrix: $matrix"
+          echo "Generated matrix: "$matrix""
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
  
   build:
@@ -235,6 +247,19 @@ jobs:
         sed -i -e '/bus-width = <8>;/ a\	cap-mmc-highspeed;' openwrt/target/linux/mediatek/dts/mt7981b-cmcc-rax3000m-emmc-ubootmod.dts
         sed -i 's/26000000/52000000/g' openwrt/target/linux/mediatek/dts/mt7981b-cmcc-rax3000m-emmc-ubootmod.dts
         grep max-frequency openwrt/target/linux/mediatek/dts/mt7981b-cmcc-rax3000m-emmc-ubootmod.dts
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: 设置 IP 地址
+      if: github.event.inputs.SETIP != '192.168.10.1'
+      id: setip
+      run: |
+        IPSET_VALUE="${{ github.event.inputs.SETIP }}"
+        sed -i "s/192\.168\.10\.1/$IPSET_VALUE/g" openwrt/package/kochiya/autoset/files/zzz-autoset-mediatek
+        sed -i "s/192\.168\.10\.1/$IPSET_VALUE/g" openwrt/package/kochiya/autoset/files/zzz-autoset-ramips
+        sed -i "s/192\.168\.10\.1/$IPSET_VALUE/g" openwrt/package/kochiya/autoset/files/zzz-autoset-ath79
+        grep 'set network.lan.ipaddr=' openwrt/package/kochiya/autoset/files/zzz-autoset-mediatek
+        grep 'set network.lan.ipaddr=' openwrt/package/kochiya/autoset/files/zzz-autoset-ramips
+        grep 'set network.lan.ipaddr=' openwrt/package/kochiya/autoset/files/zzz-autoset-ath79
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 更新 & 安装 feeds
