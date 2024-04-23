@@ -135,10 +135,10 @@ function patch_lunatic7() {
         done
         }
 
-function patch_rockchip() {
-        for rockpatch in $( ls tpm312/core ); do
-            echo Applying tpm312 $rockpatch
-            patch -p1 --no-backup-if-mismatch < tpm312/core/$rockpatch
+function patch_kernel61() {
+        for rockpatch in $( ls tpm312/openwrt-23.05-k6.1/core ); do
+            echo Applying openwrt-23.05-k6.1 $rockpatch
+            patch -p1 --no-backup-if-mismatch < tpm312/openwrt-23.05-k6.1/core/$rockpatch
         done
         rm -rf tpm312
         }
@@ -257,6 +257,8 @@ patch_openwrt_2305
 patch_openwrt
 elif [ "$1" == "firewallremove" ]; then
 remove_firewall
+elif [ "$1" == "kernel61" ]; then
+patch_kernel61
 else
 echo "Invalid argument"
 fi

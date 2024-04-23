@@ -45,6 +45,13 @@ on:
         options:
         - 'true'
         - 'false'
+      TEST-KERNEL:
+        description: 'Use kernel 6.1'
+        default: 'false'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
 #      USE_52MHZ:
 #        description: 'Use 52MHz max-frequency'
 #        default: 'false'
@@ -203,6 +210,10 @@ jobs:
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
         cd openwrt
         sed -i '$a src-git lunatic7 https://github.com/lunatickochiya/actionbased-openwrt-packages.git' feeds.conf.default
+        if [ ${{github.event.inputs.TEST-KERNEL}} = true ]; then
+        git clone https://${{ secrets.MY_SECRET_TOKEN }}@github.com/lunatickochiya/tpm312.git
+        $GITHUB_WORKSPACE/$DIY_SH kernel61
+        fi
         $GITHUB_WORKSPACE/$DIY_SH firewallremove
         echo "status=success" >> $GITHUB_OUTPUT
 
@@ -275,6 +286,13 @@ jobs:
       if: steps.feeds.outputs.status == 'success'
       id: config
       run: |
+        if [ ${{github.event.inputs.TEST-KERNEL}} = true ]; then
+        cd openwrt/feeds/telephony
+        patch -p1 < ../../openwrt-2305/K61/0001-feeds-telep-adhdi-linux-fix-kernel-6.1.patch
+        cd openwrt/feeds/packages
+        patch -p1 < ../../openwrt-2305/K61/0007-feeds-packages-6.1-bump-fix.patch
+        cd ../../..
+        fi
         [ -d openwrt-2305/lunatic7-revert ] && mv -f openwrt-2305/lunatic7-revert openwrt/feeds/lunatic7/lunatic7-revert
         [ -d openwrt-2305/luci-patch-2305 ] && mv -f openwrt-2305/luci-patch-2305 openwrt/feeds/luci/luci-patch-2305
         [ -d openwrt-2305/feeds-package-patch-2305 ] && mv -f openwrt-2305/feeds-package-patch-2305 openwrt/feeds/packages/feeds-package-patch-2305
