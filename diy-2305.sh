@@ -143,6 +143,14 @@ function patch_kernel61() {
         rm -rf tpm312
         }
 
+function patch_tele() {
+        cd openwrt/feeds/telephony
+        for patchfile in tele/*.patch; do
+            patch -p1 < "$patchfile"
+        done
+        cd ../../..
+        }
+
 function remove_firewall() {
 
 directories1=(
