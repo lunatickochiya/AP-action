@@ -17,6 +17,14 @@ on:
         options:
         - 'true'
         - 'false'
+      ALLKMOD:
+        description: 'Compile All Kmods'
+        required: true
+        default: 'true'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
       UPLOAD_RELEASE:
         description: 'UPLOAD To RELEASE'
         required: true
@@ -69,12 +77,12 @@ on:
         - '192.168.8.1'
         - '192.168.16.1'
         - '192.168.19.1'
-        - '192.168.9.1'
+        - '192.168.99.1'
         - '192.168.166.1'
-      ssh:
-        description: 'SSH connection to Actions'
-        required: false
-        default: 'false'
+        - '172.16.0.1'
+        - '172.18.0.1'
+        - '10.0.0.1'
+        - '10.88.0.1'
 env:
   TZ: Asia/Shanghai
 
@@ -309,7 +317,7 @@ jobs:
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 添加kmod
-      if: steps.config.outputs.status == 'success' && env.UPLOAD_ALLKMOD == 'true'
+      if: steps.config.outputs.status == 'success' && github.event.inputs.ALLKMOD == 'true'
       id: config2
       run: |
         cd openwrt
