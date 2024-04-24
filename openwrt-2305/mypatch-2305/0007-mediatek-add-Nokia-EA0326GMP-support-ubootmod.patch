@@ -348,7 +348,7 @@ diff --git a/target/linux/mediatek/image/filogic.mk b/target/linux/mediatek/imag
 index ab75eb7cc1..4b02cd65cd 100644
 --- a/target/linux/mediatek/image/filogic.mk
 +++ b/target/linux/mediatek/image/filogic.mk
-@@ -652,6 +652,23 @@ define Device/nokia_ea0326gmp
+@@ -652,6 +652,24 @@ define Device/nokia_ea0326gmp
  endef
  TARGET_DEVICES += nokia_ea0326gmp
  
@@ -365,6 +365,7 @@ index ab75eb7cc1..4b02cd65cd 100644
 +  KERNEL_IN_UBI := 1
 +  IMAGES += factory.bin
 +  IMAGE/factory.bin := append-ubi | check-size $$$$(IMAGE_SIZE)
++  DEVICE_PACKAGES := kmod-mt7981-firmware mt7981-wo-firmware
 +  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
 +endef
 +TARGET_DEVICES += nokia_ea0326gmp_ubootmod
