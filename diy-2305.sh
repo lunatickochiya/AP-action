@@ -143,6 +143,7 @@ done
 
 directories2=(
     "package/kernel/mac80211"
+    "package/kernel/mt76"
 )
 
 for directory2 in "${directories2[@]}"; do
@@ -156,13 +157,15 @@ for directory2 in "${directories2[@]}"; do
 done
 
 source_directory="tpm312/package/kernel/mac80211"
+source_directory2="tpm312/package/kernel/mt76"
 target_directory="package/kernel/mac80211"
+target_directory2="package/kernel/mt76"
 
-# 检查源目录是否存在
+# 检查源目录1是否存在
 if [ -d "$source_directory" ]; then
     echo "源目录 $source_directory 存在。"
 
-    # 检查目标目录是否存在
+    # 检查目标目录1是否存在
     if [ -d "$target_directory" ]; then
         echo "目标目录 $target_directory 已经存在，无需移动。"
     else
@@ -172,6 +175,22 @@ if [ -d "$source_directory" ]; then
     fi
 else
     echo "源目录 $source_directory 不存在。"
+fi
+
+# 检查源目录2是否存在
+if [ -d "$source_directory2" ]; then
+    echo "源目录 $source_directory2 存在。"
+
+    # 检查目标目录2是否存在
+    if [ -d "$target_directory2" ]; then
+        echo "目标目录 $target_directory2 已经存在，无需移动。"
+    else
+        echo "目标目录 $target_directory2 不存在，进行恢复操作..."
+        mv -f "$source_directory2" "$target_directory2"
+        echo "目录 $source_directory2 已移动到目标目录 $target_directory2。"
+    fi
+else
+    echo "源目录 $source_directory2 不存在。"
 fi
 
 rm -rf tpm312
