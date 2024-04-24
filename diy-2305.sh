@@ -136,12 +136,46 @@ function patch_lunatic7() {
         }
 
 function patch_kernel61() {
-        for rockpatch in $( ls tpm312/openwrt-23.05-k6.1/core ); do
-            echo Applying openwrt-23.05-k6.1 $rockpatch
-            patch -p1 --no-backup-if-mismatch < tpm312/openwrt-23.05-k6.1/core/$rockpatch
-        done
-        rm -rf tpm312
-        }
+for rockpatch in $( ls tpm312/openwrt-23.05-k6.1/core ); do
+    echo Applying openwrt-23.05-k6.1 $rockpatch
+    patch -p1 --no-backup-if-mismatch < tpm312/openwrt-23.05-k6.1/core/$rockpatch
+done
+
+directories2=(
+    "package/kernel/mac80211"
+)
+
+for directory2 in "${directories2[@]}"; do
+    if [ -d "$directory2" ]; then
+        echo "目录 $directory2 存在，进行删除操作..."
+        rm -r "$directory2"
+        echo "目录 $directory2 已删除。"
+    else
+        echo "目录 $directory2 不存在。"
+    fi
+done
+
+source_directory="tpm312/package/kernel/mac80211"
+target_directory="package/kernel/mac80211"
+
+# 检查源目录是否存在
+if [ -d "$source_directory" ]; then
+    echo "源目录 $source_directory 存在。"
+
+    # 检查目标目录是否存在
+    if [ -d "$target_directory" ]; then
+        echo "目标目录 $target_directory 已经存在，无需移动。"
+    else
+        echo "目标目录 $target_directory 不存在，进行恢复操作..."
+        mv -f "$source_directory" "$target_directory"
+        echo "目录 $source_directory 已移动到目标目录 $target_directory。"
+    fi
+else
+    echo "源目录 $source_directory 不存在。"
+fi
+
+rm -rf tpm312
+}
 
 function patch_tele() {
         cd openwrt/feeds/telephony
