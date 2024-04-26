@@ -48,7 +48,12 @@ sed -i '/DISTRIB_DESCRIPTION/d' /etc/openwrt_release
 # /etc/init.d/dawn disable
 /etc/init.d/https-dns-proxy stop
 /etc/init.d/https-dns-proxy disable
+/etc/init.d/advancedplus stop
+/etc/init.d/advancedplus disable
 sed -i 's#downloads.openwrt.org#mirrors.cloud.tencent.com/openwrt#g' /etc/opkg/distfeeds.conf
+
+
+
 
 
 
