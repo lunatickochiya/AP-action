@@ -28,6 +28,19 @@ index 153ff08421..4d42f556eb 100644
  
  define Target/Description
  	Build firmware images for Ralink MT7621 based boards.
+diff --git a/target/linux/ramips/mt7620/target.mk b/target/linux/ramips/mt7620/target.mk
+index 34488f95af..1c5cb1af7e 100644
+--- a/target/linux/ramips/mt7620/target.mk
++++ b/target/linux/ramips/mt7620/target.mk
+@@ -7,7 +7,7 @@ BOARDNAME:=MT7620 based boards
+ FEATURES+=usb ramdisk
+ CPU_TYPE:=24kc
+
+-DEFAULT_PACKAGES += kmod-rt2800-soc wpad-basic-mbedtls swconfig
++DEFAULT_PACKAGES += kmod-rt2800-soc wpad-mesh-openssl swconfig
+
+ define Target/Description
+ 	Build firmware images for Ralink MT7620 based boards.
 --- a/include/target.mk
 +++ b/include/target.mk
 @@ -53,10 +53,10 @@ DEFAULT_PACKAGES.nas:=\

@@ -73,7 +73,7 @@ else
   echo "::warning ::kmod编译排除列表无法获取或为空，这很有可能导致编译失败。"
 fi
 sed -n  '/^# CONFIG_PACKAGE_kmod/p' .config | sed '/# CONFIG_PACKAGE_kmod is not set/d'|sed 's/# //g'|sed 's/ is not set/=m/g' | sed "s/\($kmod_compile_exclude_list\)=m/\1=n/g" >> .config
-echo "::warning ::当前内核版本$(grep CONFIG_LINUX .config | cut -d "=" -f2)"
+echo "::notice ::当前内核版本$(grep CONFIG_LINUX .config | cut -d'=' -f1 | cut -d'_' -f3-)"
 #sed -i -n '/CONFIG_PACKAGE_kmod/p' .config
 }
 
