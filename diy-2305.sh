@@ -107,14 +107,14 @@ done
 function patch_openwrt() {
         for i in $( ls mypatch ); do
             echo Applying mypatch $i
-            patch -p1 --no-backup-if-mismatch < mypatch/$i
+            patch -p1 --no-backup-if-mismatch --quiet < mypatch/$i
         done
         }
 
 function patch_openwrt_2305() {
         for i in $( ls mypatch-2305 ); do
             echo Applying mypatch-2305 $i
-            patch -p1 --no-backup-if-mismatch < mypatch-2305/$i
+            patch -p1 --no-backup-if-mismatch --quiet < mypatch-2305/$i
         done
         }
 
@@ -156,7 +156,7 @@ function patch_kernel61() {
 
 for rockpatch in $( ls tpm312/openwrt-23.05-k6.1/core ); do
     echo Applying openwrt-23.05-k6.1 $rockpatch
-    patch -p1 --no-backup-if-mismatch < tpm312/openwrt-23.05-k6.1/core/$rockpatch
+    patch -p1 --no-backup-if-mismatch --quiet < tpm312/openwrt-23.05-k6.1/core/$rockpatch
 done
 
 directories2=(
