@@ -64,6 +64,10 @@ sed -i '/DISTRIB_DESCRIPTION/d' /etc/openwrt_release
 /etc/init.d/olsrd disable
 /etc/init.d/olsrd6 stop
 /etc/init.d/olsrd6 disable
+/etc/init.d/advancedplus stop
+/etc/init.d/advancedplus disable
+/etc/init.d/tailscale stop
+/etc/init.d/tailscale disable
 #/etc/modechange start
 
 
