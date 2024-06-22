@@ -340,12 +340,21 @@ jobs:
       id: config2
       run: |
         cd openwrt
+        if [ ${{matrix.target}} == 'ramips-iptables' ] || [ ${{ matrix.target }} == 'ramips-nftables' ]; then
+        $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ramips
+        make defconfig
+        $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ramips
+        make defconfig
+        $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ramips
+        make defconfig
+        else
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod
         make defconfig
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod
         make defconfig
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod
         make defconfig
+        fi
         $GITHUB_WORKSPACE/$DIY_SH_RFC ${{matrix.target}}
         echo "status=success" >> $GITHUB_OUTPUT
 
