@@ -46,13 +46,13 @@ on:
         - 'lenovo_newifi-d1'
         - 'd-team_newifi-d2'
         - 'lenovo_newifi-y1'
-      USE_NX30PRO_EEPROM:
-        description: 'Use nx30pro eeprom'
-        default: 'false'
-        type: choice
-        options:
-        - 'true'
-        - 'false'
+#      USE_NX30PRO_EEPROM:
+#        description: 'Use nx30pro eeprom'
+#        default: 'false'
+#        type: choice
+#        options:
+#        - 'true'
+#        - 'false'
       TEST-KERNEL:
         description: 'Use kernel 6.1'
         default: 'false'
@@ -196,13 +196,18 @@ jobs:
         if [ ${{github.event.inputs.TEST-KERNEL}} = true ]; then
         echo "Kernel_Test=_Kernel_Test_Ver" >> $GITHUB_ENV
         fi
-        chmod +x $DIY_SH $DIY_SH_AFB $DIY_SH_RFC gen-sha256sum.sh
+        chmod +x $DIY_SH $DIY_SH_AFB $DIY_SH_RFC gen-sha256sum.sh add-test-packages.sh
 
     - name: 导入机器及安装包config
       run: |
         if [ ${{github.event.inputs.TEST-KERNEL}} = true ]; then
         $GITHUB_WORKSPACE/$DIY_SH add-test-config
         fi
+        if [ ${{matrix.target}} == 'mt798x-nftables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-nftables' ] || [ ${{ matrix.target }} == 'ramips-nftables' ]; then
+                bash $GITHUB_WORKSPACE/add-test-packages.sh nft
+                echo "----${{matrix.target}}-----NFT-test---"
+        fi
+
         if [ ${{matrix.target}} == 'mt798x-iptables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-iptables' ] || [ ${{ matrix.target }} == 'ramips-iptables' ]; then
                 mv -f machine-configs/single/${{github.event.inputs.MACH}}-iptables.config machine-configs/${{matrix.target}}.config
                 echo "----${{matrix.target}}-----IPT-Machine--------"
@@ -244,7 +249,12 @@ jobs:
         git clone https://${{ secrets.MY_SECRET_TOKEN }}@github.com/lunatickochiya/tpm312.git
         $GITHUB_WORKSPACE/$DIY_SH kernel61
         fi
+        if [ ${{matrix.target}} == 'mt798x-nftables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-nftables' ] || [ ${{ matrix.target }} == 'ramips-nftables' ]; then
+        curl -sSL https://raw.githubusercontent.com/chenmozhijin/turboacc/luci/add_turboacc.sh -o add_turboacc.sh && bash add_turboacc.sh
+        echo "----${{matrix.target}}-----NFT-acc----"
+        else
         $GITHUB_WORKSPACE/$DIY_SH firewallremove
+        fi
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 增加磁盘空间
