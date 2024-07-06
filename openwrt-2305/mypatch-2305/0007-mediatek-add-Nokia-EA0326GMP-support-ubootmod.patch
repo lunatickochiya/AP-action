@@ -314,9 +314,9 @@ index c0f3052bef..a920fbef46 100644
  	cmcc,rax3000m|\
  	nokia,ea0326gmp|\
 +	nokia,ea0326gmp-ubootmod|\
- 	h3c,magic-nx30-pro)
+ 	h3c,magic-nx30-pro|\
+ 	zbtlink,zbt-z8103ax)
  		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3" eth1
- 		;;
 diff --git a/target/linux/mediatek/filogic/base-files/etc/hotplug.d/ieee80211/11_fix_wifi_mac b/target/linux/mediatek/filogic/base-files/etc/hotplug.d/ieee80211/11_fix_wifi_mac
 index 49cf3c3d41..7620d1cc67 100644
 --- a/target/linux/mediatek/filogic/base-files/etc/hotplug.d/ieee80211/11_fix_wifi_mac

@@ -127,9 +127,9 @@ index 3a1bfe3737..87d4267964 100755
 +		CI_ROOTPART="rootfs"
 +		emmc_do_upgrade "$1"
 +		;;
+ 	cudy,re3000-v1|\
  	cudy,wr3000-v1|\
- 	cudy,re3000-v1)
- 		default_do_upgrade "$1"
+ 	yuncore,ax835)
 @@ -154,6 +159,9 @@ platform_do_upgrade() {
  	*)
  		nand_do_upgrade "$1"
