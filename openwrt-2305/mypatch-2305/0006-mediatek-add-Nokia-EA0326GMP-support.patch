@@ -82,9 +82,9 @@ index 1fcfd7ea79..d09000033f 100644
 --- a/package/boot/uboot-envtools/files/mediatek_filogic
 +++ b/package/boot/uboot-envtools/files/mediatek_filogic
 @@ -86,6 +86,7 @@ xiaomi,redmi-router-ax6000-stock)
- 	;;
  h3c,magic-nx30-pro|\
  jcg,q30-pro|\
+ netcore,n60|\
 +nokia,ea0326gmp|\
  qihoo,360t7|\
  tplink,tl-xdr4288|\
@@ -881,9 +881,9 @@ index 25cbf98f33..8ffb5f1203 100755
  	jcg,q30-pro|\
  	mediatek,mt7981-rfb|\
 +	nokia,ea0326gmp|\
+ 	netcore,n60|\
  	qihoo,360t7|\
  	tplink,tl-xdr4288|\
- 	tplink,tl-xdr6086|\
 diff --git a/target/linux/mediatek/image/filogic.mk b/target/linux/mediatek/image/filogic.mk
 index fc92ebb6e0..ab75eb7cc1 100644
 --- a/target/linux/mediatek/image/filogic.mk

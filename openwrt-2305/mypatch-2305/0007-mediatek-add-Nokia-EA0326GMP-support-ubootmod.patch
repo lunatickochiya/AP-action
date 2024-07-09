@@ -341,9 +341,9 @@ index 8ffb5f1203..0b4cb3640b 100755
  	mediatek,mt7981-rfb|\
  	nokia,ea0326gmp|\
 +	nokia,ea0326gmp-ubootmod|\
+ 	netcore,n60|\
  	qihoo,360t7|\
  	tplink,tl-xdr4288|\
- 	tplink,tl-xdr6086|\
 diff --git a/target/linux/mediatek/image/filogic.mk b/target/linux/mediatek/image/filogic.mk
 index ab75eb7cc1..4b02cd65cd 100644
 --- a/target/linux/mediatek/image/filogic.mk
