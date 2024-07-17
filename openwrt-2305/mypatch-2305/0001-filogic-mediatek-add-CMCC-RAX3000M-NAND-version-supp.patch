@@ -315,9 +315,9 @@ index f8ebc1da42..ab5bd1e374 100644
 +	cmcc,rax3000m-nand-ubootmod)
 +		[ "$PHYNBR" = "1" ] && mtd_get_mac_binary Factory 0xa > /sys${DEVPATH}/macaddress
 +		;;
+ 	cudy,m3000-v1|\
  	cudy,wr3000-v1)
  		addr=$(mtd_get_mac_binary bdinfo 0xde00)
- 		# Originally, phy0 is phy1 mac with LA bit set. However, this would conflict
 diff --git a/target/linux/mediatek/image/filogic.mk b/target/linux/mediatek/image/filogic.mk
 index 194319a228..0f0bb18b36 100644
 --- a/target/linux/mediatek/image/filogic.mk
