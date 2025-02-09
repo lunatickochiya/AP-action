@@ -1,0 +1,99 @@
+From bd43da6466cbe1fb8322a192a11b6a13e08dbea6 Mon Sep 17 00:00:00 2001
+From: lunatickochiya <125438787@qq.com>
+Date: Sun, 9 Feb 2025 22:00:51 +0800
+Subject: [PATCH 6/6] mediatek: add Nokia EA0326GMP support ubootmod 110M
+ support
+
+---
+ .../filogic/base-files/etc/board.d/01_leds     |  1 +
+ .../filogic/base-files/etc/board.d/02_network  |  1 +
+ .../etc/hotplug.d/ieee80211/11_fix_wifi_mac    |  6 +++++-
+ .../filogic/base-files/lib/upgrade/platform.sh |  1 +
+ target/linux/mediatek/image/filogic.mk         | 18 ++++++++++++++++++
+ 5 files changed, 26 insertions(+), 1 deletion(-)
+
+diff --git a/target/linux/mediatek/filogic/base-files/etc/board.d/01_leds b/target/linux/mediatek/filogic/base-files/etc/board.d/01_leds
+index 5048e9bb8f..175d1e51c6 100644
+--- a/target/linux/mediatek/filogic/base-files/etc/board.d/01_leds
++++ b/target/linux/mediatek/filogic/base-files/etc/board.d/01_leds
+@@ -59,6 +59,7 @@ mercusys,mr90x-v1-ubi)
+ netgear,wax220)
+ 	ucidef_set_led_netdev "eth0" "LAN" "green:lan" "eth0"
+ 	;;
++nokia,ea0326gmp-ubootmod|\
+ nokia,ea0326gmp)
+ 	ucidef_set_led_netdev "wan" "WAN" "green:wan" "eth1" "link"
+ 	ucidef_set_led_netdev "lan" "LAN" "green:lan" "br-lan" "link"
+diff --git a/target/linux/mediatek/filogic/base-files/etc/board.d/02_network b/target/linux/mediatek/filogic/base-files/etc/board.d/02_network
+index db438d38c4..0ee7a9d354 100644
+--- a/target/linux/mediatek/filogic/base-files/etc/board.d/02_network
++++ b/target/linux/mediatek/filogic/base-files/etc/board.d/02_network
+@@ -14,6 +14,7 @@ mediatek_setup_interfaces()
+ 	cmcc,rax3000m|\
+ 	h3c,magic-nx30-pro|\
+ 	nokia,ea0326gmp|\
++	nokia,ea0326gmp-ubootmod|\
+ 	zbtlink,zbt-z8103ax)
+ 		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3" eth1
+ 		;;
+diff --git a/target/linux/mediatek/filogic/base-files/etc/hotplug.d/ieee80211/11_fix_wifi_mac b/target/linux/mediatek/filogic/base-files/etc/hotplug.d/ieee80211/11_fix_wifi_mac
+index ed087b3380..2328bd14f1 100644
+--- a/target/linux/mediatek/filogic/base-files/etc/hotplug.d/ieee80211/11_fix_wifi_mac
++++ b/target/linux/mediatek/filogic/base-files/etc/hotplug.d/ieee80211/11_fix_wifi_mac
+@@ -75,7 +75,11 @@ case "$board" in
+ 	cmcc,rax3000m-emmc-ubootmod)
+ 		[ "$PHYNBR" = "1" ] && mmc_get_mac_binary factory 0xa > /sys${DEVPATH}/macaddress
+ 		;;
+-	comfast,cf-e393ax)
++	nokia,ea0326gmp-ubootmod)
++		addr=$(mtd_get_mac_binary Factory 0x28)
++		[ "$PHYNBR" = "1" ] && macaddr_add $addr 2 > /sys${DEVPATH}/macaddress
++		;;
++		comfast,cf-e393ax)
+ 		addr=$(mtd_get_mac_binary "Factory" 0x8000)
+ 		[ "$PHYNBR" = "1" ] && macaddr_add $addr 1 > /sys${DEVPATH}/macaddress
+ 		;;
+diff --git a/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh b/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
+index 83d38e7526..e893c7ea84 100755
+--- a/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
++++ b/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
+@@ -80,6 +80,7 @@ platform_do_upgrade() {
+ 	mediatek,mt7988a-rfb|\
+ 	mercusys,mr90x-v1-ubi|\
+ 	nokia,ea0326gmp|\
++	nokia,ea0326gmp-ubootmod|\
+ 	openwrt,one|\
+ 	netcore,n60|\
+ 	qihoo,360t7|\
+diff --git a/target/linux/mediatek/image/filogic.mk b/target/linux/mediatek/image/filogic.mk
+index b3d2bc50eb..291f1daae4 100644
+--- a/target/linux/mediatek/image/filogic.mk
++++ b/target/linux/mediatek/image/filogic.mk
+@@ -1224,6 +1224,24 @@ define Device/nokia_ea0326gmp
+ endef
+ TARGET_DEVICES += nokia_ea0326gmp
+ 
++define Device/nokia_ea0326gmp_ubootmod
++  DEVICE_VENDOR := Nokia
++  DEVICE_MODEL := EA0326GMP-Ubootmod
++  DEVICE_DTS := mt7981b-nokia-ea0326gmp-ubootmod
++  DEVICE_DTS_DIR := ../dts
++  SUPPORTED_DEVICES := nokia,ea0326gmp-ubootmod
++  UBINIZE_OPTS := -E 5
++  BLOCKSIZE := 128k
++  PAGESIZE := 2048
++  IMAGE_SIZE := 112640k
++  KERNEL_IN_UBI := 1
++  IMAGES += factory.bin
++  IMAGE/factory.bin := append-ubi | check-size $$$$(IMAGE_SIZE)
++  DEVICE_PACKAGES := kmod-mt7981-firmware mt7981-wo-firmware
++  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
++endef
++TARGET_DEVICES += nokia_ea0326gmp_ubootmod
++
+ define Device/openembed_som7981
+   DEVICE_VENDOR := OpenEmbed
+   DEVICE_MODEL := SOM7981
+-- 
+2.34.1
+

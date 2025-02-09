@@ -1,16 +1,16 @@
-From 6fb7f748ea55b7632acc7d56b65aab3b19e20018 Mon Sep 17 00:00:00 2001
+From eb19c9fc03a1bb1d5e1d502f3e52544167d4f893 Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
-Date: Sun, 26 Jan 2025 17:51:29 +0800
-Subject: [PATCH 3/7] mediatek:add support for cmcc rax3000m emmc custom uboot
+Date: Sun, 9 Feb 2025 21:57:08 +0800
+Subject: [PATCH 3/6] mediatek:add support for cmcc rax3000m emmc custom uboot
  mod
 
 ---
  .../filogic/base-files/etc/board.d/02_network     |  6 ++++++
  .../etc/hotplug.d/firmware/11-mt76-caldata        |  3 +++
- .../etc/hotplug.d/ieee80211/11_fix_wifi_mac       |  5 ++++-
+ .../etc/hotplug.d/ieee80211/11_fix_wifi_mac       |  3 +++
  .../filogic/base-files/lib/upgrade/platform.sh    |  8 ++++++++
  target/linux/mediatek/image/filogic.mk            | 15 +++++++++++++++
- 5 files changed, 36 insertions(+), 1 deletion(-)
+ 5 files changed, 35 insertions(+)
 
 diff --git a/target/linux/mediatek/filogic/base-files/etc/board.d/02_network b/target/linux/mediatek/filogic/base-files/etc/board.d/02_network
 index a94692fa77..db438d38c4 100644
@@ -51,21 +51,19 @@ index 8456c462b6..574cd8b02b 100644
  	;;
  "mediatek/mt7986_eeprom_mt7975_dual.bin")
 diff --git a/target/linux/mediatek/filogic/base-files/etc/hotplug.d/ieee80211/11_fix_wifi_mac b/target/linux/mediatek/filogic/base-files/etc/hotplug.d/ieee80211/11_fix_wifi_mac
-index 9c29f88256..68b763f9ff 100644
+index 9c29f88256..ed087b3380 100644
 --- a/target/linux/mediatek/filogic/base-files/etc/hotplug.d/ieee80211/11_fix_wifi_mac
 +++ b/target/linux/mediatek/filogic/base-files/etc/hotplug.d/ieee80211/11_fix_wifi_mac
-@@ -72,7 +72,10 @@ case "$board" in
+@@ -72,6 +72,9 @@ case "$board" in
  	cmcc,rax3000m-nand-ubootmod)
  		[ "$PHYNBR" = "1" ] && mtd_get_mac_binary Factory 0xa > /sys${DEVPATH}/macaddress
  		;;
--	comfast,cf-e393ax)
 +	cmcc,rax3000m-emmc-ubootmod)
 +		[ "$PHYNBR" = "1" ] && mmc_get_mac_binary factory 0xa > /sys${DEVPATH}/macaddress
 +		;;
-+		comfast,cf-e393ax)
+ 	comfast,cf-e393ax)
  		addr=$(mtd_get_mac_binary "Factory" 0x8000)
  		[ "$PHYNBR" = "1" ] && macaddr_add $addr 1 > /sys${DEVPATH}/macaddress
- 		;;
 diff --git a/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh b/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
 index 11bfad2e7b..83d38e7526 100755
 --- a/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
