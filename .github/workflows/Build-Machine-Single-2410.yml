@@ -261,8 +261,6 @@ jobs:
         if [ ${{matrix.target}} == 'mt798x-nftables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-nftables' ] || [ ${{ matrix.target }} == 'ramips-nftables' ] || [ ${{ matrix.target }} == 'ath79-nftables' ]; then
         curl -sSL https://raw.githubusercontent.com/chenmozhijin/turboacc/luci/add_turboacc.sh -o add_turboacc.sh && bash add_turboacc.sh
         echo "----${{matrix.target}}-----NFT-acc----"
-        else
-        $GITHUB_WORKSPACE/$DIY_SH firewallremove
         fi
         echo "status=success" >> $GITHUB_OUTPUT
 
