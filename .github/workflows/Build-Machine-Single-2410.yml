@@ -77,6 +77,7 @@ on:
         - '192.168.10.1'
         - '192.168.8.1'
         - '192.168.7.1'
+        - '192.168.17.1'
         - '192.168.16.1'
         - '192.168.19.1'
         - '192.168.12.1'
@@ -365,6 +366,13 @@ jobs:
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ramips
         make defconfig
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ramips
+        make defconfig
+        elif [ ${{matrix.target}} == 'ath79-iptables' ] || [ ${{ matrix.target }} == 'ath79-nftables' ]; then
+        $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ath79
+        make defconfig
+        $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ath79
+        make defconfig
+        $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ath79
         make defconfig
         else
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod
