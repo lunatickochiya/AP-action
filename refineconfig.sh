@@ -111,6 +111,10 @@ elif [ "$1" == "ramips-mt7620-2102" ]; then
 refine_ramips_iptables_config
 elif [ "$1" == "ramips-nftables" ]; then
 refine_ramips_nftables_config
+elif [ "$1" == "ath79-iptables" ]; then
+refine_ramips_iptables_config
+elif [ "$1" == "ath79-nftables" ]; then
+refine_ramips_nftables_config
 else
 echo "Invalid argument"
 fi

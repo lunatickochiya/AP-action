@@ -46,6 +46,7 @@ on:
         - 'lenovo_newifi-d1'
         - 'd-team_newifi-d2'
         - 'lenovo_newifi-y1'
+        - 'domywifi_dw33d'
 #      USE_NX30PRO_EEPROM:
 #        description: 'Use nx30pro eeprom'
 #        default: 'false'
@@ -103,6 +104,7 @@ jobs:
         - ramips: lenovo_newifi-d1
         - ramips: lenovo_newifi-y1
         - ramips: d-team_newifi-d2
+        - ath79: domywifi_dw33d
 
     steps:
       - name: 检查
@@ -117,6 +119,8 @@ jobs:
             matrix={\"include\":[{\"target\":\"mt798x-nousb-iptables\"},{\"target\":\"mt798x-nousb-nftables\"}]}
           elif [ "${{ github.event.inputs.MACH }}" == "${{ matrix.ramips }}" ]; then
             matrix={\"include\":[{\"target\":\"ramips-iptables\"},{\"target\":\"ramips-nftables\"}]}
+          elif [ "${{ github.event.inputs.MACH }}" == "${{ matrix.ath79 }}" ]; then
+            matrix={\"include\":[{\"target\":\"ath79-iptables\"},{\"target\":\"ath79-nftables\"}]}
           fi
           echo "Generated matrix: "$matrix""
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
@@ -203,18 +207,20 @@ jobs:
         if [ ${{github.event.inputs.TEST-KERNEL}} = true ]; then
         $GITHUB_WORKSPACE/$DIY_SH add-test-config
         fi
-        if [ ${{matrix.target}} == 'mt798x-nftables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-nftables' ] || [ ${{ matrix.target }} == 'ramips-nftables' ]; then
+
+        if [ ${{matrix.target}} == 'mt798x-nftables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-nftables' ] || [ ${{ matrix.target }} == 'ramips-nftables' ] || [ ${{ matrix.target }} == 'ath79-nftables' ]; then
                 bash $GITHUB_WORKSPACE/add-test-packages.sh nft
                 echo "----${{matrix.target}}-----NFT-test---"
         fi
 
-        if [ ${{matrix.target}} == 'mt798x-iptables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-iptables' ] || [ ${{ matrix.target }} == 'ramips-iptables' ]; then
+        if [ ${{matrix.target}} == 'mt798x-iptables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-iptables' ] || [ ${{ matrix.target }} == 'ramips-iptables' ] || [ ${{ matrix.target }} == 'ath79-iptables' ]; then
                 mv -f machine-configs/single/${{github.event.inputs.MACH}}-iptables.config machine-configs/${{matrix.target}}.config
                 echo "----${{matrix.target}}-----IPT-Machine--------"
-        elif [ ${{matrix.target}} == 'mt798x-nftables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-nftables' ] || [ ${{ matrix.target }} == 'ramips-nftables' ]; then
+        elif [ ${{matrix.target}} == 'mt798x-nftables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-nftables' ] || [ ${{ matrix.target }} == 'ramips-nftables' ] || [ ${{ matrix.target }} == 'ath79-nftables' ]; then
                 mv -f machine-configs/single/${{github.event.inputs.MACH}}-nftables.config machine-configs/${{matrix.target}}.config
                 echo "----${{matrix.target}}-----NFT-Machine--------"
         fi
+
         if [ ${{matrix.target}} == 'mt798x-iptables' ]; then
                 mv -f package-configs/single/${{github.event.inputs.MACH}}-iptables.config package-configs/mt798x-common-iptables.config
                 echo "----${{matrix.target}}-----IPT-Package-Config----"
@@ -233,6 +239,12 @@ jobs:
         elif [ ${{matrix.target}} == 'ramips-nftables' ]; then
                 mv -f package-configs/single/${{github.event.inputs.MACH}}-nftables.config package-configs/ramips-common-nftables.config
                 echo "----${{matrix.target}}-----NFT-Package-Config----"
+        elif [ ${{matrix.target}} == 'ath79-iptables' ]; then
+                mv -f package-configs/single/${{github.event.inputs.MACH}}-iptables.config package-configs/ath79-common-iptables.config
+                echo "----${{matrix.target}}-----IPT-Package-Config----"
+        elif [ ${{matrix.target}} == 'ath79-nftables' ]; then
+                mv -f package-configs/single/${{github.event.inputs.MACH}}-nftables.config package-configs/ath79-common-nftables.config
+                echo "----${{matrix.target}}-----NFT-Package-Config----"
         fi
 
 
@@ -245,7 +257,7 @@ jobs:
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
         cd openwrt
         sed -i '$a src-git lunatic7 https://github.com/lunatickochiya/actionbased-openwrt-packages.git' feeds.conf.default
-        if [ ${{matrix.target}} == 'mt798x-nftables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-nftables' ] || [ ${{ matrix.target }} == 'ramips-nftables' ]; then
+        if [ ${{matrix.target}} == 'mt798x-nftables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-nftables' ] || [ ${{ matrix.target }} == 'ramips-nftables' ] || [ ${{ matrix.target }} == 'ath79-nftables' ]; then
         curl -sSL https://raw.githubusercontent.com/chenmozhijin/turboacc/luci/add_turboacc.sh -o add_turboacc.sh && bash add_turboacc.sh
         echo "----${{matrix.target}}-----NFT-acc----"
         else

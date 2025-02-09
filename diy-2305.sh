@@ -237,6 +237,16 @@ done
 
 # add luci
 
+function add_ath79_iptables_packages() {
+echo "$(cat package-configs/ath79-common-iptables.config)" >> package-configs/.config
+mv -f package-configs/.config .config
+}
+
+function add_ath79_nftables_packages() {
+echo "$(cat package-configs/ath79-common-nftables.config)" >> package-configs/.config
+mv -f package-configs/.config .config
+}
+
 function add_ramips_iptables_packages() {
 echo "$(cat package-configs/ramips-common-iptables.config)" >> package-configs/.config
 mv -f package-configs/.config .config
@@ -331,6 +341,20 @@ patch_package
 patch_luci
 patch_lunatic7
 add_ramips_nftables_packages
+elif [ "$1" == "ath79-iptables" ]; then
+autosetver
+remove_error_package_not_install
+patch_package
+patch_luci
+patch_lunatic7
+add_ath79_iptables_packages
+elif [ "$1" == "ath79-nftables" ]; then
+autosetver
+remove_error_package_not_install
+patch_package
+patch_luci
+patch_lunatic7
+add_ath79_nftables_packages
 elif [ "$1" == "patch-openwrt" ]; then
 patch_openwrt_2305
 patch_openwrt
