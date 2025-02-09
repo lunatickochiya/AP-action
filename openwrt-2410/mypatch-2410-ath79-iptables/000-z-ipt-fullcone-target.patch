@@ -616,3 +616,15 @@ index 00000000000..fe32c129351
 + }
 +
 + static struct pernet_operations ctnetlink_net_ops = {
+diff --git a/target/linux/generic/config-6.6 b/target/linux/generic/config-6.6
+index 8b22cc40350..54f36cbd49d 100644
+--- a/target/linux/generic/config-6.6
++++ b/target/linux/generic/config-6.6
+@@ -5651,6 +5651,7 @@ CONFIG_SERIAL_EARLYCON=y
+ # CONFIG_SG_SPLIT is not set
+ # CONFIG_SHADOW_CALL_STACK is not set
+ CONFIG_SHMEM=y
++# CONFIG_NF_CONNTRACK_CHAIN_EVENTS is not set
+ # CONFIG_SHRINKER_DEBUG is not set
+ # CONFIG_SHUFFLE_PAGE_ALLOCATOR is not set
+ # CONFIG_SH_ETH is not set
