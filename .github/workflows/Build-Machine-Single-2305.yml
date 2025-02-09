@@ -138,7 +138,7 @@ jobs:
 
     - name: Print matrix from prepare
       run: |
-         echo "Matrix from prepare: ${{ needs.prepare.outputs.matrix }}"
+         echo "::notice ::Matrix from prepare: ${{ needs.prepare.outputs.matrix }}"
 
     - name: 释放Ubuntu磁盘空间
       uses: endersonmenezes/free-disk-space@v2
