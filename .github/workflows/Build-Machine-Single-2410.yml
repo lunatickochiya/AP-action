@@ -47,13 +47,20 @@ on:
         - 'd-team_newifi-d2'
         - 'lenovo_newifi-y1'
         - 'domywifi_dw33d'
-#      USE_NX30PRO_EEPROM:
-#        description: 'Use nx30pro eeprom'
-#        default: 'false'
-#        type: choice
-#        options:
-#        - 'true'
-#        - 'false'
+      TRY_BBR_V3:
+        description: 'Update BBR TO V3'
+        default: 'false'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
+      AG71XX_FIX:
+        description: 'Fix ag71xx'
+        default: 'false'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
 #      TEST-KERNEL:
 #        description: 'Use kernel 6.1'
 #        default: 'false'
@@ -276,6 +283,17 @@ jobs:
         df -hT
         ls /mnt/openwrt
 
+    - name: Patch 自定义
+      id: patch
+      run: |
+        if [ ${{github.event.inputs.TRY_BBR_V3}} = true ]; then
+        [ -d openwrt-2410/mypatch-bbr-v3 ] && cp -r openwrt-2410/mypatch-bbr-v3/* openwrt-2410/mypatch-2410-${{matrix.target}}
+        fi
+        if [ ${{github.event.inputs.AG71XX_FIX}} = true ]; then
+        [ -d openwrt-2410/my-patch-ag71xx-fix ] && cp -r openwrt-2410/my-patch-ag71xx-fix/* openwrt-2410/mypatch-2410-${{matrix.target}}
+        fi
+        echo "status=success" >> $GITHUB_OUTPUT
+
     - name: 自定义安装包(优先于feeds)
       if: steps.clone.outputs.status == 'success'
       id: files
@@ -288,15 +306,6 @@ jobs:
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_SH patch-openwrt
         cd ../
-        echo "status=success" >> $GITHUB_OUTPUT
-
-    - name: 设置是否使用 nx30pro eeprom
-      if: github.event.inputs.USE_NX30PRO_EEPROM == 'true'
-      id: eeprom
-      run: |
-        mkdir -p openwrt/target/linux/mediatek/filogic/base-files/lib/firmware/mediatek
-        cp eeprom/nx30pro_eeprom.bin openwrt/target/linux/mediatek/filogic/base-files/lib/firmware/mediatek
-        sed -i -e '/caldata_extract_mmc "factory" 0x0 0x1000/ a\           cp /lib/firmware/mediatek/nx30pro_eeprom.bin /lib/firmware/mediatek/mt7981_eeprom_mt7976_dbdc.bin' openwrt/target/linux/mediatek/filogic/base-files/etc/hotplug.d/firmware/11-mt76-caldata
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 设置 dts 闪存频率

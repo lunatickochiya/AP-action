@@ -1,76 +1,141 @@
-From 8468f7accda904043f127e0e5859636ec4af3a65 Mon Sep 17 00:00:00 2001
-From: Konstantin Demin <rockdrilla@gmail.com>
-Date: Wed, 31 Jan 2024 01:13:04 +0300
-Subject: [PATCH 2/2] kernel: introduce TCP BBRv3
+From d45a079b4b6d389800796cb73616f3d566977fb0 Mon Sep 17 00:00:00 2001
+From: lunatickochiya <125438787@qq.com>
+Date: Sun, 9 Feb 2025 09:39:20 +0800
+Subject: [PATCH 10/23] kernel: update TCP BBR to v3
 
-based on pf-kernel bbr3-6.7 branch
-
-Signed-off-by: Konstantin Demin <rockdrilla@gmail.com>
 ---
- .../generic/backport-6.6/900-tcp-bbr3.patch   | 3260 +++++++++++++++++
- 1 file changed, 3260 insertions(+)
- create mode 100644 target/linux/generic/backport-6.6/900-tcp-bbr3.patch
+ ...den-app-limited-rate-sample-detectio.patch |   51 +
+ ...hrink-delivered_mstamp-first_tx_msta.patch |   73 +
+ ...napshot-packets-in-flight-at-transmi.patch |  108 +
+ ...ount-packets-lost-over-TCP-rate-samp.patch |   69 +
+ ...xport-FLAG_ECE-in-rate_sample.is_ece.patch |   37 +
+ ...ntroduce-ca_ops-skb_marked_lost-CC-m.patch |   56 +
+ ...djust-skb-tx.in_flight-upon-merge-in.patch |   58 +
+ ...djust-skb-tx.in_flight-upon-split-in.patch |   96 +
+ ...ca-opts-flag-TCP_CONG_WANTS_CE_EVENT.patch |   72 +
+ ...alize-TSO-sizing-in-TCP-CC-module-AP.patch |  117 +
+ ..._ack_mode-1-skip-rwin-check-in-tcp_f.patch |   71 +
+ ...ecord-app-limited-status-of-TLP-repa.patch |   44 +
+ ...nform-CC-module-of-losses-repaired-b.patch |   44 +
+ ...ntroduce-is_acking_tlp_retrans_seq-i.patch |   72 +
+ ...r-route-feature-RTAX_FEATURE_ECN_LOW.patch |  108 +
+ ...pdate-TCP-bbr-congestion-control-mod.patch | 2822 +++++++++++++++++
+ ...nsure-ECN-enabled-BBR-flows-set-ECT-.patch |   58 +
+ ...OPT_ECN_LOW-in-tcp_info-tcpi_options.patch |   37 +
+ ...hange-u64-to-unsigned-long-for-bytes.patch |   36 +
+ .../hack-6.6/601-20-bbr-v3-mips-32.patch      |   34 +
+ 20 files changed, 4063 insertions(+)
+ create mode 100644 target/linux/generic/hack-6.6/601-01-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-broaden-app-limited-rate-sample-detectio.patch
+ create mode 100644 target/linux/generic/hack-6.6/601-02-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-shrink-delivered_mstamp-first_tx_msta.patch
+ create mode 100644 target/linux/generic/hack-6.6/601-03-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-snapshot-packets-in-flight-at-transmi.patch
+ create mode 100644 target/linux/generic/hack-6.6/601-04-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-count-packets-lost-over-TCP-rate-samp.patch
+ create mode 100644 target/linux/generic/hack-6.6/601-05-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-export-FLAG_ECE-in-rate_sample.is_ece.patch
+ create mode 100644 target/linux/generic/hack-6.6/601-06-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-introduce-ca_ops-skb_marked_lost-CC-m.patch
+ create mode 100644 target/linux/generic/hack-6.6/601-07-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-adjust-skb-tx.in_flight-upon-merge-in.patch
+ create mode 100644 target/linux/generic/hack-6.6/601-08-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-adjust-skb-tx.in_flight-upon-split-in.patch
+ create mode 100644 target/linux/generic/hack-6.6/601-09-bbr-v3-upstream-prep-2024-02-19-01-net-tcp-add-new-ca-opts-flag-TCP_CONG_WANTS_CE_EVENT.patch
+ create mode 100644 target/linux/generic/hack-6.6/601-10-bbr-v3-upstream-prep-2024-02-19-01-net-tcp-re-generalize-TSO-sizing-in-TCP-CC-module-AP.patch
+ create mode 100644 target/linux/generic/hack-6.6/601-11-bbr-v3-upstream-prep-2024-02-19-01-net-tcp-add-fast_ack_mode-1-skip-rwin-check-in-tcp_f.patch
+ create mode 100644 target/linux/generic/hack-6.6/601-12-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-record-app-limited-status-of-TLP-repa.patch
+ create mode 100644 target/linux/generic/hack-6.6/601-13-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-inform-CC-module-of-losses-repaired-b.patch
+ create mode 100644 target/linux/generic/hack-6.6/601-14-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-introduce-is_acking_tlp_retrans_seq-i.patch
+ create mode 100644 target/linux/generic/hack-6.6/601-15-bbr-v3-upstream-prep-2024-02-19-01-tcp-introduce-per-route-feature-RTAX_FEATURE_ECN_LOW.patch
+ create mode 100644 target/linux/generic/hack-6.6/601-16-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v3-update-TCP-bbr-congestion-control-mod.patch
+ create mode 100644 target/linux/generic/hack-6.6/601-17-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v3-ensure-ECN-enabled-BBR-flows-set-ECT-.patch
+ create mode 100644 target/linux/generic/hack-6.6/601-18-bbr-v3-upstream-prep-2024-02-19-01-tcp-export-TCPI_OPT_ECN_LOW-in-tcp_info-tcpi_options.patch
+ create mode 100644 target/linux/generic/hack-6.6/601-19-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v3-change-u64-to-unsigned-long-for-bytes.patch
+ create mode 100644 target/linux/generic/hack-6.6/601-20-bbr-v3-mips-32.patch
 
-diff --git a/target/linux/generic/backport-6.6/900-tcp-bbr3.patch b/target/linux/generic/backport-6.6/900-tcp-bbr3.patch
+diff --git a/target/linux/generic/hack-6.6/601-01-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-broaden-app-limited-rate-sample-detectio.patch b/target/linux/generic/hack-6.6/601-01-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-broaden-app-limited-rate-sample-detectio.patch
 new file mode 100644
-index 0000000000..15fe351a03
+index 0000000000..37b43a9c03
 --- /dev/null
-+++ b/target/linux/generic/backport-6.6/900-tcp-bbr3.patch
-@@ -0,0 +1,3260 @@
-+--- a/include/linux/tcp.h
-++++ b/include/linux/tcp.h
-+@@ -257,7 +257,9 @@ struct tcp_sock {
-+ 	u8	compressed_ack;
-+ 	u8	dup_ack_counter:2,
-+ 		tlp_retrans:1,	/* TLP is a retransmission */
-+-		unused:5;
-++		fast_ack_mode:2, /* which fast ack mode ? */
-++		tlp_orig_data_app_limited:1, /* app-limited before TLP rtx? */
-++		unused:2;
-+ 	u32	chrono_start;	/* Start time in jiffies of a TCP chrono */
-+ 	u32	chrono_stat[3];	/* Time in jiffies for chrono_stat stats */
-+ 	u8	chrono_type:2,	/* current chronograph type */
-+--- a/include/net/inet_connection_sock.h
-++++ b/include/net/inet_connection_sock.h
-+@@ -135,8 +135,8 @@ struct inet_connection_sock {
-+ 	u32			  icsk_probes_tstamp;
-+ 	u32			  icsk_user_timeout;
++++ b/target/linux/generic/hack-6.6/601-01-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-broaden-app-limited-rate-sample-detectio.patch
+@@ -0,0 +1,51 @@
++From 304c6ff637e53c8f3530a0bb50ba95e532d681b8 Mon Sep 17 00:00:00 2001
++From: Neal Cardwell <ncardwell@google.com>
++Date: Tue, 11 Jun 2019 12:26:55 -0400
++Subject: [PATCH 01/19] net-tcp_bbr: broaden app-limited rate sample detection
++
++This commit is a bug fix for the Linux TCP app-limited
++(application-limited) logic that is used for collecting rate
++(bandwidth) samples.
++
++Previously the app-limited logic only looked for "bubbles" of
++silence in between application writes, by checking at the start
++of each sendmsg. But "bubbles" of silence can also happen before
++retransmits: e.g. bubbles can happen between an application write
++and a retransmit, or between two retransmits.
++
++Retransmits are triggered by ACKs or timers. So this commit checks
++for bubbles of app-limited silence upon ACKs or timers.
++
++Why does this commit check for app-limited state at the start of
++ACKs and timer handling? Because at that point we know whether
++inflight was fully using the cwnd.  During processing the ACK or
++timer event we often change the cwnd; after changing the cwnd we
++can't know whether inflight was fully using the old cwnd.
++
++Origin-9xx-SHA1: 3fe9b53291e018407780fb8c356adb5666722cbc
++Change-Id: I37221506f5166877c2b110753d39bb0757985e68
++---
++ net/ipv4/tcp_input.c | 1 +
++ net/ipv4/tcp_timer.c | 1 +
++ 2 files changed, 2 insertions(+)
++
++--- a/net/ipv4/tcp_input.c
+++++ b/net/ipv4/tcp_input.c
++@@ -3915,6 +3915,7 @@ static int tcp_ack(struct sock *sk, cons
 + 
-+-	u64			  icsk_ca_priv[104 / sizeof(u64)];
-+-#define ICSK_CA_PRIV_SIZE	  sizeof_field(struct inet_connection_sock, icsk_ca_priv)
-++#define ICSK_CA_PRIV_SIZE      (144)
-++	u64			  icsk_ca_priv[ICSK_CA_PRIV_SIZE / sizeof(u64)];
-+ };
++ 	prior_fack = tcp_is_sack(tp) ? tcp_highest_sack_seq(tp) : tp->snd_una;
++ 	rs.prior_in_flight = tcp_packets_in_flight(tp);
+++	tcp_rate_check_app_limited(sk);
 + 
-+ #define ICSK_TIME_RETRANS	1	/* Retransmit timer */
++ 	/* ts_recent update must be made after we are sure that the packet
++ 	 * is in window.
++--- a/net/ipv4/tcp_timer.c
+++++ b/net/ipv4/tcp_timer.c
++@@ -677,6 +677,7 @@ void tcp_write_timer_handler(struct sock
++ 		return;
++ 	}
++ 
+++	tcp_rate_check_app_limited(sk);
++ 	tcp_mstamp_refresh(tcp_sk(sk));
++ 	event = icsk->icsk_pending;
++ 
+diff --git a/target/linux/generic/hack-6.6/601-02-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-shrink-delivered_mstamp-first_tx_msta.patch b/target/linux/generic/hack-6.6/601-02-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-shrink-delivered_mstamp-first_tx_msta.patch
+new file mode 100644
+index 0000000000..ee7195893e
+--- /dev/null
++++ b/target/linux/generic/hack-6.6/601-02-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-shrink-delivered_mstamp-first_tx_msta.patch
+@@ -0,0 +1,73 @@
++From 5a47eb49ad406b439a00b90f5285359cd1e876f4 Mon Sep 17 00:00:00 2001
++From: Neal Cardwell <ncardwell@google.com>
++Date: Sun, 24 Jun 2018 21:55:59 -0400
++Subject: [PATCH 02/19] net-tcp_bbr: v2: shrink delivered_mstamp,
++ first_tx_mstamp to u32 to free up 8 bytes
++
++Free up some space for tracking inflight and losses for each
++bw sample, in upcoming commits.
++
++These timestamps are in microseconds, and are now stored in 32
++bits. So they can only hold time intervals up to roughly 2^12 = 4096
++seconds.  But Linux TCP RTT and RTO tracking has the same 32-bit
++microsecond implementation approach and resulting deployment
++limitations. So this is not introducing a new limit. And these should
++not be a limitation for the foreseeable future.
++
++Effort: net-tcp_bbr
++Origin-9xx-SHA1: 238a7e6b5d51625fef1ce7769826a7b21b02ae55
++Change-Id: I3b779603797263b52a61ad57c565eb91fe42680c
++---
++ include/net/tcp.h   | 9 +++++++--
++ net/ipv4/tcp_rate.c | 7 ++++---
++ 2 files changed, 11 insertions(+), 5 deletions(-)
++
 +--- a/include/net/tcp.h
 ++++ b/include/net/tcp.h
-+@@ -372,6 +372,8 @@ static inline void tcp_dec_quickack_mode
-+ #define	TCP_ECN_QUEUE_CWR	2
-+ #define	TCP_ECN_DEMAND_CWR	4
-+ #define	TCP_ECN_SEEN		8
-++#define	TCP_ECN_LOW		16
-++#define	TCP_ECN_ECT_PERMANENT	32
-+ 
-+ enum tcp_tw_status {
-+ 	TCP_TW_SUCCESS = 0,
-+@@ -723,6 +725,15 @@ static inline void tcp_fast_path_check(s
-+ 		tcp_fast_path_on(tp);
-+ }
-+ 
-++static inline void tcp_set_ecn_low_from_dst(struct sock *sk,
-++					    const struct dst_entry *dst)
-++{
-++	struct tcp_sock *tp = tcp_sk(sk);
-++
-++	if (dst_feature(dst, RTAX_FEATURE_ECN_LOW))
-++		tp->ecn_flags |= TCP_ECN_LOW;
-++}
-++
-+ u32 tcp_delack_max(const struct sock *sk);
-+ 
-+ /* Compute the actual rto_min value */
-+@@ -821,6 +832,11 @@ static inline u32 tcp_stamp_us_delta(u64
++@@ -822,6 +822,11 @@ static inline u32 tcp_stamp_us_delta(u64
 + 	return max_t(s64, t1 - t0, 0);
 + }
 + 
@@ -82,7 +147,7 @@ index 0000000000..15fe351a03
 + static inline u32 tcp_skb_timestamp(const struct sk_buff *skb)
 + {
 + 	return tcp_ns_to_ts(skb->skb_mstamp_ns);
-+@@ -896,9 +912,14 @@ struct tcp_skb_cb {
++@@ -897,9 +902,9 @@ struct tcp_skb_cb {
 + 			/* pkts S/ACKed so far upon tx of skb, incl retrans: */
 + 			__u32 delivered;
 + 			/* start of send pipeline phase */
@@ -91,90 +156,86 @@ index 0000000000..15fe351a03
 + 			/* when we reached the "delivered" count */
 +-			u64 delivered_mstamp;
 ++			u32 delivered_mstamp;
++ 		} tx;   /* only used for outgoing skbs */
++ 		union {
++ 			struct inet_skb_parm	h4;
++--- a/net/ipv4/tcp_rate.c
+++++ b/net/ipv4/tcp_rate.c
++@@ -101,8 +101,9 @@ void tcp_rate_skb_delivered(struct sock
++ 		/* Record send time of most recently ACKed packet: */
++ 		tp->first_tx_mstamp  = tx_tstamp;
++ 		/* Find the duration of the "send phase" of this window: */
++-		rs->interval_us = tcp_stamp_us_delta(tp->first_tx_mstamp,
++-						     scb->tx.first_tx_mstamp);
+++		rs->interval_us      = tcp_stamp32_us_delta(
+++						tp->first_tx_mstamp,
+++						scb->tx.first_tx_mstamp);
++ 
++ 	}
++ 	/* Mark off the skb delivered once it's sacked to avoid being
++@@ -155,7 +156,7 @@ void tcp_rate_gen(struct sock *sk, u32 d
++ 	 * longer phase.
++ 	 */
++ 	snd_us = rs->interval_us;				/* send phase */
++-	ack_us = tcp_stamp_us_delta(tp->tcp_mstamp,
+++	ack_us = tcp_stamp32_us_delta(tp->tcp_mstamp,
++ 				    rs->prior_mstamp); /* ack phase */
++ 	rs->interval_us = max(snd_us, ack_us);
++ 
+diff --git a/target/linux/generic/hack-6.6/601-03-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-snapshot-packets-in-flight-at-transmi.patch b/target/linux/generic/hack-6.6/601-03-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-snapshot-packets-in-flight-at-transmi.patch
+new file mode 100644
+index 0000000000..f0e4e9b392
+--- /dev/null
++++ b/target/linux/generic/hack-6.6/601-03-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-snapshot-packets-in-flight-at-transmi.patch
+@@ -0,0 +1,108 @@
++From de4ff1045b5dec6998549c1a1d7d5eae3500360a Mon Sep 17 00:00:00 2001
++From: Neal Cardwell <ncardwell@google.com>
++Date: Sat, 5 Aug 2017 11:49:50 -0400
++Subject: [PATCH 03/19] net-tcp_bbr: v2: snapshot packets in flight at transmit
++ time and pass in rate_sample
++
++CC algorithms may want to snapshot the number of packets in flight at
++transmit time and pass in rate_sample, to understand the relationship
++between inflight and losses or ECN signals, to try to find the highest
++inflight value that has acceptable levels of loss/ECN marking.
++
++We split out the code to set an skb's tx.in_flight field into its own
++function, so that this code can be used for the TCP_REPAIR "fake send"
++code path that inserts skbs into the rtx queue without sending them.
++
++Effort: net-tcp_bbr
++Origin-9xx-SHA1: b3eb4f2d20efab4ca001f32c9294739036c493ea
++Origin-9xx-SHA1: e880fc907d06ea7354333f60f712748ebce9497b
++Origin-9xx-SHA1: 330f825a08a6fe92cef74d799cc468864c479f63
++Change-Id: I7314047d0ff14dd261a04b1969a46dc658c8836a
++---
++ include/net/tcp.h     |  6 ++++++
++ net/ipv4/tcp_output.c |  1 +
++ net/ipv4/tcp_rate.c   | 20 ++++++++++++++++++++
++ 3 files changed, 27 insertions(+)
++
++--- a/include/net/tcp.h
+++++ b/include/net/tcp.h
++@@ -905,6 +905,10 @@ struct tcp_skb_cb {
++ 			u32 first_tx_mstamp;
++ 			/* when we reached the "delivered" count */
++ 			u32 delivered_mstamp;
 ++#define TCPCB_IN_FLIGHT_BITS 20
 ++#define TCPCB_IN_FLIGHT_MAX ((1U << TCPCB_IN_FLIGHT_BITS) - 1)
 ++			u32 in_flight:20,   /* packets in flight at transmit */
 ++			    unused2:12;
-++			u32 lost;	/* packets lost so far upon tx of skb */
 + 		} tx;   /* only used for outgoing skbs */
 + 		union {
 + 			struct inet_skb_parm	h4;
-+@@ -1002,6 +1023,7 @@ enum tcp_ca_event {
-+ 	CA_EVENT_LOSS,		/* loss timeout */
-+ 	CA_EVENT_ECN_NO_CE,	/* ECT set, but not CE marked */
-+ 	CA_EVENT_ECN_IS_CE,	/* received CE marked IP packet */
-++	CA_EVENT_TLP_RECOVERY,	/* a lost segment was repaired by TLP probe */
-+ };
-+ 
-+ /* Information about inbound ACK, passed to cong_ops->in_ack_event() */
-+@@ -1024,7 +1046,11 @@ enum tcp_ca_ack_event_flags {
-+ #define TCP_CONG_NON_RESTRICTED 0x1
-+ /* Requires ECN/ECT set on all packets */
-+ #define TCP_CONG_NEEDS_ECN	0x2
-+-#define TCP_CONG_MASK	(TCP_CONG_NON_RESTRICTED | TCP_CONG_NEEDS_ECN)
-++/* Wants notification of CE events (CA_EVENT_ECN_IS_CE, CA_EVENT_ECN_NO_CE). */
-++#define TCP_CONG_WANTS_CE_EVENTS	0x4
-++#define TCP_CONG_MASK	(TCP_CONG_NON_RESTRICTED | \
-++			 TCP_CONG_NEEDS_ECN | \
-++			 TCP_CONG_WANTS_CE_EVENTS)
-+ 
-+ union tcp_cc_info;
-+ 
-+@@ -1044,10 +1070,13 @@ struct ack_sample {
-+  */
-+ struct rate_sample {
++@@ -1052,6 +1056,7 @@ struct rate_sample {
 + 	u64  prior_mstamp; /* starting timestamp for interval */
-++	u32  prior_lost;	/* tp->lost at "prior_mstamp" */
 + 	u32  prior_delivered;	/* tp->delivered at "prior_mstamp" */
 + 	u32  prior_delivered_ce;/* tp->delivered_ce at "prior_mstamp" */
 ++	u32 tx_in_flight;	/* packets in flight at starting timestamp */
-++	s32  lost;		/* number of packets lost over interval */
 + 	s32  delivered;		/* number of packets delivered over interval */
-+-	s32  delivered_ce;	/* number of packets delivered w/ CE marks*/
-++	s32  delivered_ce;	/* packets delivered w/ CE mark over interval */
++ 	s32  delivered_ce;	/* number of packets delivered w/ CE marks*/
 + 	long interval_us;	/* time for tp->delivered to incr "delivered" */
-+ 	u32 snd_interval_us;	/* snd interval for delivered packets */
-+ 	u32 rcv_interval_us;	/* rcv interval for delivered packets */
-+@@ -1058,7 +1087,9 @@ struct rate_sample {
-+ 	u32  last_end_seq;	/* end_seq of most recently ACKed packet */
-+ 	bool is_app_limited;	/* is sample from packet with bubble in pipe? */
-+ 	bool is_retrans;	/* is sample from retransmission? */
-++	bool is_acking_tlp_retrans_seq;  /* ACKed a TLP retransmit sequence? */
-+ 	bool is_ack_delayed;	/* is this (likely) a delayed ACK? */
-++	bool is_ece;		/* did this ACK have ECN marked? */
-+ };
-+ 
-+ struct tcp_congestion_ops {
-+@@ -1082,8 +1113,11 @@ struct tcp_congestion_ops {
-+ 	/* hook for packet ack accounting (optional) */
-+ 	void (*pkts_acked)(struct sock *sk, const struct ack_sample *sample);
-+ 
-+-	/* override sysctl_tcp_min_tso_segs */
-+-	u32 (*min_tso_segs)(struct sock *sk);
-++	/* pick target number of segments per TSO/GSO skb (optional): */
-++	u32 (*tso_segs)(struct sock *sk, unsigned int mss_now);
-++
-++	/* react to a specific lost skb (optional) */
-++	void (*skb_marked_lost)(struct sock *sk, const struct sk_buff *skb);
-+ 
-+ 	/* call when packets are delivered to update cwnd and pacing rate,
-+ 	 * after all the ca_state processing. (optional)
-+@@ -1149,6 +1183,14 @@ static inline char *tcp_ca_get_name_by_k
-+ }
-+ #endif
-+ 
-++static inline bool tcp_ca_wants_ce_events(const struct sock *sk)
-++{
-++	const struct inet_connection_sock *icsk = inet_csk(sk);
-++
-++	return icsk->icsk_ca_ops->flags & (TCP_CONG_NEEDS_ECN |
-++					   TCP_CONG_WANTS_CE_EVENTS);
-++}
-++
-+ static inline bool tcp_ca_needs_ecn(const struct sock *sk)
-+ {
-+ 	const struct inet_connection_sock *icsk = inet_csk(sk);
-+@@ -1168,6 +1210,7 @@ static inline void tcp_ca_event(struct s
++@@ -1174,6 +1179,7 @@ static inline void tcp_ca_event(struct s
 + void tcp_set_ca_state(struct sock *sk, const u8 ca_state);
 + 
 + /* From tcp_rate.c */
@@ -182,7 +243,342 @@ index 0000000000..15fe351a03
 + void tcp_rate_skb_sent(struct sock *sk, struct sk_buff *skb);
 + void tcp_rate_skb_delivered(struct sock *sk, struct sk_buff *skb,
 + 			    struct rate_sample *rs);
-+@@ -1180,6 +1223,21 @@ static inline bool tcp_skb_sent_after(u6
++--- a/net/ipv4/tcp_output.c
+++++ b/net/ipv4/tcp_output.c
++@@ -2701,6 +2701,7 @@ static bool tcp_write_xmit(struct sock *
++ 			skb_set_delivery_time(skb, tp->tcp_wstamp_ns, true);
++ 			list_move_tail(&skb->tcp_tsorted_anchor, &tp->tsorted_sent_queue);
++ 			tcp_init_tso_segs(skb, mss_now);
+++			tcp_set_tx_in_flight(sk, skb);
++ 			goto repair; /* Skip network transmission */
++ 		}
++ 
++--- a/net/ipv4/tcp_rate.c
+++++ b/net/ipv4/tcp_rate.c
++@@ -34,6 +34,24 @@
++  * ready to send in the write queue.
++  */
++ 
+++void tcp_set_tx_in_flight(struct sock *sk, struct sk_buff *skb)
+++{
+++	struct tcp_sock *tp = tcp_sk(sk);
+++	u32 in_flight;
+++
+++	/* Check, sanitize, and record packets in flight after skb was sent. */
+++	in_flight = tcp_packets_in_flight(tp) + tcp_skb_pcount(skb);
+++	if (WARN_ONCE(in_flight > TCPCB_IN_FLIGHT_MAX,
+++		      "insane in_flight %u cc %s mss %u "
+++		      "cwnd %u pif %u %u %u %u\n",
+++		      in_flight, inet_csk(sk)->icsk_ca_ops->name,
+++		      tp->mss_cache, tp->snd_cwnd,
+++		      tp->packets_out, tp->retrans_out,
+++		      tp->sacked_out, tp->lost_out))
+++		in_flight = TCPCB_IN_FLIGHT_MAX;
+++	TCP_SKB_CB(skb)->tx.in_flight = in_flight;
+++}
+++
++ /* Snapshot the current delivery information in the skb, to generate
++  * a rate sample later when the skb is (s)acked in tcp_rate_skb_delivered().
++  */
++@@ -67,6 +85,7 @@ void tcp_rate_skb_sent(struct sock *sk,
++ 	TCP_SKB_CB(skb)->tx.delivered		= tp->delivered;
++ 	TCP_SKB_CB(skb)->tx.delivered_ce	= tp->delivered_ce;
++ 	TCP_SKB_CB(skb)->tx.is_app_limited	= tp->app_limited ? 1 : 0;
+++	tcp_set_tx_in_flight(sk, skb);
++ }
++ 
++ /* When an skb is sacked or acked, we fill in the rate sample with the (prior)
++@@ -96,6 +115,7 @@ void tcp_rate_skb_delivered(struct sock
++ 		rs->prior_mstamp     = scb->tx.delivered_mstamp;
++ 		rs->is_app_limited   = scb->tx.is_app_limited;
++ 		rs->is_retrans	     = scb->sacked & TCPCB_RETRANS;
+++		rs->tx_in_flight     = scb->tx.in_flight;
++ 		rs->last_end_seq     = scb->end_seq;
++ 
++ 		/* Record send time of most recently ACKed packet: */
+diff --git a/target/linux/generic/hack-6.6/601-04-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-count-packets-lost-over-TCP-rate-samp.patch b/target/linux/generic/hack-6.6/601-04-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-count-packets-lost-over-TCP-rate-samp.patch
+new file mode 100644
+index 0000000000..39c037e654
+--- /dev/null
++++ b/target/linux/generic/hack-6.6/601-04-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-count-packets-lost-over-TCP-rate-samp.patch
+@@ -0,0 +1,69 @@
++From f370a83a7972e08799316b0de5fb67b63b14c5e4 Mon Sep 17 00:00:00 2001
++From: Neal Cardwell <ncardwell@google.com>
++Date: Thu, 12 Oct 2017 23:44:27 -0400
++Subject: [PATCH 04/19] net-tcp_bbr: v2: count packets lost over TCP rate
++ sampling interval
++
++For understanding the relationship between inflight and packet loss
++signals, to try to find the highest inflight value that has acceptable
++levels of packet losses.
++
++Effort: net-tcp_bbr
++Origin-9xx-SHA1: 4527e26b2bd7756a88b5b9ef1ada3da33dd609ab
++Change-Id: I594c2500868d9c530770e7ddd68ffc87c57f4fd5
++---
++ include/net/tcp.h   | 5 ++++-
++ net/ipv4/tcp_rate.c | 3 +++
++ 2 files changed, 7 insertions(+), 1 deletion(-)
++
++--- a/include/net/tcp.h
+++++ b/include/net/tcp.h
++@@ -909,6 +909,7 @@ struct tcp_skb_cb {
++ #define TCPCB_IN_FLIGHT_MAX ((1U << TCPCB_IN_FLIGHT_BITS) - 1)
++ 			u32 in_flight:20,   /* packets in flight at transmit */
++ 			    unused2:12;
+++			u32 lost;	/* packets lost so far upon tx of skb */
++ 		} tx;   /* only used for outgoing skbs */
++ 		union {
++ 			struct inet_skb_parm	h4;
++@@ -1054,11 +1055,13 @@ struct ack_sample {
++  */
++ struct rate_sample {
++ 	u64  prior_mstamp; /* starting timestamp for interval */
+++	u32  prior_lost;	/* tp->lost at "prior_mstamp" */
++ 	u32  prior_delivered;	/* tp->delivered at "prior_mstamp" */
++ 	u32  prior_delivered_ce;/* tp->delivered_ce at "prior_mstamp" */
++ 	u32 tx_in_flight;	/* packets in flight at starting timestamp */
+++	s32  lost;		/* number of packets lost over interval */
++ 	s32  delivered;		/* number of packets delivered over interval */
++-	s32  delivered_ce;	/* number of packets delivered w/ CE marks*/
+++	s32  delivered_ce;	/* packets delivered w/ CE mark over interval */
++ 	long interval_us;	/* time for tp->delivered to incr "delivered" */
++ 	u32 snd_interval_us;	/* snd interval for delivered packets */
++ 	u32 rcv_interval_us;	/* rcv interval for delivered packets */
++--- a/net/ipv4/tcp_rate.c
+++++ b/net/ipv4/tcp_rate.c
++@@ -84,6 +84,7 @@ void tcp_rate_skb_sent(struct sock *sk,
++ 	TCP_SKB_CB(skb)->tx.delivered_mstamp	= tp->delivered_mstamp;
++ 	TCP_SKB_CB(skb)->tx.delivered		= tp->delivered;
++ 	TCP_SKB_CB(skb)->tx.delivered_ce	= tp->delivered_ce;
+++	TCP_SKB_CB(skb)->tx.lost		= tp->lost;
++ 	TCP_SKB_CB(skb)->tx.is_app_limited	= tp->app_limited ? 1 : 0;
++ 	tcp_set_tx_in_flight(sk, skb);
++ }
++@@ -110,6 +111,7 @@ void tcp_rate_skb_delivered(struct sock
++ 	if (!rs->prior_delivered ||
++ 	    tcp_skb_sent_after(tx_tstamp, tp->first_tx_mstamp,
++ 			       scb->end_seq, rs->last_end_seq)) {
+++		rs->prior_lost	     = scb->tx.lost;
++ 		rs->prior_delivered_ce  = scb->tx.delivered_ce;
++ 		rs->prior_delivered  = scb->tx.delivered;
++ 		rs->prior_mstamp     = scb->tx.delivered_mstamp;
++@@ -165,6 +167,7 @@ void tcp_rate_gen(struct sock *sk, u32 d
++ 		return;
++ 	}
++ 	rs->delivered   = tp->delivered - rs->prior_delivered;
+++	rs->lost        = tp->lost - rs->prior_lost;
++ 
++ 	rs->delivered_ce = tp->delivered_ce - rs->prior_delivered_ce;
++ 	/* delivered_ce occupies less than 32 bits in the skb control block */
+diff --git a/target/linux/generic/hack-6.6/601-05-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-export-FLAG_ECE-in-rate_sample.is_ece.patch b/target/linux/generic/hack-6.6/601-05-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-export-FLAG_ECE-in-rate_sample.is_ece.patch
+new file mode 100644
+index 0000000000..066f276d93
+--- /dev/null
++++ b/target/linux/generic/hack-6.6/601-05-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-export-FLAG_ECE-in-rate_sample.is_ece.patch
+@@ -0,0 +1,37 @@
++From 39cad6f5ef38be886ef73766b8e01ab80a2ee6c6 Mon Sep 17 00:00:00 2001
++From: Neal Cardwell <ncardwell@google.com>
++Date: Mon, 19 Nov 2018 13:48:36 -0500
++Subject: [PATCH 05/19] net-tcp_bbr: v2: export FLAG_ECE in rate_sample.is_ece
++
++For understanding the relationship between inflight and ECN signals,
++to try to find the highest inflight value that has acceptable levels
++ECN marking.
++
++Effort: net-tcp_bbr
++Origin-9xx-SHA1: 3eba998f2898541406c2666781182200934965a8
++Change-Id: I3a964e04cee83e11649a54507043d2dfe769a3b3
++---
++ include/net/tcp.h    | 1 +
++ net/ipv4/tcp_input.c | 1 +
++ 2 files changed, 2 insertions(+)
++
++--- a/include/net/tcp.h
+++++ b/include/net/tcp.h
++@@ -1073,6 +1073,7 @@ struct rate_sample {
++ 	bool is_app_limited;	/* is sample from packet with bubble in pipe? */
++ 	bool is_retrans;	/* is sample from retransmission? */
++ 	bool is_ack_delayed;	/* is this (likely) a delayed ACK? */
+++	bool is_ece;		/* did this ACK have ECN marked? */
++ };
++ 
++ struct tcp_congestion_ops {
++--- a/net/ipv4/tcp_input.c
+++++ b/net/ipv4/tcp_input.c
++@@ -4014,6 +4014,7 @@ static int tcp_ack(struct sock *sk, cons
++ 	delivered = tcp_newly_delivered(sk, delivered, flag);
++ 	lost = tp->lost - lost;			/* freshly marked lost */
++ 	rs.is_ack_delayed = !!(flag & FLAG_ACK_MAYBE_DELAYED);
+++	rs.is_ece = !!(flag & FLAG_ECE);
++ 	tcp_rate_gen(sk, delivered, lost, is_sack_reneg, sack_state.rate);
++ 	tcp_cong_control(sk, ack, delivered, flag, sack_state.rate);
++ 	tcp_xmit_recovery(sk, rexmit);
+diff --git a/target/linux/generic/hack-6.6/601-06-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-introduce-ca_ops-skb_marked_lost-CC-m.patch b/target/linux/generic/hack-6.6/601-06-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-introduce-ca_ops-skb_marked_lost-CC-m.patch
+new file mode 100644
+index 0000000000..c1c3a706a0
+--- /dev/null
++++ b/target/linux/generic/hack-6.6/601-06-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-introduce-ca_ops-skb_marked_lost-CC-m.patch
+@@ -0,0 +1,56 @@
++From 0dfc73a322b79b9bcc49ff662055051e2016e8d5 Mon Sep 17 00:00:00 2001
++From: Neal Cardwell <ncardwell@google.com>
++Date: Tue, 7 Aug 2018 21:52:06 -0400
++Subject: [PATCH 06/19] net-tcp_bbr: v2: introduce ca_ops->skb_marked_lost() CC
++ module callback API
++
++For connections experiencing reordering, RACK can mark packets lost
++long after we receive the SACKs/ACKs hinting that the packets were
++actually lost.
++
++This means that CC modules cannot easily learn the volume of inflight
++data at which packet loss happens by looking at the current inflight
++or even the packets in flight when the most recently SACKed packet was
++sent. To learn this, CC modules need to know how many packets were in
++flight at the time lost packets were sent. This new callback, combined
++with TCP_SKB_CB(skb)->tx.in_flight, allows them to learn this.
++
++This also provides a consistent callback that is invoked whether
++packets are marked lost upon ACK processing, using the RACK reordering
++timer, or at RTO time.
++
++Effort: net-tcp_bbr
++Origin-9xx-SHA1: afcbebe3374e4632ac6714d39e4dc8a8455956f4
++Change-Id: I54826ab53df636be537e5d3c618a46145d12d51a
++---
++ include/net/tcp.h    | 3 +++
++ net/ipv4/tcp_input.c | 5 +++++
++ 2 files changed, 8 insertions(+)
++
++--- a/include/net/tcp.h
+++++ b/include/net/tcp.h
++@@ -1100,6 +1100,9 @@ struct tcp_congestion_ops {
++ 	/* override sysctl_tcp_min_tso_segs */
++ 	u32 (*min_tso_segs)(struct sock *sk);
++ 
+++	/* react to a specific lost skb (optional) */
+++	void (*skb_marked_lost)(struct sock *sk, const struct sk_buff *skb);
+++
++ 	/* call when packets are delivered to update cwnd and pacing rate,
++ 	 * after all the ca_state processing. (optional)
++ 	 */
++--- a/net/ipv4/tcp_input.c
+++++ b/net/ipv4/tcp_input.c
++@@ -1103,7 +1103,12 @@ static void tcp_verify_retransmit_hint(s
++  */
++ static void tcp_notify_skb_loss_event(struct tcp_sock *tp, const struct sk_buff *skb)
++ {
+++	struct sock *sk = (struct sock *)tp;
+++	const struct tcp_congestion_ops *ca_ops = inet_csk(sk)->icsk_ca_ops;
+++
++ 	tp->lost += tcp_skb_pcount(skb);
+++	if (ca_ops->skb_marked_lost)
+++		ca_ops->skb_marked_lost(sk, skb);
++ }
++ 
++ void tcp_mark_skb_lost(struct sock *sk, struct sk_buff *skb)
+diff --git a/target/linux/generic/hack-6.6/601-07-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-adjust-skb-tx.in_flight-upon-merge-in.patch b/target/linux/generic/hack-6.6/601-07-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-adjust-skb-tx.in_flight-upon-merge-in.patch
+new file mode 100644
+index 0000000000..086a6e6d07
+--- /dev/null
++++ b/target/linux/generic/hack-6.6/601-07-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-adjust-skb-tx.in_flight-upon-merge-in.patch
+@@ -0,0 +1,58 @@
++From 558995126fb090c0428904cde7fa70fdd30027be Mon Sep 17 00:00:00 2001
++From: Neal Cardwell <ncardwell@google.com>
++Date: Wed, 1 May 2019 20:16:33 -0400
++Subject: [PATCH 07/19] net-tcp_bbr: v2: adjust skb tx.in_flight upon merge in
++ tcp_shifted_skb()
++
++When tcp_shifted_skb() updates state as adjacent SACKed skbs are
++coalesced, previously the tx.in_flight was not adjusted, so we could
++get contradictory state where the skb's recorded pcount was bigger
++than the tx.in_flight (the number of segments that were in_flight
++after sending the skb).
++
++Normally have a SACKed skb with contradictory pcount/tx.in_flight
++would not matter. However, with SACK reneging, the SACKed bit is
++removed, and an skb once again becomes eligible for retransmitting,
++fragmenting, SACKing, etc. Packetdrill testing verified the following
++sequence is possible in a kernel that does not have this commit:
++
++ - skb N is SACKed
++ - skb N+1 is SACKed and combined with skb N using tcp_shifted_skb()
++   - tcp_shifted_skb() will increase the pcount of prev,
++     but leave tx.in_flight as-is
++   - so prev skb can have pcount > tx.in_flight
++ - RTO, tcp_timeout_mark_lost(), detect reneg,
++   remove "SACKed" bit, mark skb N as lost
++   - find pcount of skb N is greater than its tx.in_flight
++
++I suspect this issue iw what caused the bbr2_inflight_hi_from_lost_skb():
++  WARN_ON_ONCE(inflight_prev < 0)
++to fire in production machines using bbr2.
++
++Effort: net-tcp_bbr
++Origin-9xx-SHA1: 1a3e997e613d2dcf32b947992882854ebe873715
++Change-Id: I1b0b75c27519953430c7db51c6f358f104c7af55
++---
++ net/ipv4/tcp_input.c | 11 +++++++++++
++ 1 file changed, 11 insertions(+)
++
++--- a/net/ipv4/tcp_input.c
+++++ b/net/ipv4/tcp_input.c
++@@ -1489,6 +1489,17 @@ static bool tcp_shifted_skb(struct sock
++ 	WARN_ON_ONCE(tcp_skb_pcount(skb) < pcount);
++ 	tcp_skb_pcount_add(skb, -pcount);
++ 
+++	/* Adjust tx.in_flight as pcount is shifted from skb to prev. */
+++	if (WARN_ONCE(TCP_SKB_CB(skb)->tx.in_flight < pcount,
+++		      "prev in_flight: %u skb in_flight: %u pcount: %u",
+++		      TCP_SKB_CB(prev)->tx.in_flight,
+++		      TCP_SKB_CB(skb)->tx.in_flight,
+++		      pcount))
+++		TCP_SKB_CB(skb)->tx.in_flight = 0;
+++	else
+++		TCP_SKB_CB(skb)->tx.in_flight -= pcount;
+++	TCP_SKB_CB(prev)->tx.in_flight += pcount;
+++
++ 	/* When we're adding to gso_segs == 1, gso_size will be zero,
++ 	 * in theory this shouldn't be necessary but as long as DSACK
++ 	 * code can come after this skb later on it's better to keep
+diff --git a/target/linux/generic/hack-6.6/601-08-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-adjust-skb-tx.in_flight-upon-split-in.patch b/target/linux/generic/hack-6.6/601-08-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-adjust-skb-tx.in_flight-upon-split-in.patch
+new file mode 100644
+index 0000000000..db05aa94ce
+--- /dev/null
++++ b/target/linux/generic/hack-6.6/601-08-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-adjust-skb-tx.in_flight-upon-split-in.patch
+@@ -0,0 +1,96 @@
++From cc06e420c17a12db64fd8c460d00cc60d5f5106f Mon Sep 17 00:00:00 2001
++From: Neal Cardwell <ncardwell@google.com>
++Date: Wed, 1 May 2019 20:16:25 -0400
++Subject: [PATCH 08/19] net-tcp_bbr: v2: adjust skb tx.in_flight upon split in
++ tcp_fragment()
++
++When we fragment an skb that has already been sent, we need to update
++the tx.in_flight for the first skb in the resulting pair ("buff").
++
++Because we were not updating the tx.in_flight, the tx.in_flight value
++was inconsistent with the pcount of the "buff" skb (tx.in_flight would
++be too high). That meant that if the "buff" skb was lost, then
++bbr2_inflight_hi_from_lost_skb() would calculate an inflight_hi value
++that is too high. This could result in longer queues and higher packet
++loss.
++
++Packetdrill testing verified that without this commit, when the second
++half of an skb is SACKed and then later the first half of that skb is
++marked lost, the calculated inflight_hi was incorrect.
++
++Effort: net-tcp_bbr
++Origin-9xx-SHA1: 385f1ddc610798fab2837f9f372857438b25f874
++Origin-9xx-SHA1: a0eb099690af net-tcp_bbr: v2: fix tcp_fragment() tx.in_flight recomputation [prod feb 8 2021; use as a fixup]
++Origin-9xx-SHA1: 885503228153ff0c9114e net-tcp_bbr: v2: introduce tcp_skb_tx_in_flight_is_suspicious() helper for warnings
++Change-Id: I617f8cab4e9be7a0b8e8d30b047bf8645393354d
++---
++ include/net/tcp.h     | 15 +++++++++++++++
++ net/ipv4/tcp_output.c | 26 +++++++++++++++++++++++++-
++ 2 files changed, 40 insertions(+), 1 deletion(-)
++
++--- a/include/net/tcp.h
+++++ b/include/net/tcp.h
++@@ -1199,6 +1199,21 @@ static inline bool tcp_skb_sent_after(u6
 + 	return t1 > t2 || (t1 == t2 && after(seq1, seq2));
 + }
 + 
@@ -204,7 +600,779 @@ index 0000000000..15fe351a03
 + /* These functions determine how the current flow behaves in respect of SACK
 +  * handling. SACK is negotiated with the peer, and therefore it can vary
 +  * between different flows.
-+@@ -2210,7 +2268,7 @@ struct tcp_plb_state {
++--- a/net/ipv4/tcp_output.c
+++++ b/net/ipv4/tcp_output.c
++@@ -1548,7 +1548,7 @@ int tcp_fragment(struct sock *sk, enum t
++ {
++ 	struct tcp_sock *tp = tcp_sk(sk);
++ 	struct sk_buff *buff;
++-	int old_factor;
+++	int old_factor, inflight_prev;
++ 	long limit;
++ 	int nlen;
++ 	u8 flags;
++@@ -1623,6 +1623,30 @@ int tcp_fragment(struct sock *sk, enum t
++ 
++ 		if (diff)
++ 			tcp_adjust_pcount(sk, skb, diff);
+++
+++		inflight_prev = TCP_SKB_CB(skb)->tx.in_flight - old_factor;
+++		if (inflight_prev < 0) {
+++			WARN_ONCE(tcp_skb_tx_in_flight_is_suspicious(
+++					  old_factor,
+++					  TCP_SKB_CB(skb)->sacked,
+++					  TCP_SKB_CB(skb)->tx.in_flight),
+++				  "inconsistent: tx.in_flight: %u "
+++				  "old_factor: %d mss: %u sacked: %u "
+++				  "1st pcount: %d 2nd pcount: %d "
+++				  "1st len: %u 2nd len: %u ",
+++				  TCP_SKB_CB(skb)->tx.in_flight, old_factor,
+++				  mss_now, TCP_SKB_CB(skb)->sacked,
+++				  tcp_skb_pcount(skb), tcp_skb_pcount(buff),
+++				  skb->len, buff->len);
+++			inflight_prev = 0;
+++		}
+++		/* Set 1st tx.in_flight as if 1st were sent by itself: */
+++		TCP_SKB_CB(skb)->tx.in_flight = inflight_prev +
+++						 tcp_skb_pcount(skb);
+++		/* Set 2nd tx.in_flight with new 1st and 2nd pcounts: */
+++		TCP_SKB_CB(buff)->tx.in_flight = inflight_prev +
+++						 tcp_skb_pcount(skb) +
+++						 tcp_skb_pcount(buff);
++ 	}
++ 
++ 	/* Link BUFF into the send queue. */
+diff --git a/target/linux/generic/hack-6.6/601-09-bbr-v3-upstream-prep-2024-02-19-01-net-tcp-add-new-ca-opts-flag-TCP_CONG_WANTS_CE_EVENT.patch b/target/linux/generic/hack-6.6/601-09-bbr-v3-upstream-prep-2024-02-19-01-net-tcp-add-new-ca-opts-flag-TCP_CONG_WANTS_CE_EVENT.patch
+new file mode 100644
+index 0000000000..97b7b6d4f4
+--- /dev/null
++++ b/target/linux/generic/hack-6.6/601-09-bbr-v3-upstream-prep-2024-02-19-01-net-tcp-add-new-ca-opts-flag-TCP_CONG_WANTS_CE_EVENT.patch
+@@ -0,0 +1,72 @@
++From f9303263a3dedd48b477b226e15ebe171ff5ed09 Mon Sep 17 00:00:00 2001
++From: Yousuk Seung <ysseung@google.com>
++Date: Wed, 23 May 2018 17:55:54 -0700
++Subject: [PATCH 09/19] net-tcp: add new ca opts flag TCP_CONG_WANTS_CE_EVENTS
++
++Add a a new ca opts flag TCP_CONG_WANTS_CE_EVENTS that allows a
++congestion control module to receive CE events.
++
++Currently congestion control modules have to set the TCP_CONG_NEEDS_ECN
++bit in opts flag to receive CE events but this may incur changes in ECN
++behavior elsewhere. This patch adds a new bit TCP_CONG_WANTS_CE_EVENTS
++that allows congestion control modules to receive CE events
++independently of TCP_CONG_NEEDS_ECN.
++
++Effort: net-tcp
++Origin-9xx-SHA1: 9f7e14716cde760bc6c67ef8ef7e1ee48501d95b
++Change-Id: I2255506985242f376d910c6fd37daabaf4744f24
++---
++ include/net/tcp.h    | 14 +++++++++++++-
++ net/ipv4/tcp_input.c |  4 ++--
++ 2 files changed, 15 insertions(+), 3 deletions(-)
++
++--- a/include/net/tcp.h
+++++ b/include/net/tcp.h
++@@ -1035,7 +1035,11 @@ enum tcp_ca_ack_event_flags {
++ #define TCP_CONG_NON_RESTRICTED 0x1
++ /* Requires ECN/ECT set on all packets */
++ #define TCP_CONG_NEEDS_ECN	0x2
++-#define TCP_CONG_MASK	(TCP_CONG_NON_RESTRICTED | TCP_CONG_NEEDS_ECN)
+++/* Wants notification of CE events (CA_EVENT_ECN_IS_CE, CA_EVENT_ECN_NO_CE). */
+++#define TCP_CONG_WANTS_CE_EVENTS	0x4
+++#define TCP_CONG_MASK	(TCP_CONG_NON_RESTRICTED | \
+++			 TCP_CONG_NEEDS_ECN | \
+++			 TCP_CONG_WANTS_CE_EVENTS)
++ 
++ union tcp_cc_info;
++ 
++@@ -1167,6 +1171,14 @@ static inline char *tcp_ca_get_name_by_k
++ }
++ #endif
++ 
+++static inline bool tcp_ca_wants_ce_events(const struct sock *sk)
+++{
+++	const struct inet_connection_sock *icsk = inet_csk(sk);
+++
+++	return icsk->icsk_ca_ops->flags & (TCP_CONG_NEEDS_ECN |
+++					   TCP_CONG_WANTS_CE_EVENTS);
+++}
+++
++ static inline bool tcp_ca_needs_ecn(const struct sock *sk)
++ {
++ 	const struct inet_connection_sock *icsk = inet_csk(sk);
++--- a/net/ipv4/tcp_input.c
+++++ b/net/ipv4/tcp_input.c
++@@ -376,7 +376,7 @@ static void __tcp_ecn_check_ce(struct so
++ 			tcp_enter_quickack_mode(sk, 2);
++ 		break;
++ 	case INET_ECN_CE:
++-		if (tcp_ca_needs_ecn(sk))
+++		if (tcp_ca_wants_ce_events(sk))
++ 			tcp_ca_event(sk, CA_EVENT_ECN_IS_CE);
++ 
++ 		if (!(tp->ecn_flags & TCP_ECN_DEMAND_CWR)) {
++@@ -387,7 +387,7 @@ static void __tcp_ecn_check_ce(struct so
++ 		tp->ecn_flags |= TCP_ECN_SEEN;
++ 		break;
++ 	default:
++-		if (tcp_ca_needs_ecn(sk))
+++		if (tcp_ca_wants_ce_events(sk))
++ 			tcp_ca_event(sk, CA_EVENT_ECN_NO_CE);
++ 		tp->ecn_flags |= TCP_ECN_SEEN;
++ 		break;
+diff --git a/target/linux/generic/hack-6.6/601-10-bbr-v3-upstream-prep-2024-02-19-01-net-tcp-re-generalize-TSO-sizing-in-TCP-CC-module-AP.patch b/target/linux/generic/hack-6.6/601-10-bbr-v3-upstream-prep-2024-02-19-01-net-tcp-re-generalize-TSO-sizing-in-TCP-CC-module-AP.patch
+new file mode 100644
+index 0000000000..3675602dcd
+--- /dev/null
++++ b/target/linux/generic/hack-6.6/601-10-bbr-v3-upstream-prep-2024-02-19-01-net-tcp-re-generalize-TSO-sizing-in-TCP-CC-module-AP.patch
+@@ -0,0 +1,117 @@
++From eb5151a8c0aba2b3cffc6fe370c7594f9bf39164 Mon Sep 17 00:00:00 2001
++From: Neal Cardwell <ncardwell@google.com>
++Date: Fri, 27 Sep 2019 17:10:26 -0400
++Subject: [PATCH 10/19] net-tcp: re-generalize TSO sizing in TCP CC module API
++
++Reorganize the API for CC modules so that the CC module once again
++gets complete control of the TSO sizing decision. This is how the API
++was set up around 2016 and the initial BBRv1 upstreaming. Later Eric
++Dumazet simplified it. But with wider testing it now seems that to
++avoid CPU regressions BBR needs to have a different TSO sizing
++function.
++
++This is necessary to handle cases where there are many flows
++bottlenecked on the sender host's NIC, in which case BBR's pacing rate
++is much lower than CUBIC/Reno/DCTCP's. Why does this happen? Because
++BBR's pacing rate adapts to the low bandwidth share each flow sees. By
++contrast, CUBIC/Reno/DCTCP see no loss or ECN, so they grow a very
++large cwnd, and thus large pacing rate and large TSO burst size.
++
++Change-Id: Ic8ccfdbe4010ee8d4bf6a6334c48a2fceb2171ea
++---
++ include/net/tcp.h     |  4 ++--
++ net/ipv4/tcp_bbr.c    | 37 ++++++++++++++++++++++++++-----------
++ net/ipv4/tcp_output.c | 11 +++++------
++ 3 files changed, 33 insertions(+), 19 deletions(-)
++
++--- a/include/net/tcp.h
+++++ b/include/net/tcp.h
++@@ -1101,8 +1101,8 @@ struct tcp_congestion_ops {
++ 	/* hook for packet ack accounting (optional) */
++ 	void (*pkts_acked)(struct sock *sk, const struct ack_sample *sample);
++ 
++-	/* override sysctl_tcp_min_tso_segs */
++-	u32 (*min_tso_segs)(struct sock *sk);
+++	/* pick target number of segments per TSO/GSO skb (optional): */
+++	u32 (*tso_segs)(struct sock *sk, unsigned int mss_now);
++ 
++ 	/* react to a specific lost skb (optional) */
++ 	void (*skb_marked_lost)(struct sock *sk, const struct sk_buff *skb);
++--- a/net/ipv4/tcp_bbr.c
+++++ b/net/ipv4/tcp_bbr.c
++@@ -300,20 +300,35 @@ __bpf_kfunc static u32 bbr_min_tso_segs(
++ 	return sk->sk_pacing_rate < (bbr_min_tso_rate >> 3) ? 1 : 2;
++ }
++ 
+++/* Return the number of segments BBR would like in a TSO/GSO skb, given
+++ * a particular max gso size as a constraint.
+++ */
+++static u32 bbr_tso_segs_generic(struct sock *sk, unsigned int mss_now,
+++				u32 gso_max_size)
+++{
+++	u32 segs;
+++	u64 bytes;
+++
+++	/* Budget a TSO/GSO burst size allowance based on bw (pacing_rate). */
+++	bytes = sk->sk_pacing_rate >> sk->sk_pacing_shift;
+++
+++	bytes = min_t(u32, bytes, gso_max_size - 1 - MAX_TCP_HEADER);
+++	segs = max_t(u32, bytes / mss_now, bbr_min_tso_segs(sk));
+++	return segs;
+++}
+++
+++/* Custom tcp_tso_autosize() for BBR, used at transmit time to cap skb size. */
+++static u32  bbr_tso_segs(struct sock *sk, unsigned int mss_now)
+++{
+++	return bbr_tso_segs_generic(sk, mss_now, sk->sk_gso_max_size);
+++}
+++
+++/* Like bbr_tso_segs(), using mss_cache, ignoring driver's sk_gso_max_size. */
++ static u32 bbr_tso_segs_goal(struct sock *sk)
++ {
++ 	struct tcp_sock *tp = tcp_sk(sk);
++-	u32 segs, bytes;
++-
++-	/* Sort of tcp_tso_autosize() but ignoring
++-	 * driver provided sk_gso_max_size.
++-	 */
++-	bytes = min_t(unsigned long,
++-		      sk->sk_pacing_rate >> READ_ONCE(sk->sk_pacing_shift),
++-		      GSO_LEGACY_MAX_SIZE - 1 - MAX_TCP_HEADER);
++-	segs = max_t(u32, bytes / tp->mss_cache, bbr_min_tso_segs(sk));
++ 
++-	return min(segs, 0x7FU);
+++	return  bbr_tso_segs_generic(sk, tp->mss_cache, GSO_MAX_SIZE);
++ }
++ 
++ /* Save "last known good" cwnd so we can restore it after losses or PROBE_RTT */
++@@ -1149,7 +1164,7 @@ static struct tcp_congestion_ops tcp_bbr
++ 	.undo_cwnd	= bbr_undo_cwnd,
++ 	.cwnd_event	= bbr_cwnd_event,
++ 	.ssthresh	= bbr_ssthresh,
++-	.min_tso_segs	= bbr_min_tso_segs,
+++	.tso_segs	= bbr_tso_segs,
++ 	.get_info	= bbr_get_info,
++ 	.set_state	= bbr_set_state,
++ };
++--- a/net/ipv4/tcp_output.c
+++++ b/net/ipv4/tcp_output.c
++@@ -2022,13 +2022,12 @@ static u32 tcp_tso_autosize(const struct
++ static u32 tcp_tso_segs(struct sock *sk, unsigned int mss_now)
++ {
++ 	const struct tcp_congestion_ops *ca_ops = inet_csk(sk)->icsk_ca_ops;
++-	u32 min_tso, tso_segs;
+++	u32 tso_segs;
++ 
++-	min_tso = ca_ops->min_tso_segs ?
++-			ca_ops->min_tso_segs(sk) :
++-			READ_ONCE(sock_net(sk)->ipv4.sysctl_tcp_min_tso_segs);
++-
++-	tso_segs = tcp_tso_autosize(sk, mss_now, min_tso);
+++	tso_segs = ca_ops->tso_segs ?
+++		ca_ops->tso_segs(sk, mss_now) :
+++		tcp_tso_autosize(sk, mss_now,
+++				 sock_net(sk)->ipv4.sysctl_tcp_min_tso_segs);
++ 	return min_t(u32, tso_segs, sk->sk_gso_max_segs);
++ }
++ 
+diff --git a/target/linux/generic/hack-6.6/601-11-bbr-v3-upstream-prep-2024-02-19-01-net-tcp-add-fast_ack_mode-1-skip-rwin-check-in-tcp_f.patch b/target/linux/generic/hack-6.6/601-11-bbr-v3-upstream-prep-2024-02-19-01-net-tcp-add-fast_ack_mode-1-skip-rwin-check-in-tcp_f.patch
+new file mode 100644
+index 0000000000..9f98ca87a0
+--- /dev/null
++++ b/target/linux/generic/hack-6.6/601-11-bbr-v3-upstream-prep-2024-02-19-01-net-tcp-add-fast_ack_mode-1-skip-rwin-check-in-tcp_f.patch
+@@ -0,0 +1,71 @@
++From 9a61c63fcbda3770a3d582069b3f20d5d02000fa Mon Sep 17 00:00:00 2001
++From: Neal Cardwell <ncardwell@google.com>
++Date: Sat, 16 Nov 2019 13:16:25 -0500
++Subject: [PATCH 11/19] net-tcp: add fast_ack_mode=1: skip rwin check in
++ tcp_fast_ack_mode__tcp_ack_snd_check()
++
++Add logic for an experimental TCP connection behavior, enabled with
++tp->fast_ack_mode = 1, which disables checking the receive window
++before sending an ack in __tcp_ack_snd_check(). If this behavior is
++enabled, the data receiver sends an ACK if the amount of data is >
++RCV.MSS.
++
++Change-Id: Iaa0a0fd7108221f883137a79d5bfa724f1b096d4
++---
++ include/linux/tcp.h  | 3 ++-
++ net/ipv4/tcp.c       | 1 +
++ net/ipv4/tcp_cong.c  | 1 +
++ net/ipv4/tcp_input.c | 5 +++--
++ 4 files changed, 7 insertions(+), 3 deletions(-)
++
++--- a/include/linux/tcp.h
+++++ b/include/linux/tcp.h
++@@ -257,7 +257,8 @@ struct tcp_sock {
++ 	u8	compressed_ack;
++ 	u8	dup_ack_counter:2,
++ 		tlp_retrans:1,	/* TLP is a retransmission */
++-		unused:5;
+++		fast_ack_mode:2, /* which fast ack mode ? */
+++		unused:3;
++ 	u32	chrono_start;	/* Start time in jiffies of a TCP chrono */
++ 	u32	chrono_stat[3];	/* Time in jiffies for chrono_stat stats */
++ 	u8	chrono_type:2,	/* current chronograph type */
++--- a/net/ipv4/tcp.c
+++++ b/net/ipv4/tcp.c
++@@ -3099,6 +3099,7 @@ int tcp_disconnect(struct sock *sk, int
++ 	tp->rx_opt.dsack = 0;
++ 	tp->rx_opt.num_sacks = 0;
++ 	tp->rcv_ooopack = 0;
+++	tp->fast_ack_mode = 0;
++ 
++ 
++ 	/* Clean up fastopen related fields */
++--- a/net/ipv4/tcp_cong.c
+++++ b/net/ipv4/tcp_cong.c
++@@ -240,6 +240,7 @@ void tcp_init_congestion_control(struct
++ 	struct inet_connection_sock *icsk = inet_csk(sk);
++ 
++ 	tcp_sk(sk)->prior_ssthresh = 0;
+++	tcp_sk(sk)->fast_ack_mode = 0;
++ 	if (icsk->icsk_ca_ops->init)
++ 		icsk->icsk_ca_ops->init(sk);
++ 	if (tcp_ca_needs_ecn(sk))
++--- a/net/ipv4/tcp_input.c
+++++ b/net/ipv4/tcp_input.c
++@@ -5662,13 +5662,14 @@ static void __tcp_ack_snd_check(struct s
++ 
++ 	    /* More than one full frame received... */
++ 	if (((tp->rcv_nxt - tp->rcv_wup) > inet_csk(sk)->icsk_ack.rcv_mss &&
+++	     (tp->fast_ack_mode == 1 ||
++ 	     /* ... and right edge of window advances far enough.
++ 	      * (tcp_recvmsg() will send ACK otherwise).
++ 	      * If application uses SO_RCVLOWAT, we want send ack now if
++ 	      * we have not received enough bytes to satisfy the condition.
++ 	      */
++-	    (tp->rcv_nxt - tp->copied_seq < sk->sk_rcvlowat ||
++-	     __tcp_select_window(sk) >= tp->rcv_wnd)) ||
+++	      (tp->rcv_nxt - tp->copied_seq < sk->sk_rcvlowat ||
+++	       __tcp_select_window(sk) >= tp->rcv_wnd))) ||
++ 	    /* We ACK each frame or... */
++ 	    tcp_in_quickack_mode(sk) ||
++ 	    /* Protocol state mandates a one-time immediate ACK */
+diff --git a/target/linux/generic/hack-6.6/601-12-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-record-app-limited-status-of-TLP-repa.patch b/target/linux/generic/hack-6.6/601-12-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-record-app-limited-status-of-TLP-repa.patch
+new file mode 100644
+index 0000000000..16550efca5
+--- /dev/null
++++ b/target/linux/generic/hack-6.6/601-12-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-record-app-limited-status-of-TLP-repa.patch
+@@ -0,0 +1,44 @@
++From cec5a43a23d36dd7cfcaddb9aa40a90989017331 Mon Sep 17 00:00:00 2001
++From: Jianfeng Wang <jfwang@google.com>
++Date: Fri, 19 Jun 2020 17:33:45 +0000
++Subject: [PATCH 12/19] net-tcp_bbr: v2: record app-limited status of
++ TLP-repaired flight
++
++When sending a TLP retransmit, record whether the outstanding flight
++of data is application limited. This is important for congestion
++control modules that want to respond to losses repaired by TLP
++retransmits. This is important because the following scenarios convey
++very different information:
++ (1) a packet loss with a small number of packets in flight;
++ (2) a packet loss with the maximum amount of data in flight allowed
++     by the CC module;
++
++Effort: net-tcp_bbr
++Change-Id: Ic8ae567caa4e4bfd5fd82c3d4be12a5d9171655e
++---
++ include/linux/tcp.h   | 3 ++-
++ net/ipv4/tcp_output.c | 1 +
++ 2 files changed, 3 insertions(+), 1 deletion(-)
++
++--- a/include/linux/tcp.h
+++++ b/include/linux/tcp.h
++@@ -258,7 +258,8 @@ struct tcp_sock {
++ 	u8	dup_ack_counter:2,
++ 		tlp_retrans:1,	/* TLP is a retransmission */
++ 		fast_ack_mode:2, /* which fast ack mode ? */
++-		unused:3;
+++		tlp_orig_data_app_limited:1, /* app-limited before TLP rtx? */
+++		unused:2;
++ 	u32	chrono_start;	/* Start time in jiffies of a TCP chrono */
++ 	u32	chrono_stat[3];	/* Time in jiffies for chrono_stat stats */
++ 	u8	chrono_type:2,	/* current chronograph type */
++--- a/net/ipv4/tcp_output.c
+++++ b/net/ipv4/tcp_output.c
++@@ -2938,6 +2938,7 @@ void tcp_send_loss_probe(struct sock *sk
++ 	if (WARN_ON(!skb || !tcp_skb_pcount(skb)))
++ 		goto rearm_timer;
++ 
+++	tp->tlp_orig_data_app_limited = TCP_SKB_CB(skb)->tx.is_app_limited;
++ 	if (__tcp_retransmit_skb(sk, skb, 1))
++ 		goto rearm_timer;
++ 
+diff --git a/target/linux/generic/hack-6.6/601-13-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-inform-CC-module-of-losses-repaired-b.patch b/target/linux/generic/hack-6.6/601-13-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-inform-CC-module-of-losses-repaired-b.patch
+new file mode 100644
+index 0000000000..cca0cb6d11
+--- /dev/null
++++ b/target/linux/generic/hack-6.6/601-13-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-inform-CC-module-of-losses-repaired-b.patch
+@@ -0,0 +1,44 @@
++From 087d67017b72863366d5352616bb2a363e970117 Mon Sep 17 00:00:00 2001
++From: Jianfeng Wang <jfwang@google.com>
++Date: Tue, 16 Jun 2020 17:41:19 +0000
++Subject: [PATCH 13/19] net-tcp_bbr: v2: inform CC module of losses repaired by
++ TLP probe
++
++Before this commit, when there is a packet loss that creates a sequence
++hole that is filled by a TLP loss probe, then tcp_process_tlp_ack()
++only informs the congestion control (CC) module via a back-to-back entry
++and exit of CWR. But some congestion control modules (e.g. BBR) do not
++respond to CWR events.
++
++This commit adds a new CA event with which the core TCP stack notifies
++the CC module when a loss is repaired by a TLP. This will allow CC
++modules that do not use the CWR mechanism to have a custom handler for
++such TLP recoveries.
++
++Effort: net-tcp_bbr
++Change-Id: Ieba72332b401b329bff5a641d2b2043a3fb8f632
++---
++ include/net/tcp.h    | 1 +
++ net/ipv4/tcp_input.c | 1 +
++ 2 files changed, 2 insertions(+)
++
++--- a/include/net/tcp.h
+++++ b/include/net/tcp.h
++@@ -1013,6 +1013,7 @@ enum tcp_ca_event {
++ 	CA_EVENT_LOSS,		/* loss timeout */
++ 	CA_EVENT_ECN_NO_CE,	/* ECT set, but not CE marked */
++ 	CA_EVENT_ECN_IS_CE,	/* received CE marked IP packet */
+++	CA_EVENT_TLP_RECOVERY,	/* a lost segment was repaired by TLP probe */
++ };
++ 
++ /* Information about inbound ACK, passed to cong_ops->in_ack_event() */
++--- a/net/ipv4/tcp_input.c
+++++ b/net/ipv4/tcp_input.c
++@@ -3813,6 +3813,7 @@ static void tcp_process_tlp_ack(struct s
++ 		/* ACK advances: there was a loss, so reduce cwnd. Reset
++ 		 * tlp_high_seq in tcp_init_cwnd_reduction()
++ 		 */
+++		tcp_ca_event(sk, CA_EVENT_TLP_RECOVERY);
++ 		tcp_init_cwnd_reduction(sk);
++ 		tcp_set_ca_state(sk, TCP_CA_CWR);
++ 		tcp_end_cwnd_reduction(sk);
+diff --git a/target/linux/generic/hack-6.6/601-14-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-introduce-is_acking_tlp_retrans_seq-i.patch b/target/linux/generic/hack-6.6/601-14-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-introduce-is_acking_tlp_retrans_seq-i.patch
+new file mode 100644
+index 0000000000..66375196cd
+--- /dev/null
++++ b/target/linux/generic/hack-6.6/601-14-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v2-introduce-is_acking_tlp_retrans_seq-i.patch
+@@ -0,0 +1,72 @@
++From 0388564bd3250ae87983d2b40440f4b5fdee7853 Mon Sep 17 00:00:00 2001
++From: Neal Cardwell <ncardwell@google.com>
++Date: Mon, 21 Sep 2020 14:46:26 -0400
++Subject: [PATCH 14/19] net-tcp_bbr: v2: introduce is_acking_tlp_retrans_seq
++ into rate_sample
++
++Introduce is_acking_tlp_retrans_seq into rate_sample. This bool will
++export to the CC module the knowledge of whether the current ACK
++matched a TLP retransmit.
++
++Note that when this bool is true, we cannot yet tell (in general) whether
++this ACK is for the original or the TLP retransmit.
++
++Effort: net-tcp_bbr
++Change-Id: I2e6494332167e75efcbdc99bd5c119034e9c39b4
++---
++ include/net/tcp.h    |  1 +
++ net/ipv4/tcp_input.c | 12 +++++++++---
++ 2 files changed, 10 insertions(+), 3 deletions(-)
++
++--- a/include/net/tcp.h
+++++ b/include/net/tcp.h
++@@ -1077,6 +1077,7 @@ struct rate_sample {
++ 	u32  last_end_seq;	/* end_seq of most recently ACKed packet */
++ 	bool is_app_limited;	/* is sample from packet with bubble in pipe? */
++ 	bool is_retrans;	/* is sample from retransmission? */
+++	bool is_acking_tlp_retrans_seq;  /* ACKed a TLP retransmit sequence? */
++ 	bool is_ack_delayed;	/* is this (likely) a delayed ACK? */
++ 	bool is_ece;		/* did this ACK have ECN marked? */
++ };
++--- a/net/ipv4/tcp_input.c
+++++ b/net/ipv4/tcp_input.c
++@@ -3796,7 +3796,8 @@ static void tcp_replace_ts_recent(struct
++ /* This routine deals with acks during a TLP episode and ends an episode by
++  * resetting tlp_high_seq. Ref: TLP algorithm in draft-ietf-tcpm-rack
++  */
++-static void tcp_process_tlp_ack(struct sock *sk, u32 ack, int flag)
+++static void tcp_process_tlp_ack(struct sock *sk, u32 ack, int flag,
+++				struct rate_sample *rs)
++ {
++ 	struct tcp_sock *tp = tcp_sk(sk);
++ 
++@@ -3824,6 +3825,11 @@ static void tcp_process_tlp_ack(struct s
++ 			     FLAG_NOT_DUP | FLAG_DATA_SACKED))) {
++ 		/* Pure dupack: original and TLP probe arrived; no loss */
++ 		tp->tlp_high_seq = 0;
+++	} else {
+++		/* This ACK matches a TLP retransmit. We cannot yet tell if
+++		 * this ACK is for the original or the TLP retransmit.
+++		 */
+++		rs->is_acking_tlp_retrans_seq = 1;
++ 	}
++ }
++ 
++@@ -4007,7 +4013,7 @@ static int tcp_ack(struct sock *sk, cons
++ 	tcp_rack_update_reo_wnd(sk, &rs);
++ 
++ 	if (tp->tlp_high_seq)
++-		tcp_process_tlp_ack(sk, ack, flag);
+++		tcp_process_tlp_ack(sk, ack, flag, &rs);
++ 
++ 	if (tcp_ack_is_dubious(sk, flag)) {
++ 		if (!(flag & (FLAG_SND_UNA_ADVANCED |
++@@ -4051,7 +4057,7 @@ no_queue:
++ 	tcp_ack_probe(sk);
++ 
++ 	if (tp->tlp_high_seq)
++-		tcp_process_tlp_ack(sk, ack, flag);
+++		tcp_process_tlp_ack(sk, ack, flag, &rs);
++ 	return 1;
++ 
++ old_ack:
+diff --git a/target/linux/generic/hack-6.6/601-15-bbr-v3-upstream-prep-2024-02-19-01-tcp-introduce-per-route-feature-RTAX_FEATURE_ECN_LOW.patch b/target/linux/generic/hack-6.6/601-15-bbr-v3-upstream-prep-2024-02-19-01-tcp-introduce-per-route-feature-RTAX_FEATURE_ECN_LOW.patch
+new file mode 100644
+index 0000000000..ec870077a3
+--- /dev/null
++++ b/target/linux/generic/hack-6.6/601-15-bbr-v3-upstream-prep-2024-02-19-01-tcp-introduce-per-route-feature-RTAX_FEATURE_ECN_LOW.patch
+@@ -0,0 +1,108 @@
++From a3a96f4abe4e8ae8b243ab5e490334f19fe64c7a Mon Sep 17 00:00:00 2001
++From: David Morley <morleyd@google.com>
++Date: Fri, 14 Jul 2023 11:07:56 -0400
++Subject: [PATCH 15/19] tcp: introduce per-route feature RTAX_FEATURE_ECN_LOW
++
++Define and implement a new per-route feature, RTAX_FEATURE_ECN_LOW.
++
++This feature indicates that the given destination network is a
++low-latency ECN environment, meaning both that ECN CE marks are
++applied by the network using a low-latency marking threshold and also
++that TCP endpoints provide precise per-data-segment ECN feedback in
++ACKs (where the ACK ECE flag echoes the received CE status of all
++newly-acknowledged data segments). This feature indication can be used
++by congestion control algorithms to decide how to interpret ECN
++signals over the given destination network.
++
++This feature is appropriate for datacenter-style ECN marking, such as
++the ECN marking approach expected by DCTCP or BBR congestion control
++modules.
++
++Signed-off-by: David Morley <morleyd@google.com>
++Signed-off-by: Neal Cardwell <ncardwell@google.com>
++Signed-off-by: Yuchung Cheng <ycheng@google.com>
++Tested-by: David Morley <morleyd@google.com>
++Change-Id: I6bc06e9c6cb426fbae7243fc71c9a8c18175f5d3
++---
++ include/net/tcp.h              | 10 ++++++++++
++ include/uapi/linux/rtnetlink.h |  4 +++-
++ net/ipv4/tcp_minisocks.c       |  2 ++
++ net/ipv4/tcp_output.c          |  6 ++++--
++ 4 files changed, 19 insertions(+), 3 deletions(-)
++
++--- a/include/net/tcp.h
+++++ b/include/net/tcp.h
++@@ -372,6 +372,7 @@ static inline void tcp_dec_quickack_mode
++ #define	TCP_ECN_QUEUE_CWR	2
++ #define	TCP_ECN_DEMAND_CWR	4
++ #define	TCP_ECN_SEEN		8
+++#define	TCP_ECN_LOW		16
++ 
++ enum tcp_tw_status {
++ 	TCP_TW_SUCCESS = 0,
++@@ -724,6 +725,15 @@ static inline void tcp_fast_path_check(s
++ 		tcp_fast_path_on(tp);
++ }
++ 
+++static inline void tcp_set_ecn_low_from_dst(struct sock *sk,
+++					    const struct dst_entry *dst)
+++{
+++	struct tcp_sock *tp = tcp_sk(sk);
+++
+++	if (dst_feature(dst, RTAX_FEATURE_ECN_LOW))
+++		tp->ecn_flags |= TCP_ECN_LOW;
+++}
+++
++ u32 tcp_delack_max(const struct sock *sk);
++ 
++ /* Compute the actual rto_min value */
++--- a/include/uapi/linux/rtnetlink.h
+++++ b/include/uapi/linux/rtnetlink.h
++@@ -509,9 +509,11 @@ enum {
++ #define RTAX_FEATURE_SACK	(1 << 1)
++ #define RTAX_FEATURE_TIMESTAMP	(1 << 2)
++ #define RTAX_FEATURE_ALLFRAG	(1 << 3)
+++#define RTAX_FEATURE_ECN_LOW	(1 << 4)
++ 
++ #define RTAX_FEATURE_MASK	(RTAX_FEATURE_ECN | RTAX_FEATURE_SACK | \
++-				 RTAX_FEATURE_TIMESTAMP | RTAX_FEATURE_ALLFRAG)
+++				 RTAX_FEATURE_TIMESTAMP | RTAX_FEATURE_ALLFRAG \
+++				 | RTAX_FEATURE_ECN_LOW)
++ 
++ struct rta_session {
++ 	__u8	proto;
++--- a/net/ipv4/tcp_minisocks.c
+++++ b/net/ipv4/tcp_minisocks.c
++@@ -434,6 +434,8 @@ void tcp_ca_openreq_child(struct sock *s
++ 	u32 ca_key = dst_metric(dst, RTAX_CC_ALGO);
++ 	bool ca_got_dst = false;
++ 
+++	tcp_set_ecn_low_from_dst(sk, dst);
+++
++ 	if (ca_key != TCP_CA_UNSPEC) {
++ 		const struct tcp_congestion_ops *ca;
++ 
++--- a/net/ipv4/tcp_output.c
+++++ b/net/ipv4/tcp_output.c
++@@ -334,10 +334,9 @@ static void tcp_ecn_send_syn(struct sock
++ 	bool bpf_needs_ecn = tcp_bpf_ca_needs_ecn(sk);
++ 	bool use_ecn = READ_ONCE(sock_net(sk)->ipv4.sysctl_tcp_ecn) == 1 ||
++ 		tcp_ca_needs_ecn(sk) || bpf_needs_ecn;
+++	const struct dst_entry *dst = __sk_dst_get(sk);
++ 
++ 	if (!use_ecn) {
++-		const struct dst_entry *dst = __sk_dst_get(sk);
++-
++ 		if (dst && dst_feature(dst, RTAX_FEATURE_ECN))
++ 			use_ecn = true;
++ 	}
++@@ -349,6 +348,9 @@ static void tcp_ecn_send_syn(struct sock
++ 		tp->ecn_flags = TCP_ECN_OK;
++ 		if (tcp_ca_needs_ecn(sk) || bpf_needs_ecn)
++ 			INET_ECN_xmit(sk);
+++
+++		if (dst)
+++			tcp_set_ecn_low_from_dst(sk, dst);
++ 	}
++ }
++ 
+diff --git a/target/linux/generic/hack-6.6/601-16-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v3-update-TCP-bbr-congestion-control-mod.patch b/target/linux/generic/hack-6.6/601-16-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v3-update-TCP-bbr-congestion-control-mod.patch
+new file mode 100644
+index 0000000000..1a206c3e2f
+--- /dev/null
++++ b/target/linux/generic/hack-6.6/601-16-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v3-update-TCP-bbr-congestion-control-mod.patch
+@@ -0,0 +1,2822 @@
++From ba71521b6189a839b1152c9e015718e3e2494614 Mon Sep 17 00:00:00 2001
++From: Neal Cardwell <ncardwell@google.com>
++Date: Tue, 11 Jun 2019 12:54:22 -0400
++Subject: [PATCH 16/19] net-tcp_bbr: v3: update TCP "bbr" congestion control
++ module to BBRv3
++
++BBR v3 is an enhacement to the BBR v1 algorithm. It's designed to aim for lower
++queues, lower loss, and better Reno/CUBIC coexistence than BBR v1.
++
++BBR v3 maintains the core of BBR v1: an explicit model of the network
++path that is two-dimensional, adapting to estimate the (a) maximum
++available bandwidth and (b) maximum safe volume of data a flow can
++keep in-flight in the network. It maintains the estimated BDP as a
++core guide for estimating an appropriate level of in-flight data.
++
++BBR v3 makes several key enhancements:
++
++o Its bandwidth-probing time scale is adapted, within bounds, to allow improved
++coexistence with Reno and CUBIC. The bandwidth-probing time scale is (a)
++extended dynamically based on estimated BDP to improve coexistence with
++Reno/CUBIC; (b) bounded by an interactive wall-clock time-scale to be more
++scalable and responsive than Reno and CUBIC.
++
++o Rather than being largely agnostic to loss and ECN marks, it explicitly uses
++loss and (DCTCP-style) ECN signals to maintain its model.
++
++o It aims for lower losses than v1 by adjusting its model to attempt to stay
++within loss rate and ECN mark rate bounds (loss_thresh and ecn_thresh,
++respectively).
++
++o It adapts to loss/ECN signals even when the application is running out of
++data ("application-limited"), in case the "application-limited" flow is also
++"network-limited" (the bw and/or inflight available to this flow is lower than
++previously estimated when the flow ran out of data).
++
++o It has a three-part model: the model explicit three tracks operating points,
++where an operating point is a tuple: (bandwidth, inflight). The three operating
++points are:
++
++  o latest:        the latest measurement from the current round trip
++  o upper bound:   robust, optimistic, long-term upper bound
++  o lower bound:   robust, conservative, short-term lower bound
++
++These are stored in the following state variables:
++
++  o latest:  bw_latest, inflight_latest
++  o lo:      bw_lo,     inflight_lo
++  o hi:      bw_hi[2],  inflight_hi
++
++To gain intuition about the meaning of the three operating points, it
++may help to consider the analogs in CUBIC, which has a somewhat
++analogous three-part model used by its probing state machine:
++
++  BBR param     CUBIC param
++  -----------   -------------
++  latest     ~  cwnd
++  lo         ~  ssthresh
++  hi         ~  last_max_cwnd
++
++The analogy is only a loose one, though, since the BBR operating
++points are calculated differently, and are 2-dimensional (bw,inflight)
++rather than CUBIC's one-dimensional notion of operating point
++(inflight).
++
++o It uses the three-part model to adapt the magnitude of its bandwidth
++to match the estimated space available in the buffer, rather than (as
++in BBR v1) assuming that it was always acceptable to place 0.25*BDP in
++the bottleneck buffer when probing (commodity datacenter switches
++commonly do not have that much buffer for WAN flows). When BBR v3
++estimates it hit a buffer limit during probing, its bandwidth probing
++then starts gently in case little space is still available in the
++buffer, and the accelerates, slowly at first and then rapidly if it
++can grow inflight without seeing congestion signals. In such cases,
++probing is bounded by inflight_hi + inflight_probe, where
++inflight_probe grows as: [0, 1, 2, 4, 8, 16,...]. This allows BBR to
++keep losses low and bounded if a bottleneck remains congested, while
++rapidly/scalably utilizing free bandwidth when it becomes available.
++
++o It has a slightly revised state machine, to achieve the goals above.
++    BBR_BW_PROBE_UP:    pushes up inflight to probe for bw/vol
++    BBR_BW_PROBE_DOWN:  drain excess inflight from the queue
++    BBR_BW_PROBE_CRUISE: use pipe, w/ headroom in queue/pipe
++    BBR_BW_PROBE_REFILL: try refill the pipe again to 100%, leaving queue empty
++
++o The estimated BDP: BBR v3 continues to maintain an estimate of the
++path's two-way propagation delay, by tracking a windowed min_rtt, and
++coordinating (on an as-ndeeded basis) to try to expose the two-way
++propagation delay by draining the bottleneck queue.
++
++BBR v3 continues to use its min_rtt and (currently-applicable) bandwidth
++estimate to estimate the current bandwidth-delay product. The estimated BDP
++still provides one important guideline for bounding inflight data. However,
++because any min-filtered RTT and max-filtered bw inherently tend to both
++overestimate, the estimated BDP is often too high; in this case loss or ECN
++marks can ensue, in which case BBR v3 adjusts inflight_hi and inflight_lo to
++adapt its sending rate and inflight down to match the available capacity of the
++path.
++
++o Space: Note that ICSK_CA_PRIV_SIZE increased. This is because BBR v3
++requires more space. Note that much of the space is due to support for
++per-socket parameterization and debugging in this release for research
++and debugging. With that state removed, the full "struct bbr" is 140
++bytes, or 144 with padding. This is an increase of 40 bytes over the
++existing ca_priv space.
++
++o Code: BBR v3 reuses many pieces from BBR v1. But it omits the following
++  significant pieces:
++
++  o "packet conservation" (bbr_set_cwnd_to_recover_or_restore(),
++    bbr_can_grow_inflight())
++  o long-term bandwidth estimator ("policer mode")
++
++  The code layout tries to keep BBR v3 code near the bottom of the
++  file, so that v1-applicable code in the top does not accidentally
++  refer to v3 code.
++
++o Docs:
++  See the following docs for more details and diagrams decsribing the BBR v3
++  algorithm:
++    https://datatracker.ietf.org/meeting/104/materials/slides-104-iccrg-an-update-on-bbr-00
++    https://datatracker.ietf.org/meeting/102/materials/slides-102-iccrg-an-update-on-bbr-work-at-google-00
++
++o Internal notes:
++  For this upstream rebase, Neal started from:
++    git show fed518041ac6:net/ipv4/tcp_bbr.c > net/ipv4/tcp_bbr.c
++  then removed dev instrumentation (dynamic get/set for parameters)
++  and code that was only used by BBRv1
++
++Effort: net-tcp_bbr
++Origin-9xx-SHA1: 2c84098e60bed6d67dde23cd7538c51dee273102
++Change-Id: I125cf26ba2a7a686f2fa5e87f4c2afceb65f7a05
++---
++ include/net/inet_connection_sock.h |    4 +-
++ include/net/tcp.h                  |    2 +-
++ include/uapi/linux/inet_diag.h     |   23 +
++ net/ipv4/Kconfig                   |   21 +-
++ net/ipv4/tcp_bbr.c                 | 2217 +++++++++++++++++++++-------
++ 5 files changed, 1742 insertions(+), 525 deletions(-)
++
++--- a/include/net/inet_connection_sock.h
+++++ b/include/net/inet_connection_sock.h
++@@ -135,8 +135,8 @@ struct inet_connection_sock {
++ 	u32			  icsk_probes_tstamp;
++ 	u32			  icsk_user_timeout;
++ 
++-	u64			  icsk_ca_priv[104 / sizeof(u64)];
++-#define ICSK_CA_PRIV_SIZE	  sizeof_field(struct inet_connection_sock, icsk_ca_priv)
+++#define ICSK_CA_PRIV_SIZE      (144)
+++	u64			  icsk_ca_priv[ICSK_CA_PRIV_SIZE / sizeof(u64)];
++ };
++ 
++ #define ICSK_TIME_RETRANS	1	/* Retransmit timer */
++--- a/include/net/tcp.h
+++++ b/include/net/tcp.h
++@@ -2272,7 +2272,7 @@ struct tcp_plb_state {
 + 	u8	consec_cong_rounds:5, /* consecutive congested rounds */
 + 		unused:3;
 + 	u32	pause_until; /* jiffies32 when PLB can resume rerouting */
@@ -245,31 +1413,6 @@ index 0000000000..15fe351a03
 + };
 + 
 + union tcp_cc_info {
-+--- a/include/uapi/linux/rtnetlink.h
-++++ b/include/uapi/linux/rtnetlink.h
-+@@ -506,9 +506,11 @@ enum {
-+ #define RTAX_FEATURE_SACK	(1 << 1)
-+ #define RTAX_FEATURE_TIMESTAMP	(1 << 2)
-+ #define RTAX_FEATURE_ALLFRAG	(1 << 3)
-++#define RTAX_FEATURE_ECN_LOW	(1 << 4)
-+ 
-+ #define RTAX_FEATURE_MASK	(RTAX_FEATURE_ECN | RTAX_FEATURE_SACK | \
-+-				 RTAX_FEATURE_TIMESTAMP | RTAX_FEATURE_ALLFRAG)
-++				 RTAX_FEATURE_TIMESTAMP | RTAX_FEATURE_ALLFRAG \
-++				 | RTAX_FEATURE_ECN_LOW)
-+ 
-+ struct rta_session {
-+ 	__u8	proto;
-+--- a/include/uapi/linux/tcp.h
-++++ b/include/uapi/linux/tcp.h
-+@@ -170,6 +170,7 @@ enum tcp_fastopen_client_fail {
-+ #define TCPI_OPT_ECN		8 /* ECN was negociated at TCP session init */
-+ #define TCPI_OPT_ECN_SEEN	16 /* we received at least one packet with ECT */
-+ #define TCPI_OPT_SYN_DATA	32 /* SYN-ACK acked data in SYN sent or rcvd */
-++#define TCPI_OPT_ECN_LOW	64 /* Low-latency ECN configured at init */
-+ 
-+ /*
-+  * Sender's congestion state indicating normal or abnormal situations
 +--- a/net/ipv4/Kconfig
 ++++ b/net/ipv4/Kconfig
 +@@ -668,15 +668,18 @@ config TCP_CONG_BBR
@@ -300,25 +1443,6 @@ index 0000000000..15fe351a03
 + 
 + choice
 + 	prompt "Default TCP congestion control"
-+--- a/net/ipv4/tcp.c
-++++ b/net/ipv4/tcp.c
-+@@ -3092,6 +3092,7 @@ int tcp_disconnect(struct sock *sk, int
-+ 	tp->rx_opt.dsack = 0;
-+ 	tp->rx_opt.num_sacks = 0;
-+ 	tp->rcv_ooopack = 0;
-++	tp->fast_ack_mode = 0;
-+ 
-+ 
-+ 	/* Clean up fastopen related fields */
-+@@ -3783,6 +3784,8 @@ void tcp_get_info(struct sock *sk, struc
-+ 		info->tcpi_options |= TCPI_OPT_ECN;
-+ 	if (tp->ecn_flags & TCP_ECN_SEEN)
-+ 		info->tcpi_options |= TCPI_OPT_ECN_SEEN;
-++	if (tp->ecn_flags & TCP_ECN_LOW)
-++		info->tcpi_options |= TCPI_OPT_ECN_LOW;
-+ 	if (tp->syn_data_acked)
-+ 		info->tcpi_options |= TCPI_OPT_SYN_DATA;
-+ 
 +--- a/net/ipv4/tcp_bbr.c
 ++++ b/net/ipv4/tcp_bbr.c
 +@@ -1,18 +1,19 @@
@@ -764,26 +1888,33 @@ index 0000000000..15fe351a03
 + }
 + 
 + /* Pace using current bw estimate and a gain factor. */
-+@@ -294,26 +472,48 @@ static void bbr_set_pacing_rate(struct s
++@@ -294,31 +472,38 @@ static void bbr_set_pacing_rate(struct s
 + 		sk->sk_pacing_rate = rate;
 + }
 + 
 +-/* override sysctl_tcp_min_tso_segs */
 +-__bpf_kfunc static u32 bbr_min_tso_segs(struct sock *sk)
++-{
++-	return sk->sk_pacing_rate < (bbr_min_tso_rate >> 3) ? 1 : 2;
++-}
++-
++-/* Return the number of segments BBR would like in a TSO/GSO skb, given
++- * a particular max gso size as a constraint.
 ++/* Return the number of segments BBR would like in a TSO/GSO skb, given a
 ++ * particular max gso size as a constraint. TODO: make this simpler and more
 ++ * consistent by switching bbr to just call tcp_tso_autosize().
-++ */
-++static u32 bbr_tso_segs_generic(struct sock *sk, unsigned int mss_now,
-++				u32 gso_max_size)
-++{
++  */
++ static u32 bbr_tso_segs_generic(struct sock *sk, unsigned int mss_now,
++ 				u32 gso_max_size)
++ {
++-	u32 segs;
 ++	struct bbr *bbr = inet_csk_ca(sk);
 ++	u32 segs, r;
-++	u64 bytes;
-++
-++	/* Budget a TSO/GSO burst size allowance based on bw (pacing_rate). */
-++	bytes = sk->sk_pacing_rate >> sk->sk_pacing_shift;
-++
++ 	u64 bytes;
++ 
++ 	/* Budget a TSO/GSO burst size allowance based on bw (pacing_rate). */
++ 	bytes = sk->sk_pacing_rate >> sk->sk_pacing_shift;
++ 
 ++	/* Budget a TSO/GSO burst size allowance based on min_rtt. For every
 ++	 * K = 2^tso_rtt_shift microseconds of min_rtt, halve the burst.
 ++	 * The min_rtt-based burst allowance is: 64 KBytes / 2^(min_rtt/K)
@@ -794,39 +1925,29 @@ index 0000000000..15fe351a03
 ++			bytes += GSO_LEGACY_MAX_SIZE >> r;
 ++	}
 ++
-++	bytes = min_t(u32, bytes, gso_max_size - 1 - MAX_TCP_HEADER);
++ 	bytes = min_t(u32, bytes, gso_max_size - 1 - MAX_TCP_HEADER);
++-	segs = max_t(u32, bytes / mss_now, bbr_min_tso_segs(sk));
 ++	segs = max_t(u32, bytes / mss_now,
 ++		     sock_net(sk)->ipv4.sysctl_tcp_min_tso_segs);
-++	return segs;
-++}
-++
-++/* Custom tcp_tso_autosize() for BBR, used at transmit time to cap skb size. */
-++__bpf_kfunc static u32 bbr_tso_segs(struct sock *sk, unsigned int mss_now)
-+ {
-+-	return sk->sk_pacing_rate < (bbr_min_tso_rate >> 3) ? 1 : 2;
-++	return bbr_tso_segs_generic(sk, mss_now, sk->sk_gso_max_size);
++ 	return segs;
 + }
 + 
-++/* Like bbr_tso_segs(), using mss_cache, ignoring driver's sk_gso_max_size. */
-+ static u32 bbr_tso_segs_goal(struct sock *sk)
++ /* Custom tcp_tso_autosize() for BBR, used at transmit time to cap skb size. */
++-static u32  bbr_tso_segs(struct sock *sk, unsigned int mss_now)
+++__bpf_kfunc static u32 bbr_tso_segs(struct sock *sk, unsigned int mss_now)
++ {
++ 	return bbr_tso_segs_generic(sk, mss_now, sk->sk_gso_max_size);
++ }
++@@ -328,7 +513,7 @@ static u32 bbr_tso_segs_goal(struct sock
 + {
 + 	struct tcp_sock *tp = tcp_sk(sk);
-+-	u32 segs, bytes;
-+-
-+-	/* Sort of tcp_tso_autosize() but ignoring
-+-	 * driver provided sk_gso_max_size.
-+-	 */
-+-	bytes = min_t(unsigned long,
-+-		      sk->sk_pacing_rate >> READ_ONCE(sk->sk_pacing_shift),
-+-		      GSO_LEGACY_MAX_SIZE - 1 - MAX_TCP_HEADER);
-+-	segs = max_t(u32, bytes / tp->mss_cache, bbr_min_tso_segs(sk));
 + 
-+-	return min(segs, 0x7FU);
++-	return  bbr_tso_segs_generic(sk, tp->mss_cache, GSO_MAX_SIZE);
 ++	return  bbr_tso_segs_generic(sk, tp->mss_cache, GSO_LEGACY_MAX_SIZE);
 + }
 + 
 + /* Save "last known good" cwnd so we can restore it after losses or PROBE_RTT */
-+@@ -333,7 +533,9 @@ __bpf_kfunc static void bbr_cwnd_event(s
++@@ -348,7 +533,9 @@ __bpf_kfunc static void bbr_cwnd_event(s
 + 	struct tcp_sock *tp = tcp_sk(sk);
 + 	struct bbr *bbr = inet_csk_ca(sk);
 + 
@@ -837,7 +1958,7 @@ index 0000000000..15fe351a03
 + 		bbr->idle_restart = 1;
 + 		bbr->ack_epoch_mstamp = tp->tcp_mstamp;
 + 		bbr->ack_epoch_acked = 0;
-+@@ -344,6 +546,16 @@ __bpf_kfunc static void bbr_cwnd_event(s
++@@ -359,6 +546,16 @@ __bpf_kfunc static void bbr_cwnd_event(s
 + 			bbr_set_pacing_rate(sk, bbr_bw(sk), BBR_UNIT);
 + 		else if (bbr->mode == BBR_PROBE_RTT)
 + 			bbr_check_probe_rtt_done(sk);
@@ -854,7 +1975,7 @@ index 0000000000..15fe351a03
 + 	}
 + }
 + 
-+@@ -366,10 +578,10 @@ static u32 bbr_bdp(struct sock *sk, u32
++@@ -381,10 +578,10 @@ static u32 bbr_bdp(struct sock *sk, u32
 + 	 * default. This should only happen when the connection is not using TCP
 + 	 * timestamps and has retransmitted all of the SYN/SYNACK/data packets
 + 	 * ACKed so far. In this case, an RTO can cut cwnd to 1, in which
@@ -867,7 +1988,7 @@ index 0000000000..15fe351a03
 + 
 + 	w = (u64)bw * bbr->min_rtt_us;
 + 
-+@@ -386,23 +598,23 @@ static u32 bbr_bdp(struct sock *sk, u32
++@@ -401,23 +598,23 @@ static u32 bbr_bdp(struct sock *sk, u32
 +  *   - one skb in sending host Qdisc,
 +  *   - one skb in sending host TSO/GSO engine
 +  *   - one skb being received by receiver host LRO/GRO/delayed-ACK engine
@@ -899,7 +2020,7 @@ index 0000000000..15fe351a03
 + 		cwnd += 2;
 + 
 + 	return cwnd;
-+@@ -457,10 +669,10 @@ static u32 bbr_ack_aggregation_cwnd(stru
++@@ -472,10 +669,10 @@ static u32 bbr_ack_aggregation_cwnd(stru
 + {
 + 	u32 max_aggr_cwnd, aggr_cwnd = 0;
 + 
@@ -912,7 +2033,7 @@ index 0000000000..15fe351a03
 + 			     >> BBR_SCALE;
 + 		aggr_cwnd = min(aggr_cwnd, max_aggr_cwnd);
 + 	}
-+@@ -468,66 +680,27 @@ static u32 bbr_ack_aggregation_cwnd(stru
++@@ -483,66 +680,27 @@ static u32 bbr_ack_aggregation_cwnd(stru
 + 	return aggr_cwnd;
 + }
 + 
@@ -986,7 +2107,7 @@ index 0000000000..15fe351a03
 + 	target_cwnd = bbr_bdp(sk, bw, gain);
 + 
 + 	/* Increment the cwnd to account for excess ACKed data that seems
-+@@ -536,74 +709,26 @@ static void bbr_set_cwnd(struct sock *sk
++@@ -551,74 +709,26 @@ static void bbr_set_cwnd(struct sock *sk
 + 	target_cwnd += bbr_ack_aggregation_cwnd(sk);
 + 	target_cwnd = bbr_quantization_budget(sk, target_cwnd);
 + 
@@ -1078,7 +2199,7 @@ index 0000000000..15fe351a03
 + }
 + 
 + static void bbr_reset_startup_mode(struct sock *sk)
-+@@ -613,191 +738,49 @@ static void bbr_reset_startup_mode(struc
++@@ -628,191 +738,49 @@ static void bbr_reset_startup_mode(struc
 + 	bbr->mode = BBR_STARTUP;
 + }
 + 
@@ -1294,7 +2415,7 @@ index 0000000000..15fe351a03
 + }
 + 
 + /* Estimates the windowed max degree of ack aggregation.
-+@@ -811,7 +794,7 @@ static void bbr_update_bw(struct sock *s
++@@ -826,7 +794,7 @@ static void bbr_update_bw(struct sock *s
 +  *
 +  * Max extra_acked is clamped by cwnd and bw * bbr_extra_acked_max_us (100 ms).
 +  * Max filter is an approximate sliding window of 5-10 (packet timed) round
@@ -1303,7 +2424,7 @@ index 0000000000..15fe351a03
 +  */
 + static void bbr_update_ack_aggregation(struct sock *sk,
 + 				       const struct rate_sample *rs)
-+@@ -819,15 +802,19 @@ static void bbr_update_ack_aggregation(s
++@@ -834,15 +802,19 @@ static void bbr_update_ack_aggregation(s
 + 	u32 epoch_us, expected_acked, extra_acked;
 + 	struct bbr *bbr = inet_csk_ca(sk);
 + 	struct tcp_sock *tp = tcp_sk(sk);
@@ -1325,7 +2446,7 @@ index 0000000000..15fe351a03
 + 			bbr->extra_acked_win_rtts = 0;
 + 			bbr->extra_acked_win_idx = bbr->extra_acked_win_idx ?
 + 						   0 : 1;
-+@@ -861,49 +848,6 @@ static void bbr_update_ack_aggregation(s
++@@ -876,49 +848,6 @@ static void bbr_update_ack_aggregation(s
 + 		bbr->extra_acked[bbr->extra_acked_win_idx] = extra_acked;
 + }
 + 
@@ -1375,7 +2496,7 @@ index 0000000000..15fe351a03
 + static void bbr_check_probe_rtt_done(struct sock *sk)
 + {
 + 	struct tcp_sock *tp = tcp_sk(sk);
-+@@ -913,9 +857,9 @@ static void bbr_check_probe_rtt_done(str
++@@ -928,9 +857,9 @@ static void bbr_check_probe_rtt_done(str
 + 	      after(tcp_jiffies32, bbr->probe_rtt_done_stamp)))
 + 		return;
 + 
@@ -1387,7 +2508,7 @@ index 0000000000..15fe351a03
 + }
 + 
 + /* The goal of PROBE_RTT mode is to have BBR flows cooperatively and
-+@@ -941,23 +885,35 @@ static void bbr_update_min_rtt(struct so
++@@ -956,23 +885,35 @@ static void bbr_update_min_rtt(struct so
 + {
 + 	struct tcp_sock *tp = tcp_sk(sk);
 + 	struct bbr *bbr = inet_csk_ca(sk);
@@ -1432,7 +2553,7 @@ index 0000000000..15fe351a03
 + 	}
 + 
 + 	if (bbr->mode == BBR_PROBE_RTT) {
-+@@ -966,9 +922,9 @@ static void bbr_update_min_rtt(struct so
++@@ -981,9 +922,9 @@ static void bbr_update_min_rtt(struct so
 + 			(tp->delivered + tcp_packets_in_flight(tp)) ? : 1;
 + 		/* Maintain min packets in flight for max(200 ms, 1 round). */
 + 		if (!bbr->probe_rtt_done_stamp &&
@@ -1444,7 +2565,7 @@ index 0000000000..15fe351a03
 + 			bbr->probe_rtt_round_done = 0;
 + 			bbr->next_rtt_delivered = tp->delivered;
 + 		} else if (bbr->probe_rtt_done_stamp) {
-+@@ -989,18 +945,20 @@ static void bbr_update_gains(struct sock
++@@ -1004,18 +945,20 @@ static void bbr_update_gains(struct sock
 + 
 + 	switch (bbr->mode) {
 + 	case BBR_STARTUP:
@@ -1473,7 +2594,7 @@ index 0000000000..15fe351a03
 + 		break;
 + 	case BBR_PROBE_RTT:
 + 		bbr->pacing_gain = BBR_UNIT;
-+@@ -1012,27 +970,1108 @@ static void bbr_update_gains(struct sock
++@@ -1027,27 +970,1108 @@ static void bbr_update_gains(struct sock
 + 	}
 + }
 + 
@@ -1554,7 +2675,8 @@ index 0000000000..15fe351a03
 ++
 ++/* Exit STARTUP upon N consecutive rounds with ECN mark rate > ecn_thresh. */
 ++static void bbr_check_ecn_too_high_in_startup(struct sock *sk, u32 ce_ratio)
-++{
++ {
++-	bbr_update_bw(sk, rs);
 ++	struct bbr *bbr = inet_csk_ca(sk);
 ++
 ++	if (bbr_full_bw_reached(sk) || !bbr->ecn_eligible ||
@@ -1830,8 +2952,7 @@ index 0000000000..15fe351a03
 ++
 ++/* Init lower bounds if have not inited yet. */
 ++static void bbr_init_lower_bounds(struct sock *sk, bool init_bw)
-+ {
-+-	bbr_update_bw(sk, rs);
+++{
 ++	struct tcp_sock *tp = tcp_sk(sk);
 ++	struct bbr *bbr = inet_csk_ca(sk);
 ++
@@ -2592,7 +3713,7 @@ index 0000000000..15fe351a03
 + }
 + 
 + __bpf_kfunc static void bbr_init(struct sock *sk)
-+@@ -1040,20 +2079,21 @@ __bpf_kfunc static void bbr_init(struct
++@@ -1055,20 +2079,21 @@ __bpf_kfunc static void bbr_init(struct
 + 	struct tcp_sock *tp = tcp_sk(sk);
 + 	struct bbr *bbr = inet_csk_ca(sk);
 + 
@@ -2619,7 +3740,7 @@ index 0000000000..15fe351a03
 + 	bbr->has_seen_rtt = 0;
 + 	bbr_init_pacing_rate_from_rtt(sk);
 + 
-+@@ -1064,7 +2104,7 @@ __bpf_kfunc static void bbr_init(struct
++@@ -1079,7 +2104,7 @@ __bpf_kfunc static void bbr_init(struct
 + 	bbr->full_bw_cnt = 0;
 + 	bbr->cycle_mstamp = 0;
 + 	bbr->cycle_idx = 0;
@@ -2628,7 +3749,7 @@ index 0000000000..15fe351a03
 + 	bbr_reset_startup_mode(sk);
 + 
 + 	bbr->ack_epoch_mstamp = tp->tcp_mstamp;
-+@@ -1074,82 +2114,243 @@ __bpf_kfunc static void bbr_init(struct
++@@ -1089,78 +2114,236 @@ __bpf_kfunc static void bbr_init(struct
 + 	bbr->extra_acked[0] = 0;
 + 	bbr->extra_acked[1] = 0;
 + 
@@ -2669,9 +3790,6 @@ index 0000000000..15fe351a03
 ++	bbr->plb.pause_until = 0;
 ++
 ++	tp->fast_ack_mode = bbr_fast_ack_mode ? 1 : 0;
-++
-++	if (bbr_can_use_ecn(sk))
-++		tp->ecn_flags |= TCP_ECN_ECT_PERMANENT;
 + }
 + 
 +-__bpf_kfunc static u32 bbr_sndbuf_expand(struct sock *sk)
@@ -2896,12 +4014,7 @@ index 0000000000..15fe351a03
 + 	.undo_cwnd	= bbr_undo_cwnd,
 + 	.cwnd_event	= bbr_cwnd_event,
 + 	.ssthresh	= bbr_ssthresh,
-+-	.min_tso_segs	= bbr_min_tso_segs,
-++	.tso_segs	= bbr_tso_segs,
-+ 	.get_info	= bbr_get_info,
-+ 	.set_state	= bbr_set_state,
-+ };
-+@@ -1160,10 +2361,11 @@ BTF_SET8_START(tcp_bbr_check_kfunc_ids)
++@@ -1175,10 +2358,11 @@ BTF_SET8_START(tcp_bbr_check_kfunc_ids)
 + BTF_ID_FLAGS(func, bbr_init)
 + BTF_ID_FLAGS(func, bbr_main)
 + BTF_ID_FLAGS(func, bbr_sndbuf_expand)
@@ -2914,7 +4027,7 @@ index 0000000000..15fe351a03
 + BTF_ID_FLAGS(func, bbr_set_state)
 + #endif
 + #endif
-+@@ -1198,5 +2400,12 @@ MODULE_AUTHOR("Van Jacobson <vanj@google
++@@ -1213,5 +2397,12 @@ MODULE_AUTHOR("Van Jacobson <vanj@google
 + MODULE_AUTHOR("Neal Cardwell <ncardwell@google.com>");
 + MODULE_AUTHOR("Yuchung Cheng <ycheng@google.com>");
 + MODULE_AUTHOR("Soheil Hassas Yeganeh <soheil@google.com>");
@@ -2927,184 +4040,61 @@ index 0000000000..15fe351a03
 + MODULE_LICENSE("Dual BSD/GPL");
 + MODULE_DESCRIPTION("TCP BBR (Bottleneck Bandwidth and RTT)");
 ++MODULE_VERSION(__stringify(BBR_VERSION));
-+--- a/net/ipv4/tcp_cong.c
-++++ b/net/ipv4/tcp_cong.c
-+@@ -241,6 +241,7 @@ void tcp_init_congestion_control(struct
-+ 	struct inet_connection_sock *icsk = inet_csk(sk);
+diff --git a/target/linux/generic/hack-6.6/601-17-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v3-ensure-ECN-enabled-BBR-flows-set-ECT-.patch b/target/linux/generic/hack-6.6/601-17-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v3-ensure-ECN-enabled-BBR-flows-set-ECT-.patch
+new file mode 100644
+index 0000000000..a19a770796
+--- /dev/null
++++ b/target/linux/generic/hack-6.6/601-17-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v3-ensure-ECN-enabled-BBR-flows-set-ECT-.patch
+@@ -0,0 +1,58 @@
++From f17f10618636cc35a0b8c3ccee3023dc4c62b956 Mon Sep 17 00:00:00 2001
++From: Adithya Abraham Philip <abrahamphilip@google.com>
++Date: Fri, 11 Jun 2021 21:56:10 +0000
++Subject: [PATCH 17/19] net-tcp_bbr: v3: ensure ECN-enabled BBR flows set ECT
++ on retransmits
++
++Adds a new flag TCP_ECN_ECT_PERMANENT that is used by CCAs to
++indicate that retransmitted packets and pure ACKs must have the
++ECT bit set. This is necessary for BBR, which when using
++ECN expects ECT to be set even on retransmitted packets and ACKs.
++
++Previous to this addition of TCP_ECN_ECT_PERMANENT, CCAs which can use
++ECN but don't "need" it did not have a way to indicate that ECT should
++be set on retransmissions/ACKs.
++
++Signed-off-by: Adithya Abraham Philip <abrahamphilip@google.com>
++Signed-off-by: Neal Cardwell <ncardwell@google.com>
++Change-Id: I8b048eaab35e136fe6501ef6cd89fd9faa15e6d2
++---
++ include/net/tcp.h     | 1 +
++ net/ipv4/tcp_bbr.c    | 3 +++
++ net/ipv4/tcp_output.c | 3 ++-
++ 3 files changed, 6 insertions(+), 1 deletion(-)
++
++--- a/include/net/tcp.h
+++++ b/include/net/tcp.h
++@@ -373,6 +373,7 @@ static inline void tcp_dec_quickack_mode
++ #define	TCP_ECN_DEMAND_CWR	4
++ #define	TCP_ECN_SEEN		8
++ #define	TCP_ECN_LOW		16
+++#define	TCP_ECN_ECT_PERMANENT	32
 + 
-+ 	tcp_sk(sk)->prior_ssthresh = 0;
-++	tcp_sk(sk)->fast_ack_mode = 0;
-+ 	if (icsk->icsk_ca_ops->init)
-+ 		icsk->icsk_ca_ops->init(sk);
-+ 	if (tcp_ca_needs_ecn(sk))
-+--- a/net/ipv4/tcp_input.c
-++++ b/net/ipv4/tcp_input.c
-+@@ -371,7 +371,7 @@ static void __tcp_ecn_check_ce(struct so
-+ 			tcp_enter_quickack_mode(sk, 2);
-+ 		break;
-+ 	case INET_ECN_CE:
-+-		if (tcp_ca_needs_ecn(sk))
-++		if (tcp_ca_wants_ce_events(sk))
-+ 			tcp_ca_event(sk, CA_EVENT_ECN_IS_CE);
++ enum tcp_tw_status {
++ 	TCP_TW_SUCCESS = 0,
++--- a/net/ipv4/tcp_bbr.c
+++++ b/net/ipv4/tcp_bbr.c
++@@ -2151,6 +2151,9 @@ __bpf_kfunc static void bbr_init(struct
++ 	bbr->plb.pause_until = 0;
 + 
-+ 		if (!(tp->ecn_flags & TCP_ECN_DEMAND_CWR)) {
-+@@ -382,7 +382,7 @@ static void __tcp_ecn_check_ce(struct so
-+ 		tp->ecn_flags |= TCP_ECN_SEEN;
-+ 		break;
-+ 	default:
-+-		if (tcp_ca_needs_ecn(sk))
-++		if (tcp_ca_wants_ce_events(sk))
-+ 			tcp_ca_event(sk, CA_EVENT_ECN_NO_CE);
-+ 		tp->ecn_flags |= TCP_ECN_SEEN;
-+ 		break;
-+@@ -1096,7 +1096,12 @@ static void tcp_verify_retransmit_hint(s
-+  */
-+ static void tcp_notify_skb_loss_event(struct tcp_sock *tp, const struct sk_buff *skb)
-+ {
-++	struct sock *sk = (struct sock *)tp;
-++	const struct tcp_congestion_ops *ca_ops = inet_csk(sk)->icsk_ca_ops;
++ 	tp->fast_ack_mode = bbr_fast_ack_mode ? 1 : 0;
 ++
-+ 	tp->lost += tcp_skb_pcount(skb);
-++	if (ca_ops->skb_marked_lost)
-++		ca_ops->skb_marked_lost(sk, skb);
+++	if (bbr_can_use_ecn(sk))
+++		tp->ecn_flags |= TCP_ECN_ECT_PERMANENT;
 + }
 + 
-+ void tcp_mark_skb_lost(struct sock *sk, struct sk_buff *skb)
-+@@ -1477,6 +1482,17 @@ static bool tcp_shifted_skb(struct sock
-+ 	WARN_ON_ONCE(tcp_skb_pcount(skb) < pcount);
-+ 	tcp_skb_pcount_add(skb, -pcount);
-+ 
-++	/* Adjust tx.in_flight as pcount is shifted from skb to prev. */
-++	if (WARN_ONCE(TCP_SKB_CB(skb)->tx.in_flight < pcount,
-++		      "prev in_flight: %u skb in_flight: %u pcount: %u",
-++		      TCP_SKB_CB(prev)->tx.in_flight,
-++		      TCP_SKB_CB(skb)->tx.in_flight,
-++		      pcount))
-++		TCP_SKB_CB(skb)->tx.in_flight = 0;
-++	else
-++		TCP_SKB_CB(skb)->tx.in_flight -= pcount;
-++	TCP_SKB_CB(prev)->tx.in_flight += pcount;
-++
-+ 	/* When we're adding to gso_segs == 1, gso_size will be zero,
-+ 	 * in theory this shouldn't be necessary but as long as DSACK
-+ 	 * code can come after this skb later on it's better to keep
-+@@ -3706,7 +3722,8 @@ static void tcp_replace_ts_recent(struct
-+ /* This routine deals with acks during a TLP episode and ends an episode by
-+  * resetting tlp_high_seq. Ref: TLP algorithm in draft-ietf-tcpm-rack
-+  */
-+-static void tcp_process_tlp_ack(struct sock *sk, u32 ack, int flag)
-++static void tcp_process_tlp_ack(struct sock *sk, u32 ack, int flag,
-++				struct rate_sample *rs)
-+ {
-+ 	struct tcp_sock *tp = tcp_sk(sk);
-+ 
-+@@ -3723,6 +3740,7 @@ static void tcp_process_tlp_ack(struct s
-+ 		/* ACK advances: there was a loss, so reduce cwnd. Reset
-+ 		 * tlp_high_seq in tcp_init_cwnd_reduction()
-+ 		 */
-++		tcp_ca_event(sk, CA_EVENT_TLP_RECOVERY);
-+ 		tcp_init_cwnd_reduction(sk);
-+ 		tcp_set_ca_state(sk, TCP_CA_CWR);
-+ 		tcp_end_cwnd_reduction(sk);
-+@@ -3733,6 +3751,11 @@ static void tcp_process_tlp_ack(struct s
-+ 			     FLAG_NOT_DUP | FLAG_DATA_SACKED))) {
-+ 		/* Pure dupack: original and TLP probe arrived; no loss */
-+ 		tp->tlp_high_seq = 0;
-++	} else {
-++		/* This ACK matches a TLP retransmit. We cannot yet tell if
-++		 * this ACK is for the original or the TLP retransmit.
-++		 */
-++		rs->is_acking_tlp_retrans_seq = 1;
-+ 	}
-+ }
-+ 
-+@@ -3841,6 +3864,7 @@ static int tcp_ack(struct sock *sk, cons
-+ 
-+ 	prior_fack = tcp_is_sack(tp) ? tcp_highest_sack_seq(tp) : tp->snd_una;
-+ 	rs.prior_in_flight = tcp_packets_in_flight(tp);
-++	tcp_rate_check_app_limited(sk);
-+ 
-+ 	/* ts_recent update must be made after we are sure that the packet
-+ 	 * is in window.
-+@@ -3915,7 +3939,7 @@ static int tcp_ack(struct sock *sk, cons
-+ 	tcp_rack_update_reo_wnd(sk, &rs);
-+ 
-+ 	if (tp->tlp_high_seq)
-+-		tcp_process_tlp_ack(sk, ack, flag);
-++		tcp_process_tlp_ack(sk, ack, flag, &rs);
-+ 
-+ 	if (tcp_ack_is_dubious(sk, flag)) {
-+ 		if (!(flag & (FLAG_SND_UNA_ADVANCED |
-+@@ -3939,6 +3963,7 @@ static int tcp_ack(struct sock *sk, cons
-+ 	delivered = tcp_newly_delivered(sk, delivered, flag);
-+ 	lost = tp->lost - lost;			/* freshly marked lost */
-+ 	rs.is_ack_delayed = !!(flag & FLAG_ACK_MAYBE_DELAYED);
-++	rs.is_ece = !!(flag & FLAG_ECE);
-+ 	tcp_rate_gen(sk, delivered, lost, is_sack_reneg, sack_state.rate);
-+ 	tcp_cong_control(sk, ack, delivered, flag, sack_state.rate);
-+ 	tcp_xmit_recovery(sk, rexmit);
-+@@ -3958,7 +3983,7 @@ no_queue:
-+ 	tcp_ack_probe(sk);
-+ 
-+ 	if (tp->tlp_high_seq)
-+-		tcp_process_tlp_ack(sk, ack, flag);
-++		tcp_process_tlp_ack(sk, ack, flag, &rs);
-+ 	return 1;
-+ 
-+ old_ack:
-+@@ -5560,13 +5585,14 @@ static void __tcp_ack_snd_check(struct s
-+ 
-+ 	    /* More than one full frame received... */
-+ 	if (((tp->rcv_nxt - tp->rcv_wup) > inet_csk(sk)->icsk_ack.rcv_mss &&
-++	     (tp->fast_ack_mode == 1 ||
-+ 	     /* ... and right edge of window advances far enough.
-+ 	      * (tcp_recvmsg() will send ACK otherwise).
-+ 	      * If application uses SO_RCVLOWAT, we want send ack now if
-+ 	      * we have not received enough bytes to satisfy the condition.
-+ 	      */
-+-	    (tp->rcv_nxt - tp->copied_seq < sk->sk_rcvlowat ||
-+-	     __tcp_select_window(sk) >= tp->rcv_wnd)) ||
-++	      (tp->rcv_nxt - tp->copied_seq < sk->sk_rcvlowat ||
-++	       __tcp_select_window(sk) >= tp->rcv_wnd))) ||
-+ 	    /* We ACK each frame or... */
-+ 	    tcp_in_quickack_mode(sk) ||
-+ 	    /* Protocol state mandates a one-time immediate ACK */
-+--- a/net/ipv4/tcp_minisocks.c
-++++ b/net/ipv4/tcp_minisocks.c
-+@@ -435,6 +435,8 @@ void tcp_ca_openreq_child(struct sock *s
-+ 	u32 ca_key = dst_metric(dst, RTAX_CC_ALGO);
-+ 	bool ca_got_dst = false;
-+ 
-++	tcp_set_ecn_low_from_dst(sk, dst);
-++
-+ 	if (ca_key != TCP_CA_UNSPEC) {
-+ 		const struct tcp_congestion_ops *ca;
-+ 
++ /* BBR marks the current round trip as a loss round. */
 +--- a/net/ipv4/tcp_output.c
 ++++ b/net/ipv4/tcp_output.c
-+@@ -332,10 +332,9 @@ static void tcp_ecn_send_syn(struct sock
-+ 	bool bpf_needs_ecn = tcp_bpf_ca_needs_ecn(sk);
-+ 	bool use_ecn = READ_ONCE(sock_net(sk)->ipv4.sysctl_tcp_ecn) == 1 ||
-+ 		tcp_ca_needs_ecn(sk) || bpf_needs_ecn;
-++	const struct dst_entry *dst = __sk_dst_get(sk);
-+ 
-+ 	if (!use_ecn) {
-+-		const struct dst_entry *dst = __sk_dst_get(sk);
-+-
-+ 		if (dst && dst_feature(dst, RTAX_FEATURE_ECN))
-+ 			use_ecn = true;
-+ 	}
-+@@ -347,6 +346,9 @@ static void tcp_ecn_send_syn(struct sock
-+ 		tp->ecn_flags = TCP_ECN_OK;
-+ 		if (tcp_ca_needs_ecn(sk) || bpf_needs_ecn)
-+ 			INET_ECN_xmit(sk);
-++
-++		if (dst)
-++			tcp_set_ecn_low_from_dst(sk, dst);
-+ 	}
-+ }
-+ 
-+@@ -384,7 +386,8 @@ static void tcp_ecn_send(struct sock *sk
++@@ -388,7 +388,8 @@ static void tcp_ecn_send(struct sock *sk
 + 				th->cwr = 1;
 + 				skb_shinfo(skb)->gso_type |= SKB_GSO_TCP_ECN;
 + 			}
@@ -3114,169 +4104,131 @@ index 0000000000..15fe351a03
 + 			/* ACK or retransmitted segment: clear ECT|CE */
 + 			INET_ECN_dontxmit(sk);
 + 		}
-+@@ -1546,7 +1549,7 @@ int tcp_fragment(struct sock *sk, enum t
-+ {
-+ 	struct tcp_sock *tp = tcp_sk(sk);
-+ 	struct sk_buff *buff;
-+-	int old_factor;
-++	int old_factor, inflight_prev;
-+ 	long limit;
-+ 	int nlen;
-+ 	u8 flags;
-+@@ -1621,6 +1624,30 @@ int tcp_fragment(struct sock *sk, enum t
+diff --git a/target/linux/generic/hack-6.6/601-18-bbr-v3-upstream-prep-2024-02-19-01-tcp-export-TCPI_OPT_ECN_LOW-in-tcp_info-tcpi_options.patch b/target/linux/generic/hack-6.6/601-18-bbr-v3-upstream-prep-2024-02-19-01-tcp-export-TCPI_OPT_ECN_LOW-in-tcp_info-tcpi_options.patch
+new file mode 100644
+index 0000000000..7440a33eb4
+--- /dev/null
++++ b/target/linux/generic/hack-6.6/601-18-bbr-v3-upstream-prep-2024-02-19-01-tcp-export-TCPI_OPT_ECN_LOW-in-tcp_info-tcpi_options.patch
+@@ -0,0 +1,37 @@
++From 00a264b290051753e189ec6eadbd0cad3067b77d Mon Sep 17 00:00:00 2001
++From: Neal Cardwell <ncardwell@google.com>
++Date: Sun, 23 Jul 2023 23:25:34 -0400
++Subject: [PATCH 18/19] tcp: export TCPI_OPT_ECN_LOW in tcp_info tcpi_options
++ field
++
++Analogous to other important ECN information, export TCPI_OPT_ECN_LOW
++in tcp_info tcpi_options field.
++
++Signed-off-by: Neal Cardwell <ncardwell@google.com>
++Change-Id: I08d8d8c7e8780e6e37df54038ee50301ac5a0320
++---
++ include/uapi/linux/tcp.h | 1 +
++ net/ipv4/tcp.c           | 2 ++
++ 2 files changed, 3 insertions(+)
++
++--- a/include/uapi/linux/tcp.h
+++++ b/include/uapi/linux/tcp.h
++@@ -170,6 +170,7 @@ enum tcp_fastopen_client_fail {
++ #define TCPI_OPT_ECN		8 /* ECN was negociated at TCP session init */
++ #define TCPI_OPT_ECN_SEEN	16 /* we received at least one packet with ECT */
++ #define TCPI_OPT_SYN_DATA	32 /* SYN-ACK acked data in SYN sent or rcvd */
+++#define TCPI_OPT_ECN_LOW	64 /* Low-latency ECN configured at init */
 + 
-+ 		if (diff)
-+ 			tcp_adjust_pcount(sk, skb, diff);
++ /*
++  * Sender's congestion state indicating normal or abnormal situations
++--- a/net/ipv4/tcp.c
+++++ b/net/ipv4/tcp.c
++@@ -3791,6 +3791,8 @@ void tcp_get_info(struct sock *sk, struc
++ 		info->tcpi_options |= TCPI_OPT_ECN;
++ 	if (tp->ecn_flags & TCP_ECN_SEEN)
++ 		info->tcpi_options |= TCPI_OPT_ECN_SEEN;
+++	if (tp->ecn_flags & TCP_ECN_LOW)
+++		info->tcpi_options |= TCPI_OPT_ECN_LOW;
++ 	if (tp->syn_data_acked)
++ 		info->tcpi_options |= TCPI_OPT_SYN_DATA;
++ 
+diff --git a/target/linux/generic/hack-6.6/601-19-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v3-change-u64-to-unsigned-long-for-bytes.patch b/target/linux/generic/hack-6.6/601-19-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v3-change-u64-to-unsigned-long-for-bytes.patch
+new file mode 100644
+index 0000000000..f1d55df7a5
+--- /dev/null
++++ b/target/linux/generic/hack-6.6/601-19-bbr-v3-upstream-prep-2024-02-19-01-net-tcp_bbr-v3-change-u64-to-unsigned-long-for-bytes.patch
+@@ -0,0 +1,36 @@
++From 5ccaffc5456985926897afe8c79fa21a612eec70 Mon Sep 17 00:00:00 2001
++From: Chen Minqiang <ptpt52@gmail.com>
++Date: Sat, 21 Sep 2024 23:51:24 +0800
++Subject: [PATCH 19/19] net-tcp_bbr: v3: change `u64` to `unsigned long` for
++ `bytes` in `bbr_tso_segs_generic`
++
++This change addresses a build failure on 32-bit systems due to undefined division symbols:
++
++arm:
++ERROR: modpost: "__aeabi_uldivmod" [net/ipv4/tcp_bbr.ko] undefined!
++ERROR: modpost: "__aeabi_ldivmod" [net/ipv4/tcp_bbr.ko] undefined!
++
++x86, mips, ppc:
++ERROR: modpost: "__udivdi3" [net/ipv4/tcp_bbr.ko] undefined!
++ERROR: modpost: "__divdi3" [net/ipv4/tcp_bbr.ko] undefined!
++
++Since `sk->sk_pacing_rate` is already an `unsigned long`, the `bytes` variable is
++updated to `unsigned long` to resolve these division issues and ensure compatibility
++across both 32-bit and 64-bit platforms.
++
++Signed-off-by: Chen Minqiang <ptpt52@gmail.com>
++---
++ net/ipv4/tcp_bbr.c | 2 +-
++ 1 file changed, 1 insertion(+), 1 deletion(-)
++
++--- a/net/ipv4/tcp_bbr.c
+++++ b/net/ipv4/tcp_bbr.c
++@@ -481,7 +481,7 @@ static u32 bbr_tso_segs_generic(struct s
++ {
++ 	struct bbr *bbr = inet_csk_ca(sk);
++ 	u32 segs, r;
++-	u64 bytes;
+++	unsigned long bytes;
++ 
++ 	/* Budget a TSO/GSO burst size allowance based on bw (pacing_rate). */
++ 	bytes = sk->sk_pacing_rate >> sk->sk_pacing_shift;
+diff --git a/target/linux/generic/hack-6.6/601-20-bbr-v3-mips-32.patch b/target/linux/generic/hack-6.6/601-20-bbr-v3-mips-32.patch
+new file mode 100644
+index 0000000000..80360039de
+--- /dev/null
++++ b/target/linux/generic/hack-6.6/601-20-bbr-v3-mips-32.patch
+@@ -0,0 +1,34 @@
++--- a/arch/mips/lib/Makefile
+++++ b/arch/mips/lib/Makefile
++@@ -5,7 +5,7 @@
++
++ lib-y	+= bitops.o csum_partial.o delay.o memcpy.o memset.o \
++ 	   mips-atomic.o strncpy_user.o \
++-	   strnlen_user.o uncached.o
+++	   strnlen_user.o udivdi3.o uncached.o
++
++ obj-y			+= iomap_copy.o
++ obj-$(CONFIG_PCI)	+= iomap-pci.o
++diff --git a/arch/mips/lib/udivdi3.c b/arch/mips/lib/udivdi3.c
++new file mode 100644
++index 000000000000..6a4ee5fa46ab
++--- /dev/null
+++++ b/arch/mips/lib/udivdi3.c
++@@ -0,0 +1,17 @@
+++/* SPDX-License-Identifier: GPL-2.0 */
 ++
-++		inflight_prev = TCP_SKB_CB(skb)->tx.in_flight - old_factor;
-++		if (inflight_prev < 0) {
-++			WARN_ONCE(tcp_skb_tx_in_flight_is_suspicious(
-++					  old_factor,
-++					  TCP_SKB_CB(skb)->sacked,
-++					  TCP_SKB_CB(skb)->tx.in_flight),
-++				  "inconsistent: tx.in_flight: %u "
-++				  "old_factor: %d mss: %u sacked: %u "
-++				  "1st pcount: %d 2nd pcount: %d "
-++				  "1st len: %u 2nd len: %u ",
-++				  TCP_SKB_CB(skb)->tx.in_flight, old_factor,
-++				  mss_now, TCP_SKB_CB(skb)->sacked,
-++				  tcp_skb_pcount(skb), tcp_skb_pcount(buff),
-++				  skb->len, buff->len);
-++			inflight_prev = 0;
-++		}
-++		/* Set 1st tx.in_flight as if 1st were sent by itself: */
-++		TCP_SKB_CB(skb)->tx.in_flight = inflight_prev +
-++						 tcp_skb_pcount(skb);
-++		/* Set 2nd tx.in_flight with new 1st and 2nd pcounts: */
-++		TCP_SKB_CB(buff)->tx.in_flight = inflight_prev +
-++						 tcp_skb_pcount(skb) +
-++						 tcp_skb_pcount(buff);
-+ 	}
-+ 
-+ 	/* Link BUFF into the send queue. */
-+@@ -1996,13 +2023,12 @@ static u32 tcp_tso_autosize(const struct
-+ static u32 tcp_tso_segs(struct sock *sk, unsigned int mss_now)
-+ {
-+ 	const struct tcp_congestion_ops *ca_ops = inet_csk(sk)->icsk_ca_ops;
-+-	u32 min_tso, tso_segs;
-+-
-+-	min_tso = ca_ops->min_tso_segs ?
-+-			ca_ops->min_tso_segs(sk) :
-+-			READ_ONCE(sock_net(sk)->ipv4.sysctl_tcp_min_tso_segs);
-++	u32 tso_segs;
-+ 
-+-	tso_segs = tcp_tso_autosize(sk, mss_now, min_tso);
-++	tso_segs = ca_ops->tso_segs ?
-++		ca_ops->tso_segs(sk, mss_now) :
-++		tcp_tso_autosize(sk, mss_now,
-++				 sock_net(sk)->ipv4.sysctl_tcp_min_tso_segs);
-+ 	return min_t(u32, tso_segs, sk->sk_gso_max_segs);
-+ }
-+ 
-+@@ -2701,6 +2727,7 @@ static bool tcp_write_xmit(struct sock *
-+ 			skb_set_delivery_time(skb, tp->tcp_wstamp_ns, true);
-+ 			list_move_tail(&skb->tcp_tsorted_anchor, &tp->tsorted_sent_queue);
-+ 			tcp_init_tso_segs(skb, mss_now);
-++			tcp_set_tx_in_flight(sk, skb);
-+ 			goto repair; /* Skip network transmission */
-+ 		}
-+ 
-+@@ -2914,6 +2941,7 @@ void tcp_send_loss_probe(struct sock *sk
-+ 	if (WARN_ON(!skb || !tcp_skb_pcount(skb)))
-+ 		goto rearm_timer;
-+ 
-++	tp->tlp_orig_data_app_limited = TCP_SKB_CB(skb)->tx.is_app_limited;
-+ 	if (__tcp_retransmit_skb(sk, skb, 1))
-+ 		goto rearm_timer;
-+ 
-+--- a/net/ipv4/tcp_rate.c
-++++ b/net/ipv4/tcp_rate.c
-+@@ -34,6 +34,24 @@
-+  * ready to send in the write queue.
-+  */
-+ 
-++void tcp_set_tx_in_flight(struct sock *sk, struct sk_buff *skb)
+++#include "libgcc.h"
+++
+++#if BITS_PER_LONG == 32
+++
+++#include "../include/asm/div64.h"
+++
+++long long __udivdi3(long long u, word_type b)
 ++{
-++	struct tcp_sock *tp = tcp_sk(sk);
-++	u32 in_flight;
+++	long long ret = u;
 ++
-++	/* Check, sanitize, and record packets in flight after skb was sent. */
-++	in_flight = tcp_packets_in_flight(tp) + tcp_skb_pcount(skb);
-++	if (WARN_ONCE(in_flight > TCPCB_IN_FLIGHT_MAX,
-++		      "insane in_flight %u cc %s mss %u "
-++		      "cwnd %u pif %u %u %u %u\n",
-++		      in_flight, inet_csk(sk)->icsk_ca_ops->name,
-++		      tp->mss_cache, tp->snd_cwnd,
-++		      tp->packets_out, tp->retrans_out,
-++		      tp->sacked_out, tp->lost_out))
-++		in_flight = TCPCB_IN_FLIGHT_MAX;
-++	TCP_SKB_CB(skb)->tx.in_flight = in_flight;
+++	__div64_32(&ret, b);
+++	return ret;
 ++}
 ++
-+ /* Snapshot the current delivery information in the skb, to generate
-+  * a rate sample later when the skb is (s)acked in tcp_rate_skb_delivered().
-+  */
-+@@ -66,7 +84,9 @@ void tcp_rate_skb_sent(struct sock *sk,
-+ 	TCP_SKB_CB(skb)->tx.delivered_mstamp	= tp->delivered_mstamp;
-+ 	TCP_SKB_CB(skb)->tx.delivered		= tp->delivered;
-+ 	TCP_SKB_CB(skb)->tx.delivered_ce	= tp->delivered_ce;
-++	TCP_SKB_CB(skb)->tx.lost		= tp->lost;
-+ 	TCP_SKB_CB(skb)->tx.is_app_limited	= tp->app_limited ? 1 : 0;
-++	tcp_set_tx_in_flight(sk, skb);
-+ }
-+ 
-+ /* When an skb is sacked or acked, we fill in the rate sample with the (prior)
-+@@ -91,18 +111,21 @@ void tcp_rate_skb_delivered(struct sock
-+ 	if (!rs->prior_delivered ||
-+ 	    tcp_skb_sent_after(tx_tstamp, tp->first_tx_mstamp,
-+ 			       scb->end_seq, rs->last_end_seq)) {
-++		rs->prior_lost	     = scb->tx.lost;
-+ 		rs->prior_delivered_ce  = scb->tx.delivered_ce;
-+ 		rs->prior_delivered  = scb->tx.delivered;
-+ 		rs->prior_mstamp     = scb->tx.delivered_mstamp;
-+ 		rs->is_app_limited   = scb->tx.is_app_limited;
-+ 		rs->is_retrans	     = scb->sacked & TCPCB_RETRANS;
-++		rs->tx_in_flight     = scb->tx.in_flight;
-+ 		rs->last_end_seq     = scb->end_seq;
-+ 
-+ 		/* Record send time of most recently ACKed packet: */
-+ 		tp->first_tx_mstamp  = tx_tstamp;
-+ 		/* Find the duration of the "send phase" of this window: */
-+-		rs->interval_us = tcp_stamp_us_delta(tp->first_tx_mstamp,
-+-						     scb->tx.first_tx_mstamp);
-++		rs->interval_us      = tcp_stamp32_us_delta(
-++						tp->first_tx_mstamp,
-++						scb->tx.first_tx_mstamp);
-+ 
-+ 	}
-+ 	/* Mark off the skb delivered once it's sacked to avoid being
-+@@ -144,6 +167,7 @@ void tcp_rate_gen(struct sock *sk, u32 d
-+ 		return;
-+ 	}
-+ 	rs->delivered   = tp->delivered - rs->prior_delivered;
-++	rs->lost        = tp->lost - rs->prior_lost;
-+ 
-+ 	rs->delivered_ce = tp->delivered_ce - rs->prior_delivered_ce;
-+ 	/* delivered_ce occupies less than 32 bits in the skb control block */
-+@@ -155,7 +179,7 @@ void tcp_rate_gen(struct sock *sk, u32 d
-+ 	 * longer phase.
-+ 	 */
-+ 	snd_us = rs->interval_us;				/* send phase */
-+-	ack_us = tcp_stamp_us_delta(tp->tcp_mstamp,
-++	ack_us = tcp_stamp32_us_delta(tp->tcp_mstamp,
-+ 				    rs->prior_mstamp); /* ack phase */
-+ 	rs->interval_us = max(snd_us, ack_us);
-+ 
-+--- a/net/ipv4/tcp_timer.c
-++++ b/net/ipv4/tcp_timer.c
-+@@ -653,6 +653,7 @@ void tcp_write_timer_handler(struct sock
-+ 		return;
-+ 	}
-+ 
-++	tcp_rate_check_app_limited(sk);
-+ 	tcp_mstamp_refresh(tcp_sk(sk));
-+ 	event = icsk->icsk_pending;
-+ 
+++#endif /* BITS_PER_LONG == 32 */
 -- 
 2.34.1
 

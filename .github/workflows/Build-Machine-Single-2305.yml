@@ -54,6 +54,13 @@ on:
 #        options:
 #        - 'true'
 #        - 'false'
+      AG71XX_FIX:
+        description: 'Fix ag71xx'
+        default: 'true'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
       TEST-KERNEL:
         description: 'Use kernel 6.1'
         default: 'false'
@@ -280,6 +287,14 @@ jobs:
         ln -sf /mnt/openwrt/build_dir openwrt/build_dir
         df -hT
         ls /mnt/openwrt
+
+    - name: Patch 自定义
+      id: patch
+      run: |
+        if [ ${{github.event.inputs.AG71XX_FIX}} = true ]; then
+        [ -d openwrt-2410/my-patch-ag71xx-fix ] && cp -r openwrt-2410/my-patch-ag71xx-fix/* openwrt-2410/mypatch-2410-${{matrix.target}}
+        fi
+        echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 自定义安装包(优先于feeds)
       if: steps.clone.outputs.status == 'success'
