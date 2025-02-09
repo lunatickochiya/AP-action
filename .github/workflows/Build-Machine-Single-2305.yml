@@ -112,6 +112,7 @@ jobs:
         - ramips: lenovo_newifi-d1
         - ramips: lenovo_newifi-y1
         - ramips: d-team_newifi-d2
+        - ath79: domywifi_dw33d
 
     steps:
       - name: 检查
