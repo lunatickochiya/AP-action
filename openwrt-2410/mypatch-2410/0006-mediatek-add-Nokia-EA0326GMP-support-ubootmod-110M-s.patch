@@ -1,6 +1,6 @@
-From d2ff3a5b588562471bd7226ef9ce0af23974ff9f Mon Sep 17 00:00:00 2001
+From 2a2ec4b5bb873a5eca89945168ea7ac16a71ae62 Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
-Date: Sun, 9 Feb 2025 22:00:51 +0800
+Date: Tue, 11 Feb 2025 19:19:25 +0800
 Subject: [PATCH 6/6] mediatek: add Nokia EA0326GMP support ubootmod 110M
  support
 
@@ -66,7 +66,7 @@ index 37f532af41..f56795cb05 100755
  	netcore,n60|\
  	qihoo,360t7|\
 diff --git a/target/linux/mediatek/image/filogic.mk b/target/linux/mediatek/image/filogic.mk
-index b3d2bc50eb..291f1daae4 100644
+index ddc88568d8..3336a8f311 100644
 --- a/target/linux/mediatek/image/filogic.mk
 +++ b/target/linux/mediatek/image/filogic.mk
 @@ -1224,6 +1224,24 @@ define Device/nokia_ea0326gmp
@@ -86,7 +86,7 @@ index b3d2bc50eb..291f1daae4 100644
 +  KERNEL_IN_UBI := 1
 +  IMAGES += factory.bin
 +  IMAGE/factory.bin := append-ubi | check-size $$$$(IMAGE_SIZE)
-+  DEVICE_PACKAGES := kmod-mt7981-firmware mt7981-wo-firmware
++  DEVICE_PACKAGES := kmod-mt7915e kmod-mt7981-firmware mt7981-wo-firmware
 +  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
 +endef
 +TARGET_DEVICES += nokia_ea0326gmp_ubootmod

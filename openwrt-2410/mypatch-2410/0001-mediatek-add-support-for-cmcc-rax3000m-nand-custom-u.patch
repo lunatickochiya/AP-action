@@ -1,6 +1,6 @@
-From 9d30632db1d474c366e4ebfde891cdd3a1f3f85b Mon Sep 17 00:00:00 2001
+From 6a72793c12d23ee1cac6d10b2307c283dee12a21 Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
-Date: Sun, 26 Jan 2025 17:38:23 +0800
+Date: Tue, 11 Feb 2025 19:16:28 +0800
 Subject: [PATCH 1/6] mediatek:add support for cmcc rax3000m nand custom uboot
  mod
 
@@ -50,7 +50,7 @@ index 6ee525e8d0..9c29f88256 100644
  		addr=$(mtd_get_mac_binary "Factory" 0x8000)
  		[ "$PHYNBR" = "1" ] && macaddr_add $addr 1 > /sys${DEVPATH}/macaddress
 diff --git a/target/linux/mediatek/image/filogic.mk b/target/linux/mediatek/image/filogic.mk
-index 135a954400..a88a0e39d0 100644
+index 135a954400..d1630facc4 100644
 --- a/target/linux/mediatek/image/filogic.mk
 +++ b/target/linux/mediatek/image/filogic.mk
 @@ -533,6 +533,29 @@ define Device/cmcc_rax3000m
@@ -63,7 +63,7 @@ index 135a954400..a88a0e39d0 100644
 +  DEVICE_VARIANT := (custom U-Boot layout)
 +  DEVICE_DTS := mt7981b-cmcc-rax3000m-nand-ubootmod
 +  DEVICE_DTS_DIR := ../dts
-+  DEVICE_PACKAGES := kmod-mt7981-firmware mt7981-wo-firmware kmod-usb3 \
++  DEVICE_PACKAGES := kmod-mt7915e kmod-mt7981-firmware mt7981-wo-firmware kmod-usb3 \
 +	e2fsprogs f2fsck mkf2fs
 +  UBINIZE_OPTS := -E 5
 +  BLOCKSIZE := 128k

@@ -68,6 +68,8 @@ packages=(
     "rtl8821cu"
     "xray-core"
     "smartdns"
+    "luci-app-filebrowser"
+    "luci-app-filemanager"
 )
 
 for package in "${packages[@]}"; do
@@ -79,6 +81,8 @@ done
 directories=(
     "feeds/luci/applications/luci-app-dockerman"
     "feeds/luci/applications/luci-app-smartdns"
+    "feeds/luci/applications/luci-app-filebrowser"
+    "feeds/luci/applications/luci-app-filemanager"
     "feeds/lunatic7/rtl8821cu"
     "feeds/lunatic7/shortcut-fe"
     "feeds/lunatic7/fullconenat-nft"
