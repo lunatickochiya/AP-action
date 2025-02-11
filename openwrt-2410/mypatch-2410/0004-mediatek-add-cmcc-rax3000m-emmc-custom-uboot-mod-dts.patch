@@ -1,4 +1,4 @@
-From 1df2835d8db3c0894851060f023e0270c9549b79 Mon Sep 17 00:00:00 2001
+From 52ffea807d93a196eef57190908d44db54165d12 Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
 Date: Sun, 26 Jan 2025 17:52:35 +0800
 Subject: [PATCH 4/6] mediatek:add cmcc rax3000m emmc custom uboot mod dts file

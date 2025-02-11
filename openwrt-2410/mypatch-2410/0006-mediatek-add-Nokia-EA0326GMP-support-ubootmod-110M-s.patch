@@ -1,4 +1,4 @@
-From bd43da6466cbe1fb8322a192a11b6a13e08dbea6 Mon Sep 17 00:00:00 2001
+From d2ff3a5b588562471bd7226ef9ce0af23974ff9f Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
 Date: Sun, 9 Feb 2025 22:00:51 +0800
 Subject: [PATCH 6/6] mediatek: add Nokia EA0326GMP support ubootmod 110M
@@ -54,7 +54,7 @@ index ed087b3380..2328bd14f1 100644
  		[ "$PHYNBR" = "1" ] && macaddr_add $addr 1 > /sys${DEVPATH}/macaddress
  		;;
 diff --git a/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh b/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
-index 83d38e7526..e893c7ea84 100755
+index 37f532af41..f56795cb05 100755
 --- a/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
 +++ b/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
 @@ -80,6 +80,7 @@ platform_do_upgrade() {

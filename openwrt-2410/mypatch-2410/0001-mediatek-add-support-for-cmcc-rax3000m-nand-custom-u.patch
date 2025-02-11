@@ -1,4 +1,4 @@
-From c7c49f15754e935cd8203e9479ffea6353b244a4 Mon Sep 17 00:00:00 2001
+From 9d30632db1d474c366e4ebfde891cdd3a1f3f85b Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
 Date: Sun, 26 Jan 2025 17:38:23 +0800
 Subject: [PATCH 1/6] mediatek:add support for cmcc rax3000m nand custom uboot
