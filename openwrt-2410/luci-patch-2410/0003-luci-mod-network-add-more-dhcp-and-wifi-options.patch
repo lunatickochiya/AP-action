@@ -1,7 +1,7 @@
-From b4da0b0741f1cbf8cdd0c047316e12702982fe6b Mon Sep 17 00:00:00 2001
+From d6719428de2c1d2df896d36207d27e934275c410 Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
 Date: Sun, 26 Jan 2025 18:04:32 +0800
-Subject: [PATCH 3/3] luci-mod-network:add more dhcp and wifi options
+Subject: [PATCH 3/5] luci-mod-network:add more dhcp and wifi options
 
 ---
  .../htdocs/luci-static/resources/view/network/dhcp.js       | 4 ++++
