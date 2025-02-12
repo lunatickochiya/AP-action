@@ -61,6 +61,13 @@ on:
         options:
         - 'true'
         - 'false'
+      SFE_BUILDIN:
+        description: 'Build sfe'
+        default: 'true'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
 #      TEST-KERNEL:
 #        description: 'Use kernel 6.1'
 #        default: 'false'
@@ -208,19 +215,17 @@ jobs:
         #if [ ${{github.event.inputs.TEST-KERNEL}} = true ]; then
         #echo "Kernel_Test=_Kernel_Test_Ver" >> $GITHUB_ENV
         #fi
-        chmod +x $DIY_SH $DIY_SH_AFB $DIY_SH_RFC gen-sha256sum.sh add-test-packages.sh
+        chmod +x $DIY_SH $DIY_SH_AFB $DIY_SH_RFC gen-sha256sum.sh add-test-packages.sh add-sfe-packages.sh
 
     - name: 导入机器及安装包config
       run: |
         if [ ${{github.event.inputs.TEST-KERNEL}} = true ]; then
         $GITHUB_WORKSPACE/$DIY_SH add-test-config
         fi
-
         if [ ${{matrix.target}} == 'mt798x-nftables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-nftables' ] || [ ${{ matrix.target }} == 'ramips-nftables' ] || [ ${{ matrix.target }} == 'ath79-nftables' ]; then
                 bash $GITHUB_WORKSPACE/add-test-packages.sh nft
                 echo "----${{matrix.target}}-----NFT-test---"
         fi
-
         if [ ${{matrix.target}} == 'mt798x-iptables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-iptables' ] || [ ${{ matrix.target }} == 'ramips-iptables' ] || [ ${{ matrix.target }} == 'ath79-iptables' ]; then
                 mv -f machine-configs/single/${{github.event.inputs.MACH}}-iptables.config machine-configs/${{matrix.target}}.config
                 echo "----${{matrix.target}}-----IPT-Machine--------"
@@ -292,6 +297,30 @@ jobs:
         if [ ${{github.event.inputs.AG71XX_FIX}} = true ]; then
         [ -d openwrt-2410/my-patch-ag71xx-fix ] && cp -r openwrt-2410/my-patch-ag71xx-fix/* openwrt-2410/mypatch-2410-${{matrix.target}}
         fi
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: 添加 SFE
+      if: github.event.inputs.SFE_BUILDIN == 'true'
+      id: sfe
+      run: |
+        if [ ${{matrix.target}} == 'mt798x-iptables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-iptables' ] || [ ${{ matrix.target }} == 'ramips-iptables' ] || [ ${{ matrix.target }} == 'ath79-iptables' ]; then
+                bash $GITHUB_WORKSPACE/add-sfe-packages.sh ipt
+                echo "----${{matrix.target}}-----ipt-sfe---"
+                cd openwrt
+                wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/pending-6.6/613-netfilter_optional_tcp_window_check.patch -P target/linux/generic/pending-6.6/
+                wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/hack-6.6/952-add-net-conntrack-events-support-multiple-registrant.patch -P target/linux/generic/hack-6.6/
+                wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/hack-6.6/953-net-patch-linux-kernel-to-support-shortcut-fe.patch -P target/linux/generic/hack-6.6/
+                echo "# CONFIG_NF_CONNTRACK_CHAIN_EVENTS is not set" >> "./target/linux/generic/config-6.6"
+                echo "# CONFIG_SHORTCUT_FE is not set" >> "./target/linux/generic/config-6.6"
+                git clone https://github.com/lunatickochiya/luci-app-turboacc-js package/luci-app-turboacc-js
+                rm -rf package/luci-app-turboacc-js/.git/
+                git clone --depth=1 --single-branch --branch "package" https://github.com/chenmozhijin/turboacc  && mv -n turboacc/shortcut-fe ./package ; rm -rf turboacc
+                cd ../
+
+        fi
+        sed -i 's/kmod-shortcut-fe-cm,kmod-shortcut-fe,kmod-fast-classifier,kmod-fast-classifier-noload,kmod-shortcut-fe-drv,//g' package-configs/kmod_exclude_list*
+        # sed -i 's/"feeds\/lunatic7\/shortcut-fe"//g' diy-2410.sh
+        # sed -i 's/"feeds\/lunatic7\/luci-app-turboacc"//g' diy-2410.sh
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 自定义安装包(优先于feeds)
