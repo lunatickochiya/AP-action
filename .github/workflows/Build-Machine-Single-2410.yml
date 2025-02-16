@@ -47,6 +47,7 @@ on:
         - 'd-team_newifi-d2'
         - 'lenovo_newifi-y1'
         - 'domywifi_dw33d'
+        - 'aliyun_ap8220'
       TRY_BBR_V3:
         description: 'Update BBR TO V3'
         default: 'false'
@@ -120,6 +121,7 @@ jobs:
         - ramips: lenovo_newifi-y1
         - ramips: d-team_newifi-d2
         - ath79: domywifi_dw33d
+        - ipq: aliyun_ap8220
 
     steps:
       - name: 检查
@@ -136,6 +138,8 @@ jobs:
             matrix={\"include\":[{\"target\":\"ramips-iptables\"},{\"target\":\"ramips-nftables\"}]}
           elif [ "${{ github.event.inputs.MACH }}" == "${{ matrix.ath79 }}" ]; then
             matrix={\"include\":[{\"target\":\"ath79-iptables\"},{\"target\":\"ath79-nftables\"}]}
+          elif [ "${{ github.event.inputs.MACH }}" == "${{ matrix.ipq }}" ]; then
+            matrix={\"include\":[{\"target\":\"ipq-iptables\"},{\"target\":\"ipq-nftables\"}]}
           fi
           echo "Generated matrix: "$matrix""
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
@@ -222,14 +226,14 @@ jobs:
         if [ ${{github.event.inputs.TEST-KERNEL}} = true ]; then
         $GITHUB_WORKSPACE/$DIY_SH add-test-config
         fi
-        if [ ${{matrix.target}} == 'mt798x-nftables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-nftables' ] || [ ${{ matrix.target }} == 'ramips-nftables' ] || [ ${{ matrix.target }} == 'ath79-nftables' ]; then
+        if [ ${{matrix.target}} == 'mt798x-nftables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-nftables' ] || [ ${{ matrix.target }} == 'ramips-nftables' ] || [ ${{ matrix.target }} == 'ath79-nftables' ] || [ ${{ matrix.target }} == 'ipq-nftables' ]; then
                 bash $GITHUB_WORKSPACE/add-test-packages.sh nft
                 echo "----${{matrix.target}}-----NFT-test---"
         fi
-        if [ ${{matrix.target}} == 'mt798x-iptables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-iptables' ] || [ ${{ matrix.target }} == 'ramips-iptables' ] || [ ${{ matrix.target }} == 'ath79-iptables' ]; then
+        if [ ${{matrix.target}} == 'mt798x-iptables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-iptables' ] || [ ${{ matrix.target }} == 'ramips-iptables' ] || [ ${{ matrix.target }} == 'ath79-iptables' ] || [ ${{ matrix.target }} == 'ipq-iptables' ]; then
                 mv -f machine-configs/single/${{github.event.inputs.MACH}}-iptables.config machine-configs/${{matrix.target}}.config
                 echo "----${{matrix.target}}-----IPT-Machine--------"
-        elif [ ${{matrix.target}} == 'mt798x-nftables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-nftables' ] || [ ${{ matrix.target }} == 'ramips-nftables' ] || [ ${{ matrix.target }} == 'ath79-nftables' ]; then
+        elif [ ${{matrix.target}} == 'mt798x-nftables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-nftables' ] || [ ${{ matrix.target }} == 'ramips-nftables' ] || [ ${{ matrix.target }} == 'ath79-nftables' ] || [ ${{ matrix.target }} == 'ipq-nftables' ]; then
                 mv -f machine-configs/single/${{github.event.inputs.MACH}}-nftables.config machine-configs/${{matrix.target}}.config
                 echo "----${{matrix.target}}-----NFT-Machine--------"
         fi
@@ -258,6 +262,12 @@ jobs:
         elif [ ${{matrix.target}} == 'ath79-nftables' ]; then
                 mv -f package-configs/single/${{github.event.inputs.MACH}}-nftables.config package-configs/ath79-common-nftables.config
                 echo "----${{matrix.target}}-----NFT-Package-Config----"
+        elif [ ${{matrix.target}} == 'ipq-iptables' ]; then
+                mv -f package-configs/single/${{github.event.inputs.MACH}}-iptables.config package-configs/ipq-common-iptables.config
+                echo "----${{matrix.target}}-----IPT-Package-Config----"
+        elif [ ${{matrix.target}} == 'ipq-nftables' ]; then
+                mv -f package-configs/single/${{github.event.inputs.MACH}}-nftables.config package-configs/ipq-common-nftables.config
+                echo "----${{matrix.target}}-----NFT-Package-Config----"
         fi
 
 
@@ -270,7 +280,7 @@ jobs:
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
         cd openwrt
         sed -i '$a src-git lunatic7 https://github.com/lunatickochiya/actionbased-openwrt-packages.git' feeds.conf.default
-        if [ ${{matrix.target}} == 'mt798x-nftables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-nftables' ] || [ ${{ matrix.target }} == 'ramips-nftables' ] || [ ${{ matrix.target }} == 'ath79-nftables' ]; then
+        if [ ${{matrix.target}} == 'mt798x-nftables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-nftables' ] || [ ${{ matrix.target }} == 'ramips-nftables' ] || [ ${{ matrix.target }} == 'ath79-nftables' ] || [ ${{ matrix.target }} == 'ipq-nftables' ]; then
         curl -sSL https://raw.githubusercontent.com/chenmozhijin/turboacc/luci/add_turboacc.sh -o add_turboacc.sh && bash add_turboacc.sh
         echo "----${{matrix.target}}-----NFT-acc----"
         fi
@@ -303,7 +313,7 @@ jobs:
       if: github.event.inputs.SFE_BUILDIN == 'true'
       id: sfe
       run: |
-        if [ ${{matrix.target}} == 'mt798x-iptables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-iptables' ] || [ ${{ matrix.target }} == 'ramips-iptables' ] || [ ${{ matrix.target }} == 'ath79-iptables' ]; then
+        if [ ${{matrix.target}} == 'mt798x-iptables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-iptables' ] || [ ${{ matrix.target }} == 'ramips-iptables' ] || [ ${{ matrix.target }} == 'ath79-iptables' ] || [ ${{ matrix.target }} == 'ipq-iptables' ]; then
                 bash $GITHUB_WORKSPACE/add-sfe-packages.sh ipt
                 echo "----${{matrix.target}}-----ipt-sfe---"
                 cd openwrt
@@ -353,9 +363,11 @@ jobs:
         sed -i "s/192\.168\.10\.1/$IPSET_VALUE/g" openwrt/package/kochiya/autoset/files/zzz-autoset-mediatek
         sed -i "s/192\.168\.10\.1/$IPSET_VALUE/g" openwrt/package/kochiya/autoset/files/zzz-autoset-ramips
         sed -i "s/192\.168\.10\.1/$IPSET_VALUE/g" openwrt/package/kochiya/autoset/files/zzz-autoset-ath79
+        sed -i "s/192\.168\.10\.1/$IPSET_VALUE/g" openwrt/package/kochiya/autoset/files/zzz-autoset-ipq
         grep 'set network.lan.ipaddr=' openwrt/package/kochiya/autoset/files/zzz-autoset-mediatek
         grep 'set network.lan.ipaddr=' openwrt/package/kochiya/autoset/files/zzz-autoset-ramips
         grep 'set network.lan.ipaddr=' openwrt/package/kochiya/autoset/files/zzz-autoset-ath79
+        grep 'set network.lan.ipaddr=' openwrt/package/kochiya/autoset/files/zzz-autoset-ipq
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 更新 & 安装 feeds
@@ -408,6 +420,13 @@ jobs:
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ath79
         make defconfig
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ath79
+        make defconfig
+        elif [ ${{matrix.target}} == 'ipq-iptables' ] || [ ${{ matrix.target }} == 'ipq-nftables' ]; then
+        $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ipq
+        make defconfig
+        $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ipq
+        make defconfig
+        $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ipq
         make defconfig
         else
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod

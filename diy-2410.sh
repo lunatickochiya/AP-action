@@ -13,12 +13,14 @@ sed -i "51i\echo \"DISTRIB_DESCRIPTION='OpenWrt $version Compiled by 2U4U'\" >> 
 sed -i "51i\echo \"DISTRIB_DESCRIPTION='OpenWrt $version Compiled by 2U4U'\" >> /etc/openwrt_release" package/kochiya/autoset/files/zzz-autoset-ath79
 sed -i "52i\echo \"DISTRIB_DESCRIPTION='OpenWrt $version Compiled by 2U4U'\" >> /etc/openwrt_release" package/kochiya/autoset/files/zzz-autoset-rockchip
 sed -i "51i\echo \"DISTRIB_DESCRIPTION='OpenWrt $version Compiled by 2U4U'\" >> /etc/openwrt_release" package/kochiya/autoset/files/zzz-autoset-rockchip-siderouter
+sed -i "51i\echo \"DISTRIB_DESCRIPTION='OpenWrt $version Compiled by 2U4U'\" >> /etc/openwrt_release" package/kochiya/autoset/files/zzz-autoset-ipq
 
 grep DISTRIB_DESCRIPTION package/kochiya/autoset/files/zzz-autoset-mediatek
 grep DISTRIB_DESCRIPTION package/kochiya/autoset/files/zzz-autoset-meson
 grep DISTRIB_DESCRIPTION package/kochiya/autoset/files/zzz-autoset-rockchip
 grep DISTRIB_DESCRIPTION package/kochiya/autoset/files/zzz-autoset-ramips
 grep DISTRIB_DESCRIPTION package/kochiya/autoset/files/zzz-autoset-ath79
+grep DISTRIB_DESCRIPTION package/kochiya/autoset/files/zzz-autoset-ipq
 grep DISTRIB_DESCRIPTION package/kochiya/autoset/files/zzz-autoset-rockchip-siderouter
         }
 
@@ -241,6 +243,16 @@ done
 
 # add luci
 
+function add_ipq_iptables_packages() {
+echo "$(cat package-configs/ipq-common-iptables.config)" >> package-configs/.config
+mv -f package-configs/.config .config
+}
+
+function add_ipq_nftables_packages() {
+echo "$(cat package-configs/ipq-common-nftables.config)" >> package-configs/.config
+mv -f package-configs/.config .config
+}
+
 function add_ath79_iptables_packages() {
 echo "$(cat package-configs/ath79-common-iptables.config)" >> package-configs/.config
 mv -f package-configs/.config .config
@@ -359,6 +371,20 @@ patch_package
 patch_luci
 patch_lunatic7
 add_ath79_nftables_packages
+elif [ "$1" == "ipq-iptables" ]; then
+autosetver
+
+patch_package
+patch_luci
+patch_lunatic7
+add_ipq_iptables_packages
+elif [ "$1" == "ipq-nftables" ]; then
+autosetver
+
+patch_package
+patch_luci
+patch_lunatic7
+add_ipq_nftables_packages
 elif [ "$1" == "patch-openwrt" ]; then
 patch_openwrt_2410
 patch_openwrt
