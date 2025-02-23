@@ -1,4 +1,4 @@
-name: Build 24.10 Single Machine
+name: Build OpenWrt-IPQ Single Machine
 
 # Fix for broken build: https://github.com/softprops/action-gh-release/issues/236
 permissions:
@@ -36,7 +36,7 @@ on:
       MACH:
         description: 'Choose machine'
         required: true
-        default: 'rax3000m-emmc'
+        default: 'aliyun_ap8220'
         type: choice
         options:
         - 'rax3000m-emmc'
@@ -50,7 +50,7 @@ on:
         - 'aliyun_ap8220'
       TRY_BBR_V3:
         description: 'Update BBR TO V3'
-        default: 'false'
+        default: 'true'
         type: choice
         options:
         - 'true'
@@ -85,7 +85,7 @@ on:
 #        - 'false'
       SETIP:
         description: 'Set ip address'
-        default: '192.168.10.1'
+        default: '192.168.17.1'
         required: false
         type: choice
         options:
@@ -199,7 +199,7 @@ jobs:
         [ "$VERSION" ] && echo "VERSION=$VERSION" >> $GITHUB_ENV || echo "VERSION=$(date +'%m.%d')" >> $GITHUB_ENV
         echo ${{matrix.target}}
         source "${GITHUB_WORKSPACE}/env/common.txt"
-        source "${GITHUB_WORKSPACE}/env/openwrt-24.10.repo"
+        source "${GITHUB_WORKSPACE}/env/openwrt-ipq.repo"
         echo "REPO_URL=${REPO_URL}" >> $GITHUB_ENV
         echo "BURN_UBOOT_IMG_URL=${BURN_UBOOT_IMG_URL}" >> $GITHUB_ENV
         echo "AMLIMG_TOOL_URL=${AMLIMG_TOOL_URL}" >> $GITHUB_ENV
@@ -263,10 +263,10 @@ jobs:
                 mv -f package-configs/single/${{github.event.inputs.MACH}}-nftables.config package-configs/ath79-common-nftables.config
                 echo "----${{matrix.target}}-----NFT-Package-Config----"
         elif [ ${{matrix.target}} == 'ipq-iptables' ]; then
-                mv -f package-configs/single/${{github.event.inputs.MACH}}-iptables.config package-configs/ipq-common-iptables.config
+                mv -f package-configs/single/${{github.event.inputs.MACH}}-iptables-nss.config package-configs/ipq-common-iptables.config
                 echo "----${{matrix.target}}-----IPT-Package-Config----"
         elif [ ${{matrix.target}} == 'ipq-nftables' ]; then
-                mv -f package-configs/single/${{github.event.inputs.MACH}}-nftables.config package-configs/ipq-common-nftables.config
+                mv -f package-configs/single/${{github.event.inputs.MACH}}-nftables-nss.config package-configs/ipq-common-nftables.config
                 echo "----${{matrix.target}}-----NFT-Package-Config----"
         fi
 
@@ -279,7 +279,7 @@ jobs:
         git clone $REPO_URL -b $REPO_BRANCH openwrt --single-branch
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
         cd openwrt
-        sed -i '$a src-git lunatic7 https://github.com/lunatickochiya/actionbased-openwrt-packages.git' feeds.conf.default
+        # sed -i '$a src-git lunatic7 https://github.com/lunatickochiya/actionbased-openwrt-packages.git' feeds.conf.default
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 增加磁盘空间
@@ -298,10 +298,10 @@ jobs:
       id: patch
       run: |
         if [ ${{github.event.inputs.TRY_BBR_V3}} = true ]; then
-        [ -d openwrt-2410/mypatch-bbr-v3 ] && cp -r openwrt-2410/mypatch-bbr-v3/* openwrt-2410/mypatch-2410-${{matrix.target}}
+        [ -d openwrt-ipq/mypatch-bbr-v3 ] && cp -r openwrt-ipq/mypatch-bbr-v3/* openwrt-ipq/mypatch-openwrt-ipq-${{matrix.target}}
         fi
         if [ ${{github.event.inputs.AG71XX_FIX}} = true ]; then
-        [ -d openwrt-2410/my-patch-ag71xx-fix ] && cp -r openwrt-2410/my-patch-ag71xx-fix/* openwrt-2410/mypatch-2410-${{matrix.target}}
+        [ -d openwrt-ipq/my-patch-ag71xx-fix ] && cp -r openwrt-ipq/my-patch-ag71xx-fix/* openwrt-ipq/mypatch-openwrt-ipq-${{matrix.target}}
         fi
         echo "status=success" >> $GITHUB_OUTPUT
 
@@ -330,6 +330,8 @@ jobs:
         cd ../
         fi
         sed -i 's/kmod-shortcut-fe-cm,kmod-shortcut-fe,kmod-fast-classifier,kmod-fast-classifier-noload,kmod-shortcut-fe-drv,//g' package-configs/kmod_exclude_list*
+        mkdir -p openwrt/target/linux/qualcommax/patches-6.6
+        cp -f openwrt-ipq/sfe-ipq-6.6/0600-1-qca-nss-ecm-support-CORE.patch openwrt/target/linux/qualcommax/patches-6.6/0600-1-qca-nss-ecm-support-CORE.patch
         # sed -i 's/"feeds\/lunatic7\/shortcut-fe"//g' diy-2410.sh
         # sed -i 's/"feeds\/lunatic7\/luci-app-turboacc"//g' diy-2410.sh
         echo "status=success" >> $GITHUB_OUTPUT
@@ -339,10 +341,10 @@ jobs:
       id: files
       run: |
         [ -d package ] && mv -f package/* openwrt/package
-        [ -d openwrt-2410/package-for-mt798x ] && mv -f openwrt-2410/package-for-mt798x/* openwrt/package
-        [ -d openwrt-2410/package-for-2410 ] && cp -r openwrt-2410/package-for-2410/* openwrt/package
-        [ -d openwrt-2410/mypatch-2410 ] && mv -f openwrt-2410/mypatch-2410 openwrt/mypatch-2410
-        [ -d openwrt-2410/mypatch-2410-${{matrix.target}} ] && mv -f openwrt-2410/mypatch-2410-${{matrix.target}} openwrt/mypatch
+        [ -d openwrt-ipq/package-for-mt798x ] && mv -f openwrt-ipq/package-for-mt798x/* openwrt/package
+        [ -d openwrt-ipq/package-for-openwrt-ipq ] && cp -r openwrt-ipq/package-for-openwrt-ipq/* openwrt/package
+        [ -d openwrt-ipq/mypatch-openwrt-ipq ] && mv -f openwrt-ipq/mypatch-openwrt-ipq openwrt/mypatch-openwrt-ipq
+        [ -d openwrt-ipq/mypatch-openwrt-ipq-${{matrix.target}} ] && mv -f openwrt-ipq/mypatch-openwrt-ipq-${{matrix.target}} openwrt/mypatch
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_SH patch-openwrt
         cd ../
@@ -386,12 +388,13 @@ jobs:
       id: config
       run: |
         if [ ${{github.event.inputs.TEST-KERNEL}} = true ]; then
-        mv -f openwrt-2410/K61/tele openwrt/feeds/telephony
-        mv -f openwrt-2410/K61/packages/* openwrt-2410/feeds-package-patch-2410
+        mv -f openwrt-ipq/K61/tele openwrt/feeds/telephony
+        mv -f openwrt-ipq/K61/packages/* openwrt-ipq/feeds-package-patch-openwrt-ipq
         fi
-        [ -d openwrt-2410/lunatic7-revert ] && mv -f openwrt-2410/lunatic7-revert openwrt/feeds/lunatic7/lunatic7-revert
-        [ -d openwrt-2410/luci-patch-2410 ] && mv -f openwrt-2410/luci-patch-2410 openwrt/feeds/luci/luci-patch-2410
-        [ -d openwrt-2410/feeds-package-patch-2410 ] && mv -f openwrt-2410/feeds-package-patch-2410 openwrt/feeds/packages/feeds-package-patch-2410
+        mkdir -p openwrt/feeds/lunatic7
+        [ -d openwrt-ipq/lunatic7-revert ] && mv -f openwrt-ipq/lunatic7-revert openwrt/feeds/lunatic7/lunatic7-revert
+        [ -d openwrt-ipq/luci-patch-openwrt-ipq ] && mv -f openwrt-ipq/luci-patch-openwrt-ipq openwrt/feeds/luci/luci-patch-openwrt-ipq
+        [ -d openwrt-ipq/feeds-package-patch-openwrt-ipq ] && mv -f openwrt-ipq/feeds-package-patch-openwrt-ipq openwrt/feeds/packages/feeds-package-patch-openwrt-ipq
         [ -e files ] && mv files openwrt/files
         [ -e package-configs ] && mv package-configs openwrt/package-configs
         [ -e machine-configs/${{matrix.target}}.config ] && mv -f machine-configs/${{matrix.target}}.config openwrt/package-configs/.config
@@ -590,8 +593,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         files: "${{ env.FIRMWARE }}/*"
-        name: ${{ env.date }} ${{matrix.target}}-${{github.event.inputs.MACH}}-openwrt-2410
-        tag_name: ${{ env.date }}_${{matrix.target}}-${{github.event.inputs.MACH}}-openwrt-2410
+        name: ${{ env.date }} ${{matrix.target}}-${{github.event.inputs.MACH}}-openwrt-ipq
+        tag_name: ${{ env.date }}_${{matrix.target}}-${{github.event.inputs.MACH}}-openwrt-ipq
         body_path: release.txt
 
     - name: 删除工作流
