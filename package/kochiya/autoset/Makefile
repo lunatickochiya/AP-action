@@ -10,7 +10,7 @@ include $(INCLUDE_DIR)/target.mk
 
 PKG_NAME:=autoset
 PKG_VERSION:=4.0
-PKG_RELEASE:=12
+PKG_RELEASE:=13
 PKG_LICENSE:=GPLv3
 PKG_LICENSE_FILES:=LICENSE
 
@@ -283,9 +283,7 @@ endef
 
 define Package/autoset/install
 	$(INSTALL_DIR) $(1)/usr/share/rpcd/acl.d
-	$(INSTALL_DIR) $(1)/sbin
 	$(CP) ./files/luci-mod-status-autoset.json $(1)/usr/share/rpcd/acl.d/
-	$(INSTALL_BIN) ./files/arm/sbin/usage $(1)/sbin/usage
 endef
 
 define Package/autoset-uci-rockchip/install
@@ -319,6 +317,8 @@ endef
 define Package/autoset-uci-ipq/install
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
 	$(INSTALL_BIN) ./files/zzz-autoset-ipq $(1)/etc/uci-defaults/zz99-autoset
+	$(INSTALL_DIR) $(1)/sbin
+	$(INSTALL_BIN) ./files/arm/sbin/usage $(1)/sbin/usage
 endef
 
 define Package/autoset-uci/install
