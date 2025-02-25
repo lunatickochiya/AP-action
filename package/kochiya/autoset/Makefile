@@ -318,7 +318,7 @@ define Package/autoset-uci-ipq/install
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
 	$(INSTALL_BIN) ./files/zzz-autoset-ipq $(1)/etc/uci-defaults/zz99-autoset
 	$(INSTALL_DIR) $(1)/sbin
-	$(INSTALL_BIN) ./files/arm/sbin/usage $(1)/sbin/usage
+	$(INSTALL_BIN) ./files/arm/usage $(1)/sbin/usage
 endef
 
 define Package/autoset-uci/install
