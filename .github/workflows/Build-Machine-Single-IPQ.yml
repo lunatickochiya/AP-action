@@ -437,11 +437,11 @@ jobs:
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ath79
         make defconfig
         elif [ ${{matrix.target}} == 'ipq-iptables' ] || [ ${{ matrix.target }} == 'ipq-nftables' ]; then
-        $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ipq
+        $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ipq-nss
         make defconfig
-        $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ipq
+        $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ipq-nss
         make defconfig
-        $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ipq
+        $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ipq-nss
         make defconfig
         else
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod
