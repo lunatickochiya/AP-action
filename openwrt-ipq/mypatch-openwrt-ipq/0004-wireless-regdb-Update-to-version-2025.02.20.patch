@@ -1,0 +1,51 @@
+From d8d15b07891f270131a6f2f58fd70ebff96c0951 Mon Sep 17 00:00:00 2001
+From: Rudy Andram <rmandrad@gmail.com>
+Date: Wed, 12 Feb 2025 19:28:49 +0000
+Subject: [PATCH 2/2] wireless-regdb: Update to version 2025.02.20
+
+b43aeb5 wireless-regdb: assert and correct maximum bandwidth within frequency difference
+68588bf wireless-regdb: Update regulatory info for Syria (SY) for 2020
+0dda57e wireless-regdb: Update regulatory info for Moldova (MD) on 6GHz for 2022
+b19ab0b wireless-regdb: Update regulatory info for Azerbaijan (AZ) on 6GHz for 2024
+f67f40d wireless-regdb: Update regulatory info for Oman (OM)
+bd70876 wireless-regdb: Update regulatory rules for Armenia (AM) on 2.4 and 5 GHz
+6c7cbcc wireless-regdb: Permit 320 MHz bandwidth in 6 GHz band in ETSI/CEPT
+f9f6b30 wireless-regdb: Update regulatory rules for Austria (AT)
+39b47ea wireless-regdb: Update regulatory info for Cayman Islands (KY) for 2024
+3dd7ceb wireless-regdb: allow NO-INDOOR flag in db.txt
+4d754a1 wireless-regdb: Update regulatory rules for Iran (IR) on both 2.4 and 5Ghz for 2021
+8c8308a wireless-regdb: Update frequency range with NO-INDOOR for Oman (OM)
+c2f11e2 wireless-regdb: update regulatory database based on preceding changes
+
+Signed-off-by: Rudy Andram <rmandrad@gmail.com>
+Link: https://github.com/openwrt/openwrt/pull/17957
+Signed-off-by: Hauke Mehrtens <hauke@hauke-m.de>
+(cherry picked from commit da2cc98458f46745de95e88b6066620fbd02b190)
+---
+ package/firmware/wireless-regdb/Makefile | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/package/firmware/wireless-regdb/Makefile b/package/firmware/wireless-regdb/Makefile
+index 7d4cf63c47..7055b12bfa 100644
+--- a/package/firmware/wireless-regdb/Makefile
++++ b/package/firmware/wireless-regdb/Makefile
+@@ -1,14 +1,14 @@
+ include $(TOPDIR)/rules.mk
+ 
+ PKG_NAME:=wireless-regdb
+-PKG_VERSION:=2024.10.07
++PKG_VERSION:=2025.02.20
+ PKG_RELEASE:=1
+ PKG_LICENSE:=ISC
+ PKG_LICENSE_FILES:=LICENSE
+ 
+ PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.xz
+ PKG_SOURCE_URL:=@KERNEL/software/network/wireless-regdb/
+-PKG_HASH:=f76f2bd79a653e9f9dd50548d99d03a4a4eb157da056dfd5892f403ec28fb3d5
++PKG_HASH:=57f8e7721cf5a880c13ae0c202edbb21092a060d45f9e9c59bcd2a8272bfa456
+ 
+ PKG_MAINTAINER:=Felix Fietkau <nbd@nbd.name>
+ 
+-- 
+2.34.1
+

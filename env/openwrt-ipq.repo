@@ -1,5 +1,5 @@
-REPO_URL="https://github.com/qosmio/openwrt-ipq"
-REPO_BRANCH="24.10-nss"
+REPO_URL="https://github.com/lunatickochiya/openwrt-ipq-mod"
+REPO_BRANCH="24.10-nss-202502"
 DIY_SH="diy-openwrt-ipq.sh"
 DIY_SH_AFB="after_build.sh"
 DIY_SH_RFC="refineconfig.sh"
