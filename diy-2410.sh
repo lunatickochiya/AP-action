@@ -373,14 +373,14 @@ patch_lunatic7
 add_ath79_nftables_packages
 elif [ "$1" == "ipq-iptables" ]; then
 autosetver
-
+remove_error_package_not_install
 patch_package
 patch_luci
 patch_lunatic7
 add_ipq_iptables_packages
 elif [ "$1" == "ipq-nftables" ]; then
 autosetver
-
+remove_error_package_not_install
 patch_package
 patch_luci
 patch_lunatic7
