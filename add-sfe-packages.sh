@@ -36,10 +36,32 @@ CONFIG_PACKAGE_kmod-shortcut-fe-cm=n
 " >> "$file"; done
 }
 
+function add_docker_ipq_config() {
+for file in package-configs/*ipq*.config; do     echo "# docker组件
+CONFIG_PACKAGE_dockerd=y
+CONFIG_PACKAGE_docker-compose=y
+CONFIG_DOCKER_CHECK_CONFIG=y
+CONFIG_DOCKER_CGROUP_OPTIONS=y
+CONFIG_DOCKER_OPTIONAL_FEATURES=y
+CONFIG_DOCKER_NET_OVERLAY=y
+CONFIG_DOCKER_NET_ENCRYPT=y
+CONFIG_DOCKER_NET_MACVLAN=y
+CONFIG_DOCKER_NET_TFTP=y
+CONFIG_DOCKER_STO_DEVMAPPER=y
+CONFIG_DOCKER_STO_EXT4=y
+CONFIG_DOCKER_STO_BTRFS=y
+# end
+
+CONFIG_PACKAGE_luci-app-dockerman=y
+" >> "$file"; done
+}
+
 if [ "$1" == "nft" ]; then
 add_nft_config
 elif [ "$1" == "ipt" ]; then
 add_ipt_config
+elif [ "$1" == "ipq-docker" ]; then
+add_docker_ipq_config
 else
 echo "Invalid argument"
 fi

@@ -50,7 +50,7 @@ on:
         - 'aliyun_ap8220'
       TRY_BBR_V3:
         description: 'Update BBR TO V3'
-        default: 'false'
+        default: 'true'
         type: choice
         options:
         - 'true'
@@ -65,6 +65,13 @@ on:
       SFE_BUILDIN:
         description: 'Build sfe'
         default: 'true'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
+      DOCKER_BUILDIN:
+        description: 'Build docker'
+        default: 'false'
         type: choice
         options:
         - 'true'
@@ -332,6 +339,14 @@ jobs:
         sed -i 's/kmod-shortcut-fe-cm,kmod-shortcut-fe,kmod-fast-classifier,kmod-fast-classifier-noload,kmod-shortcut-fe-drv,//g' package-configs/kmod_exclude_list*
         # sed -i 's/"feeds\/lunatic7\/shortcut-fe"//g' diy-2410.sh
         # sed -i 's/"feeds\/lunatic7\/luci-app-turboacc"//g' diy-2410.sh
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: 添加 Docker
+      if: github.event.inputs.DOCKER_BUILDIN == 'true'
+      id: docker
+      run: |
+        bash $GITHUB_WORKSPACE/add-sfe-packages.sh ipq-docker
+        echo "----${{matrix.target}}-----Docker--Config--Added--"
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 自定义安装包(优先于feeds)

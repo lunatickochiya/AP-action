@@ -55,9 +55,9 @@ on:
         options:
         - 'true'
         - 'false'
-      AG71XX_FIX:
-        description: 'Fix ag71xx'
-        default: 'false'
+      DOCKER_BUILDIN:
+        description: 'Build docker'
+        default: 'true'
         type: choice
         options:
         - 'true'
@@ -339,6 +339,14 @@ jobs:
         # cp -f openwrt-ipq/sfe-ipq-6.6/0604-1-qca-add-mcs-support.patch openwrt/target/linux/qualcommax/patches-6.6/0604-1-qca-add-mcs-support.patch
         # sed -i 's/"feeds\/lunatic7\/shortcut-fe"//g' diy-2410.sh
         # sed -i 's/"feeds\/lunatic7\/luci-app-turboacc"//g' diy-2410.sh
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: 添加 Docker
+      if: github.event.inputs.DOCKER_BUILDIN == 'true'
+      id: docker
+      run: |
+        bash $GITHUB_WORKSPACE/add-sfe-packages.sh ipq-docker
+        echo "----${{matrix.target}}-----Docker--Config--Added--"
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 自定义安装包(优先于feeds)
