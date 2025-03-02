@@ -1,5 +1,16 @@
+From 321b7063c35728870c71b4214a08953dfe41b800 Mon Sep 17 00:00:00 2001
+From: lunatickochiya <125438787@qq.com>
+Date: Sun, 2 Mar 2025 17:00:45 +0800
+Subject: [PATCH 2/3] ramips:prefer mesh openssl
+
+---
+ package/network/services/dnsmasq/Makefile | 4 ++--
+ target/linux/ramips/mt7620/target.mk      | 2 +-
+ target/linux/ramips/mt7621/target.mk      | 2 +-
+ 3 files changed, 4 insertions(+), 4 deletions(-)
+
 diff --git a/package/network/services/dnsmasq/Makefile b/package/network/services/dnsmasq/Makefile
-index 5224e996a4..384c03d7ae 100644
+index 47a5ae54ae..6397ad97bc 100644
 --- a/package/network/services/dnsmasq/Makefile
 +++ b/package/network/services/dnsmasq/Makefile
 @@ -112,10 +112,10 @@ define Package/dnsmasq-full/config
@@ -15,19 +26,6 @@ index 5224e996a4..384c03d7ae 100644
  	config PACKAGE_dnsmasq_full_conntrack
  		bool "Build with Conntrack support."
  		default y
-diff --git a/target/linux/ramips/mt7621/target.mk b/target/linux/ramips/mt7621/target.mk
-index 153ff08421..4d42f556eb 100644
---- a/target/linux/ramips/mt7621/target.mk
-+++ b/target/linux/ramips/mt7621/target.mk
-@@ -10,7 +10,7 @@ KERNELNAME:=vmlinux vmlinuz
- # make Kernel/CopyImage use $LINUX_DIR/vmlinuz
- IMAGES_DIR:=../../..
- 
--DEFAULT_PACKAGES += wpad-basic-mbedtls uboot-envtools
-+DEFAULT_PACKAGES += wpad-mesh-openssl uboot-envtools
- 
- define Target/Description
- 	Build firmware images for Ralink MT7621 based boards.
 diff --git a/target/linux/ramips/mt7620/target.mk b/target/linux/ramips/mt7620/target.mk
 index 34488f95af..1c5cb1af7e 100644
 --- a/target/linux/ramips/mt7620/target.mk
@@ -35,26 +33,25 @@ index 34488f95af..1c5cb1af7e 100644
 @@ -7,7 +7,7 @@ BOARDNAME:=MT7620 based boards
  FEATURES+=usb ramdisk
  CPU_TYPE:=24kc
-
+ 
 -DEFAULT_PACKAGES += kmod-rt2800-soc wpad-basic-mbedtls swconfig
 +DEFAULT_PACKAGES += kmod-rt2800-soc wpad-mesh-openssl swconfig
-
+ 
  define Target/Description
  	Build firmware images for Ralink MT7620 based boards.
---- a/include/target.mk
-+++ b/include/target.mk
-@@ -53,10 +53,10 @@ DEFAULT_PACKAGES.nas:=\
- 	mdadm
- # For router targets
- DEFAULT_PACKAGES.router:=\
--	dnsmasq \
--	firewall4 \
--	nftables \
--	kmod-nft-offload \
-+	dnsmasq-full \
-+	firewall \
-+	iptables-zz-legacy \
-+	ip6tables-zz-legacy \
- 	odhcp6c \
- 	odhcpd-ipv6only \
- 	ppp \
+diff --git a/target/linux/ramips/mt7621/target.mk b/target/linux/ramips/mt7621/target.mk
+index 2b9a1312af..cf0528efd9 100644
+--- a/target/linux/ramips/mt7621/target.mk
++++ b/target/linux/ramips/mt7621/target.mk
+@@ -10,7 +10,7 @@ KERNELNAME:=vmlinux vmlinuz
+ # make Kernel/CopyImage use $LINUX_DIR/vmlinuz
+ IMAGES_DIR:=../../..
+ 
+-DEFAULT_PACKAGES += wpad-basic-mbedtls uboot-envtools kmod-crypto-hw-eip93
++DEFAULT_PACKAGES += wpad-mesh-openssl uboot-envtools kmod-crypto-hw-eip93
+ 
+ define Target/Description
+ 	Build firmware images for Ralink MT7621 based boards.
+-- 
+2.34.1
+
