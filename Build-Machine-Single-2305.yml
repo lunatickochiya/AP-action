@@ -56,13 +56,6 @@ on:
 #        - 'false'
       AG71XX_FIX:
         description: 'Fix ag71xx'
-        default: 'false'
-        type: choice
-        options:
-        - 'true'
-        - 'false'
-      SFE_BUILDIN:
-        description: 'Build sfe'
         default: 'true'
         type: choice
         options:
@@ -276,7 +269,12 @@ jobs:
         git clone https://${{ secrets.MY_SECRET_TOKEN }}@github.com/lunatickochiya/tpm312.git
         $GITHUB_WORKSPACE/$DIY_SH kernel61
         fi
-        # $GITHUB_WORKSPACE/$DIY_SH firewallremove
+        if [ ${{matrix.target}} == 'mt798x-nftables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-nftables' ] || [ ${{ matrix.target }} == 'ramips-nftables' ] || [ ${{ matrix.target }} == 'ath79-nftables' ]; then
+        curl -sSL https://raw.githubusercontent.com/chenmozhijin/turboacc/luci/add_turboacc.sh -o add_turboacc.sh && bash add_turboacc.sh
+        echo "----${{matrix.target}}-----NFT-acc----"
+        else
+        $GITHUB_WORKSPACE/$DIY_SH firewallremove
+        fi
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 增加磁盘空间
@@ -299,42 +297,10 @@ jobs:
         fi
         echo "status=success" >> $GITHUB_OUTPUT
 
-    - name: 添加 SFE
-      if: github.event.inputs.SFE_BUILDIN == 'true'
-      id: sfe
-      run: |
-        if [ ${{matrix.target}} == 'mt798x-iptables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-iptables' ] || [ ${{ matrix.target }} == 'ramips-iptables' ] || [ ${{ matrix.target }} == 'ath79-iptables' ] || [ ${{ matrix.target }} == 'ipq-iptables' ]; then
-                bash $GITHUB_WORKSPACE/add-sfe-packages.sh ipt
-                echo "----${{matrix.target}}-----ipt-sfe---"
-                cd openwrt
-                wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/pending-5.15/613-netfilter_optional_tcp_window_check.patch -P target/linux/generic/pending-5.15/
-                wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/hack-5.15/952-add-net-conntrack-events-support-multiple-registrant.patch -P target/linux/generic/hack-5.15/
-                wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/hack-5.15/953-net-patch-linux-kernel-to-support-shortcut-fe.patch -P target/linux/generic/hack-5.15/
-                echo "# CONFIG_NF_CONNTRACK_CHAIN_EVENTS is not set" >> "./target/linux/generic/config-5.15"
-                echo "# CONFIG_SHORTCUT_FE is not set" >> "./target/linux/generic/config-5.15"
-                # git clone https://github.com/lunatickochiya/luci-app-turboacc-js package/luci-app-turboacc-js && sed -i 's?\.\./\.\./luci.mk?$(TOPDIR)/feeds/luci/luci.mk?' ./package/luci-app-turboacc-js/Makefile ; rm -rf ./package/luci-app-turboacc-js/.git/
-                git clone --depth=1 --single-branch --branch "package" https://github.com/chenmozhijin/turboacc && mv -n turboacc/shortcut-fe ./package ; rm -rf turboacc
-                cd ../
-
-        fi
-        if [ ${{matrix.target}} == 'mt798x-nftables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-nftables' ] || [ ${{ matrix.target }} == 'ramips-nftables' ] || [ ${{ matrix.target }} == 'ath79-nftables' ] || [ ${{ matrix.target }} == 'ipq-nftables' ]; then
-        cd openwrt
-        curl -sSL https://raw.githubusercontent.com/chenmozhijin/turboacc/luci/add_turboacc.sh -o add_turboacc.sh && bash add_turboacc.sh
-        echo "----${{matrix.target}}-----NFT-acc----"
-        cd ../
-        fi
-        sed -i 's/kmod-shortcut-fe-cm,kmod-shortcut-fe,kmod-fast-classifier,kmod-fast-classifier-noload,kmod-shortcut-fe-drv,//g' package-configs/kmod_exclude_list*
-        # sed -i 's/"feeds\/lunatic7\/shortcut-fe"//g' diy-2410.sh
-        # sed -i 's/"feeds\/lunatic7\/luci-app-turboacc"//g' diy-2410.sh
-        echo "status=success" >> $GITHUB_OUTPUT
-
     - name: 自定义安装包(优先于feeds)
       if: steps.clone.outputs.status == 'success'
       id: files
       run: |
-        if [ ${{ matrix.target }} == 'ramips*' ] || [ ${{ matrix.target }} == 'ath79*' ]; then
-        rm -rf openwrt-2305/mypatch-2305/0021-package-opkg-supports-curl-as-http-client.patch
-        fi
         [ -d package ] && mv -f package/* openwrt/package
         [ -d openwrt-2305/package-for-mt798x ] && mv -f openwrt-2305/package-for-mt798x/* openwrt/package
         [ -d openwrt-2305/mypatch-2305 ] && mv -f openwrt-2305/mypatch-2305 openwrt/mypatch-2305
@@ -370,11 +336,9 @@ jobs:
         sed -i "s/192\.168\.10\.1/$IPSET_VALUE/g" openwrt/package/kochiya/autoset/files/zzz-autoset-mediatek
         sed -i "s/192\.168\.10\.1/$IPSET_VALUE/g" openwrt/package/kochiya/autoset/files/zzz-autoset-ramips
         sed -i "s/192\.168\.10\.1/$IPSET_VALUE/g" openwrt/package/kochiya/autoset/files/zzz-autoset-ath79
-        sed -i "s/192\.168\.10\.1/$IPSET_VALUE/g" openwrt/package/kochiya/autoset/files/zzz-autoset-ipq
         grep 'set network.lan.ipaddr=' openwrt/package/kochiya/autoset/files/zzz-autoset-mediatek
         grep 'set network.lan.ipaddr=' openwrt/package/kochiya/autoset/files/zzz-autoset-ramips
         grep 'set network.lan.ipaddr=' openwrt/package/kochiya/autoset/files/zzz-autoset-ath79
-        grep 'set network.lan.ipaddr=' openwrt/package/kochiya/autoset/files/zzz-autoset-ipq
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 更新 & 安装 feeds
