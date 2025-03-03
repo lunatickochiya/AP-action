@@ -9,10 +9,42 @@ on:
   repository_dispatch:
   workflow_dispatch:
     inputs:
-      ssh:
-        description: 'SSH connection to Actions'
+      SFE_BUILDIN:
+        description: 'Build sfe'
+        default: 'true'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
+
+      ALLKMOD:
+        description: 'Compile All Kmods'
+        required: true
+        default: 'true'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
+
+      SETIP:
+        description: 'Set ip address'
+        default: '192.168.10.1'
         required: false
-        default: 'false'
+        type: choice
+        options:
+        - '192.168.10.1'
+        - '192.168.8.1'
+        - '192.168.7.1'
+        - '192.168.17.1'
+        - '192.168.16.1'
+        - '192.168.19.1'
+        - '192.168.12.1'
+        - '192.168.99.1'
+        - '192.168.166.1'
+        - '172.16.0.1'
+        - '172.18.0.1'
+        - '10.0.0.1'
+
 env:
   TZ: Asia/Shanghai
 
@@ -99,6 +131,23 @@ jobs:
         ln -sf /mnt/openwrt/bin openwrt/bin
         ln -sf /mnt/openwrt/staging_dir openwrt/staging_dir
 
+    - name: 添加 SFE
+      if: github.event.inputs.SFE_BUILDIN == 'true'
+      id: sfe
+      run: |
+        bash $GITHUB_WORKSPACE/add-sfe-packages.sh ipt
+                echo "----${{matrix.target}}-----ipt-sfe---"
+                mkdir -p openwrt/package/shortcut-fe
+                cp -r openwrt-2102/sfe-2102/shortcut-fe/* openwrt/package/shortcut-fe
+                cp -r openwrt-2102/sfe-2102/hack-5.4/* openwrt/target/linux/generic/hack-5.4
+                cp -r openwrt-2102/sfe-2102/pending-5.4/* openwrt/target/linux/generic/pending-5.4
+                cd openwrt
+                echo "# CONFIG_NF_CONNTRACK_CHAIN_EVENTS is not set" >> "./target/linux/generic/config-5.4"
+                echo "# CONFIG_SHORTCUT_FE is not set" >> "./target/linux/generic/config-5.4"
+                cd ../
+                sed -i 's/kmod-shortcut-fe-cm,kmod-shortcut-fe,kmod-fast-classifier,kmod-fast-classifier-noload,kmod-shortcut-fe-drv,//g' package-configs/kmod_exclude_list*
+        echo "status=success" >> $GITHUB_OUTPUT
+
     - name: 自定义安装包(优先于feeds)
       if: steps.clone.outputs.status == 'success'
       id: files
@@ -108,6 +157,21 @@ jobs:
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_SH patchop
         ls
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: 设置 IP 地址
+      if: github.event.inputs.SETIP != '192.168.10.1'
+      id: setip
+      run: |
+        IPSET_VALUE="${{ github.event.inputs.SETIP }}"
+        sed -i "s/192\.168\.10\.1/$IPSET_VALUE/g" openwrt/package/kochiya/autoset/files/zzz-autoset-mediatek
+        sed -i "s/192\.168\.10\.1/$IPSET_VALUE/g" openwrt/package/kochiya/autoset/files/zzz-autoset-ramips
+        sed -i "s/192\.168\.10\.1/$IPSET_VALUE/g" openwrt/package/kochiya/autoset/files/zzz-autoset-ath79
+        sed -i "s/192\.168\.10\.1/$IPSET_VALUE/g" openwrt/package/kochiya/autoset/files/zzz-autoset-ipq
+        grep 'set network.lan.ipaddr=' openwrt/package/kochiya/autoset/files/zzz-autoset-mediatek
+        grep 'set network.lan.ipaddr=' openwrt/package/kochiya/autoset/files/zzz-autoset-ramips
+        grep 'set network.lan.ipaddr=' openwrt/package/kochiya/autoset/files/zzz-autoset-ath79
+        grep 'set network.lan.ipaddr=' openwrt/package/kochiya/autoset/files/zzz-autoset-ipq
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 更新 & 安装 feeds
@@ -136,7 +200,7 @@ jobs:
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 添加kmod
-      if: steps.config.outputs.status == 'success' && env.UPLOAD_ALLKMOD == 'true'
+      if: steps.config.outputs.status == 'success' && github.event.inputs.ALLKMOD == 'true'
       id: config2
       run: |
         cd openwrt

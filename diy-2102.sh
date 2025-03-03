@@ -182,12 +182,12 @@ done
 # add luci
 
 function add_ath79_nand_2102_packages() {
-echo "$(cat package-configs/ath79-nand-2102-common.config)" >> package-configs/.config
+echo "$(cat package-configs/ath79-nand-2102-common-iptables.config)" >> package-configs/.config
 mv -f package-configs/.config .config
 }
 
 function add_ramips_mt7620_2102_packages() {
-echo "$(cat package-configs/ramips-mt7620-2102-common.config)" >> package-configs/.config
+echo "$(cat package-configs/ramips-mt7620-2102-common-iptables.config)" >> package-configs/.config
 mv -f package-configs/.config .config
 }
 
