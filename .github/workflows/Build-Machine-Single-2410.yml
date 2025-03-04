@@ -109,6 +109,13 @@ on:
         - '172.18.0.1'
         - '10.0.0.1'
         - '10.88.0.1'
+      BCM_FULLCONE:
+        description: 'bcm fullcone'
+        default: 'false'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
 env:
   TZ: Asia/Shanghai
 
@@ -310,6 +317,12 @@ jobs:
         if [ ${{github.event.inputs.AG71XX_FIX}} = true ]; then
         [ -d openwrt-2410/my-patch-ag71xx-fix ] && cp -r openwrt-2410/my-patch-ag71xx-fix/* openwrt-2410/mypatch-2410-${{matrix.target}}
         fi
+        if [ "${{ github.event.inputs.BCM_FULLCONE }}" = "true" ] && [[ "${{ matrix.target }}" == *-iptables ]]; then
+        [ -d openwrt-2410/bcmfullcone ] && cp -r openwrt-2410/bcmfullcone/* openwrt-2410/mypatch-2410-${{matrix.target}}
+        rm -rf openwrt-2410/luci-patch-2410/0004-Revert-luci-app-firewall-add-fullcone.patch
+        echo "----${{matrix.target}}-----ipt-bcm---"
+        echo "BCM_FULLCONE=_BCM_FULLCONE" >> $GITHUB_ENV
+        fi
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 添加 SFE
@@ -340,6 +353,7 @@ jobs:
         # sed -i 's/"feeds\/lunatic7\/shortcut-fe"//g' diy-2410.sh
         # sed -i 's/"feeds\/lunatic7\/luci-app-turboacc"//g' diy-2410.sh
         echo "status=success" >> $GITHUB_OUTPUT
+        echo "SFE=_SFE" >> $GITHUB_ENV
 
     - name: 添加 Docker
       if: github.event.inputs.DOCKER_BUILDIN == 'true'
@@ -554,7 +568,7 @@ jobs:
       continue-on-error: true
       if: steps.organize.outputs.status == 'success' && env.UPLOAD_FIRMWARE == 'true'
       with:
-        name: ${{ env.VERSION }}_${{matrix.target}}_firmware_24.10-${{github.event.inputs.MACH}}-${{ github.event.inputs.SETIP }}${{ env.Kernel_Test }}
+        name: ${{ env.VERSION }}_${{matrix.target}}_firmware_24.10-${{github.event.inputs.MACH}}-${{ github.event.inputs.SETIP }}${{ env.Kernel_Test }}${{ env.BCM_FULLCONE }}${{ env.SFE }}
         path: |
           firmware
 
@@ -563,7 +577,7 @@ jobs:
       continue-on-error: true
       if: steps.organize.outputs.status == 'success' && env.UPLOAD_IPK_DIR == 'true' && steps.afb.outputs.status == 'success'
       with:
-        name: ${{ env.VERSION }}_${{matrix.target}}_ipks_24.10-${{github.event.inputs.MACH}}${{ env.Kernel_Test }}
+        name: ${{ env.VERSION }}_${{matrix.target}}_ipks_24.10-${{github.event.inputs.MACH}}${{ env.Kernel_Test }}${{ env.BCM_FULLCONE }}${{ env.SFE }}
         path: |
           ipks
 
@@ -596,6 +610,7 @@ jobs:
         [ ${{github.event.inputs.MACH}} = rax3000m-emmc ] && echo "- 使用闪存频率: ($(grep -oP "max-frequency = <\K[0-9]*" openwrt/target/linux/mediatek/dts/mt7981b-cmcc-rax3000m-emmc-ubootmod.dts)) Hz" >> release.txt
         [ $UPLOAD_COWTRANSFER = true ] && echo "🔗 [Cowtransfer](${{ steps.cowtransfer.outputs.url }})" >> release.txt
         [ $UPLOAD_WETRANSFER = true ] && echo "🔗 [WeTransfer](${{ steps.wetransfer.outputs.url }})" >> release.txt
+        echo "🔗 ${{ env.BCM_FULLCONE }}${{ env.SFE }}" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 上传固件发布
