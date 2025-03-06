@@ -59,6 +59,7 @@ jobs:
       matrix:
         include:
           - target: ath79-nand-2102
+          - target: ath79-2102
           - target: ramips-mt7620-2102
     
     steps:

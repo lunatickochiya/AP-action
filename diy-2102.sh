@@ -186,6 +186,11 @@ echo "$(cat package-configs/ath79-nand-2102-common-iptables.config)" >> package-
 mv -f package-configs/.config .config
 }
 
+function add_ath79_2102_packages() {
+echo "$(cat package-configs/ath79-2102-common-iptables.config)" >> package-configs/.config
+mv -f package-configs/.config .config
+}
+
 function add_ramips_mt7620_2102_packages() {
 echo "$(cat package-configs/ramips-mt7620-2102-common-iptables.config)" >> package-configs/.config
 mv -f package-configs/.config .config
@@ -207,6 +212,13 @@ patch_package
 patch_luci
 patch_lunatic7
 add_ath79_nand_2102_packages
+elif [ "$1" == "ath79-2102" ]; then
+autosetver
+remove_error_package_not_install
+patch_package
+patch_luci
+patch_lunatic7
+add_ath79_2102_packages
 elif [ "$1" == "ramips-mt7620-2102" ]; then
 autosetver
 remove_error_package_not_install
