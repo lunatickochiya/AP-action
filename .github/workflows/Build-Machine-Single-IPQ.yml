@@ -312,7 +312,7 @@ jobs:
         [ -d openwrt-ipq/my-patch-ag71xx-fix ] && cp -r openwrt-ipq/my-patch-ag71xx-fix/* openwrt-ipq/mypatch-openwrt-ipq-${{matrix.target}}
         fi
         if [ "${{ github.event.inputs.BCM_FULLCONE }}" = "true" ] && [[ "${{ matrix.target }}" == *-iptables ]]; then
-        [ -d openwrt-ipq/bcmfullcone ] && cp -r openwrt-ipq/bcmfullcone/* openwrt-ipq/mypatch-ipq-${{matrix.target}}
+        [ -d openwrt-ipq/bcmfullcone ] && cp -r openwrt-ipq/bcmfullcone/* openwrt-ipq/mypatch-openwrt-ipq-${{matrix.target}}
         rm -rf openwrt-ipq/luci-patch-ipq/0004-Revert-luci-app-firewall-add-fullcone.patch
         echo "----${{matrix.target}}-----ipt-bcm---"
         echo "BCM_FULLCONE=_BCM_FULLCONE" >> $GITHUB_ENV
