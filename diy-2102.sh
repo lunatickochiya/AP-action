@@ -20,6 +20,17 @@ grep DISTRIB_DESCRIPTION package/kochiya/autoset/files/zzz-autoset-rockchip
 grep DISTRIB_DESCRIPTION package/kochiya/autoset/files/zzz-autoset-ramips
 grep DISTRIB_DESCRIPTION package/kochiya/autoset/files/zzz-autoset-ath79
 grep DISTRIB_DESCRIPTION package/kochiya/autoset/files/zzz-autoset-rockchip-siderouter
+
+
+sed -i '54a \
+uci set firewall.@zone[1].input="ACCEPT"\n\
+uci set firewall.@zone[0].input="ACCEPT"\n\
+uci commit' package/kochiya/autoset/files/zzz-autoset-ath79
+
+sed -i '54a \
+uci set firewall.@zone[1].input="ACCEPT"\n\
+uci set firewall.@zone[0].input="ACCEPT"\n\
+uci commit' package/kochiya/autoset/files/zzz-autoset-ramips
         }
 
 function remove_error_package() {
