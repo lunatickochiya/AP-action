@@ -342,6 +342,15 @@ jobs:
                 cd ../
 
         fi
+        if [ ${{github.event.inputs.TEST-KERNEL}} = true ]; then
+                cd openwrt
+                wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/pending-6.1/613-netfilter_optional_tcp_window_check.patch -P target/linux/generic/pending-6.1/
+                wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/hack-6.1/952-add-net-conntrack-events-support-multiple-registrant.patch -P target/linux/generic/hack-6.1/
+                wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/hack-6.1/953-net-patch-linux-kernel-to-support-shortcut-fe.patch -P target/linux/generic/hack-6.1/
+                echo "# CONFIG_NF_CONNTRACK_CHAIN_EVENTS is not set" >> "./target/linux/generic/config-6.1"
+                echo "# CONFIG_SHORTCUT_FE is not set" >> "./target/linux/generic/config-6.1"
+                cd ../
+        fi
         if [ ${{matrix.target}} == 'mt798x-nftables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-nftables' ] || [ ${{ matrix.target }} == 'ramips-nftables' ] || [ ${{ matrix.target }} == 'ath79-nftables' ] || [ ${{ matrix.target }} == 'ipq-nftables' ]; then
         cd openwrt
         curl -sSL https://raw.githubusercontent.com/chenmozhijin/turboacc/luci/add_turboacc.sh -o add_turboacc.sh && bash add_turboacc.sh
