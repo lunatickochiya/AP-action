@@ -24,5 +24,22 @@ ubootmod：https://github.com/hanwckf/bl-mt798x/releases/download/20231124/mt798
 
 ## 关于ramips
 测试机器 Lenovo Y1 newifi d2 ghl-001
+
 ## 关于ath79
 测试机器 dw33d
+
+## 关于ipq
+测试机器 ap8220
+
+## 更新
+
+# 20250309
+-  Lenovo Y1 和 dw33d 持续更新 pisen wpr003n 支持完毕  mips机器将主要加入cups
+-  nokia_ea0326gmp rax3000m nand ubootmod版本 后期将不再支持 因为没机器了  rax3000m-emmc将继续支持
+-  全面升级到24.10 后期可能会移除23.05  目前全系列支持bcmfullcone 完善了SFE
+
+
+## 源码更新交流学习：
+ - 点击链接加入群聊 ：https://jq.qq.com/?_wv=1027&k=5QgVYsC
+ - 群号： 286754582
+ - 部分功能和补丁提取自 https://github.com/chenmozhijin/turboacc 感谢
