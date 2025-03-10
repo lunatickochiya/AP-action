@@ -56,12 +56,30 @@ CONFIG_PACKAGE_luci-app-dockerman=y
 " >> "$file"; done
 }
 
+function add_ipq_turboacc_ipt_config() {
+for file in package-configs/*ipq*.config; do     echo "# ADD TURBOACC
+CONFIG_PACKAGE_luci-app-turboacc-ipt=y
+
+" >> "$file"; done
+}
+
+function add_ipq_turboacc_nft_config() {
+for file in package-configs/*ipq*.config; do     echo "# ADD TURBOACC
+CONFIG_PACKAGE_luci-app-turboacc=y
+
+" >> "$file"; done
+}
+
 if [ "$1" == "nft" ]; then
 add_nft_config
 elif [ "$1" == "ipt" ]; then
 add_ipt_config
 elif [ "$1" == "ipq-docker" ]; then
 add_docker_ipq_config
+elif [ "$1" == "ipq-ipt-turboacc" ]; then
+add_ipq_turboacc_ipt_config
+elif [ "$1" == "ipq-nft-turboacc" ]; then
+add_ipq_turboacc_nft_config
 else
 echo "Invalid argument"
 fi
