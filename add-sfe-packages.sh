@@ -24,7 +24,7 @@ CONFIG_PACKAGE_kmod-nft-fullcone=y
 function add_ipt_config() {
 for file in package-configs/*-iptables.config; do     echo "# ADD TURBOACC
 CONFIG_PACKAGE_luci-app-turboacc-ipt=y
-CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_PDNSD=n
+CONFIG_PACKAGE_luci-app-turboacc-ipt_INCLUDE_PDNSD=n
 # CONFIG_PACKAGE_luci-app-fullconenat=y
 
 #offload
@@ -56,12 +56,50 @@ CONFIG_PACKAGE_luci-app-dockerman=y
 " >> "$file"; done
 }
 
+function add_ipq_turboacc_ipt_config_nosfe() {
+for file in package-configs/*ipq*.config; do     echo "# ADD TURBOACC
+CONFIG_PACKAGE_luci-app-turboacc-ipt=y
+# CONFIG_PACKAGE_luci-app-turboacc-ipt_INCLUDE_PDNSD is not set
+# CONFIG_PACKAGE_luci-app-turboacc-ipt_INCLUDE_SHORTCUT_FE_DRV is not set
+" >> "$file"; done
+}
+
+function add_ipq_turboacc_nft_config_nosfe() {
+for file in package-configs/*ipq*.config; do     echo "# ADD TURBOACC
+CONFIG_PACKAGE_luci-app-turboacc=y
+# CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_PDNSD is not set
+# CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_SHORTCUT_FE_DRV is not set
+" >> "$file"; done
+}
+
+function add_ipq_turboacc_ipt_config_sfe() {
+for file in package-configs/*ipq*.config; do     echo "# ADD TURBOACC
+CONFIG_PACKAGE_luci-app-turboacc-ipt=y
+# CONFIG_PACKAGE_luci-app-turboacc-ipt_INCLUDE_PDNSD is not set
+" >> "$file"; done
+}
+
+function add_ipq_turboacc_nft_config_sfe() {
+for file in package-configs/*ipq*.config; do     echo "# ADD TURBOACC
+CONFIG_PACKAGE_luci-app-turboacc=y
+# CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_PDNSD is not set
+" >> "$file"; done
+}
+
 if [ "$1" == "nft" ]; then
 add_nft_config
 elif [ "$1" == "ipt" ]; then
 add_ipt_config
 elif [ "$1" == "ipq-docker" ]; then
 add_docker_ipq_config
+elif [ "$1" == "ipq-ipt-turboacc-sfe" ]; then
+add_ipq_turboacc_ipt_config_sfe
+elif [ "$1" == "ipq-nft-turboacc-sfe" ]; then
+add_ipq_turboacc_nft_config_sfe
+elif [ "$1" == "ipq-ipt-turboacc-nosfe" ]; then
+add_ipq_turboacc_ipt_config_nosfe
+elif [ "$1" == "ipq-nft-turboacc-nosfe" ]; then
+add_ipq_turboacc_nft_config_nosfe
 else
 echo "Invalid argument"
 fi

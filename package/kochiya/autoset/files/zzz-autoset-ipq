@@ -33,6 +33,9 @@ uci -q batch <<-EOF >/dev/null
 	add_list system.ntp.server='ntp1.aliyun.com'
 	del_list uhttpd.main.listen_https='0.0.0.0:443'
 	del_list uhttpd.main.listen_https='[::]:443'
+	set network.@device[0].packet_steering=0
+	set network.@device[0].flow_offloading=0
+	set network.@device[0].flow_offloading_hw=0
 	commit
 EOF
 

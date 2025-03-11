@@ -64,7 +64,7 @@ on:
         - 'false'
       SFE_BUILDIN:
         description: 'Build sfe'
-        default: 'true'
+        default: 'false'
         type: choice
         options:
         - 'true'
@@ -104,7 +104,7 @@ on:
         - '10.88.0.1'
       BCM_FULLCONE:
         description: 'bcm fullcone'
-        default: 'false'
+        default: 'true'
         type: choice
         options:
         - 'true'
@@ -320,12 +320,12 @@ jobs:
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 添加 SFE
-      if: github.event.inputs.SFE_BUILDIN == 'true'
       id: sfe
       run: |
+        if [ ${{github.event.inputs.SFE_BUILDIN}} = true ]; then
         if [ ${{matrix.target}} == 'mt798x-iptables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-iptables' ] || [ ${{ matrix.target }} == 'ramips-iptables' ] || [ ${{ matrix.target }} == 'ath79-iptables' ] || [ ${{ matrix.target }} == 'ipq-iptables' ]; then
-                bash $GITHUB_WORKSPACE/add-sfe-packages.sh ipt
-                echo "----${{matrix.target}}-----ipt-sfe---"
+                bash $GITHUB_WORKSPACE/add-sfe-packages.sh ipq-ipt-turboacc-sfe
+                echo "----${{matrix.target}}-----SFE-BBR-acc----"
                 cd openwrt
                 wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/pending-6.6/613-netfilter_optional_tcp_window_check.patch -P target/linux/generic/pending-6.6/
                 wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/hack-6.6/952-add-net-conntrack-events-support-multiple-registrant.patch -P target/linux/generic/hack-6.6/
@@ -338,9 +338,10 @@ jobs:
 
         fi
         if [ ${{matrix.target}} == 'mt798x-nftables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-nftables' ] || [ ${{ matrix.target }} == 'ramips-nftables' ] || [ ${{ matrix.target }} == 'ath79-nftables' ] || [ ${{ matrix.target }} == 'ipq-nftables' ]; then
+        bash $GITHUB_WORKSPACE/add-sfe-packages.sh ipq-nft-turboacc-sfe
         cd openwrt
         curl -sSL https://raw.githubusercontent.com/chenmozhijin/turboacc/luci/add_turboacc.sh -o add_turboacc.sh && bash add_turboacc.sh
-        echo "----${{matrix.target}}-----NFT-acc----"
+        echo "----${{matrix.target}}-----SFE-BBR-acc----"
         cd ../
         fi
         sed -i 's/kmod-shortcut-fe-cm,kmod-shortcut-fe,kmod-fast-classifier,kmod-fast-classifier-noload,kmod-shortcut-fe-drv,//g' package-configs/kmod_exclude_list*
@@ -352,8 +353,25 @@ jobs:
         # cp -f openwrt-ipq/sfe-ipq-6.6/0604-1-qca-add-mcs-support.patch openwrt/target/linux/qualcommax/patches-6.6/0604-1-qca-add-mcs-support.patch
         # sed -i 's/"feeds\/lunatic7\/shortcut-fe"//g' diy-2410.sh
         # sed -i 's/"feeds\/lunatic7\/luci-app-turboacc"//g' diy-2410.sh
-        echo "status=success" >> $GITHUB_OUTPUT
         echo "SFE=_SFE" >> $GITHUB_ENV
+        else
+        if [ ${{matrix.target}} == 'mt798x-iptables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-iptables' ] || [ ${{ matrix.target }} == 'ramips-iptables' ] || [ ${{ matrix.target }} == 'ath79-iptables' ] || [ ${{ matrix.target }} == 'ipq-iptables' ]; then
+        bash $GITHUB_WORKSPACE/add-sfe-packages.sh ipq-ipt-turboacc-nosfe
+        # sed -i 's/kmod-shortcut-fe-drv,//g' package-configs/kmod_exclude_list*
+        # sed -i 's/"feeds\/lunatic7\/luci-app-turboacc"//g' diy-openwrt-ipq.sh
+        sed -i 's/"feeds\/lunatic7\/shortcut-fe"//g' diy-openwrt-ipq.sh
+        echo "----${{matrix.target}}-----BBR-acc----"
+        fi
+        if [ ${{matrix.target}} == 'mt798x-nftables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-nftables' ] || [ ${{ matrix.target }} == 'ramips-nftables' ] || [ ${{ matrix.target }} == 'ath79-nftables' ] || [ ${{ matrix.target }} == 'ipq-nftables' ]; then
+        bash $GITHUB_WORKSPACE/add-sfe-packages.sh ipq-nft-turboacc-nosfe
+        # sed -i 's/kmod-shortcut-fe-drv,//g' package-configs/kmod_exclude_list*
+        sed -i 's/"feeds\/lunatic7\/luci-app-turboacc"//g' diy-openwrt-ipq.sh
+        sed -i 's/"feeds\/lunatic7\/shortcut-fe"//g' diy-openwrt-ipq.sh
+        echo "----${{matrix.target}}-----BBR-acc----"
+        fi
+        fi
+        echo "status=success" >> $GITHUB_OUTPUT
+
 
     - name: 添加 Docker
       if: github.event.inputs.DOCKER_BUILDIN == 'true'
@@ -502,7 +520,9 @@ jobs:
         echo "------------------------"
         awk '/CONFIG_PACKAGE_kmod/ { print }' .config
         echo "------------------------"
-        awk '/mt7981/ { print }' .config
+        awk '/turboacc/ { print }' .config
+        echo "------------------------"
+        awk '/shortcut/ { print }' .config
 
     - name: 下载包文件
       if: steps.config.outputs.status == 'success'
