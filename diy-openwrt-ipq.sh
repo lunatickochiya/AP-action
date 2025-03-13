@@ -308,6 +308,23 @@ sed -i '1i\
 CONFIG_TESTING_KERNEL=y\nCONFIG_HAS_TESTING_KERNEL=y\nCONFIG_LINUX_6_1=y' machine-configs/single/*
 }
 
+function change_qca_start_order() {
+
+NSS_DRV="feeds/nss_packages/qca-nss-drv/files/qca-nss-drv.init"
+if [ -f "$NSS_DRV" ]; then
+	sed -i 's/START=.*/START=85/g' $NSS_DRV
+
+	echo "qca-nss-drv has been fixed!"
+fi
+
+NSS_PBUF="package/kernel/mac80211/files/qca-nss-pbuf.init"
+if [ -f "$NSS_PBUF" ]; then
+	sed -i 's/START=.*/START=86/g' $NSS_PBUF
+
+	echo "qca-nss-pbuf has been fixed!"
+fi
+}
+
 if [ "$1" == "mt798x-iptables" ]; then
 autosetver
 remove_error_package_not_install
@@ -378,6 +395,7 @@ patch_package
 patch_luci
 patch_lunatic7
 add_ipq_iptables_packages
+change_qca_start_order
 elif [ "$1" == "ipq-nftables" ]; then
 autosetver
 remove_error_package_not_install
@@ -385,6 +403,7 @@ patch_package
 patch_luci
 patch_lunatic7
 add_ipq_nftables_packages
+change_qca_start_order
 elif [ "$1" == "patch-openwrt" ]; then
 patch_openwrt_openwrt-ipq
 patch_openwrt
