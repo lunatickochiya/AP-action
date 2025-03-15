@@ -120,9 +120,9 @@ fi
 
 
 uci -q batch <<-EOF >/dev/null
-	set wireless.$2G_BAND.country='US'
-	set wireless.$5G_BAND.country='CN'
-	set wireless.$5G_BAND_2.country='CN'
+	set wireless.radio0.country='CN'
+	set wireless.radio1.country='CN'
+	set wireless.radio2.country='CN'
 	set wireless.@wifi-device[0].disabled=0
 	set wireless.@wifi-device[1].disabled=0
 	set wireless.@wifi-device[2].disabled=0
