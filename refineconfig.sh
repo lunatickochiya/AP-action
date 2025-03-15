@@ -1,4 +1,4 @@
-#!/bin/bash
+
 #!/bin/bash
 #=================================================
 # this script is from https://github.com/lunatickochiya/Lunatic-s805-rockchip-Action
