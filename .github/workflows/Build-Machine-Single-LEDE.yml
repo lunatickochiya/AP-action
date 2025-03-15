@@ -42,7 +42,7 @@ on:
         - 'rax3000m-emmc'
         - 'rax3000m-nand'
         - 'nokia_ea0326gmp_ubootmod'
-        - 'nokia_ea0326gmp_stock'
+        - 'csac'
         - 'lenovo_newifi-d1'
         - 'd-team_newifi-d2'
         - 'lenovo_newifi-y1'
