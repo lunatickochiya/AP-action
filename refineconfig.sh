@@ -125,6 +125,18 @@ echo "::notice ::当前内核版本$(grep CONFIG_LINUX .config | cut -d'=' -f1 |
 #sed -i -n '/CONFIG_PACKAGE_kmod/p' .config
 }
 
+function refine_lunatic_lede_kmod_config() {
+if [ -n "$(sed -n '/^kmod_compile_exclude_list=/p' package-configs/kmod_exclude_list_ipq_nss.config | sed -e "s/=[my]\([,]\{0,1\}\)/\1/g" -e 's/.*=//')" ];then
+  kmod_compile_exclude_list=$(sed -n '/^kmod_compile_exclude_list=/p' package-configs/kmod_exclude_list_lunatic_lede.config | sed -e "s/=[my]\([,]\{0,1\}\)/\1/g" -e 's/.*=//' -e 's/,$//g' -e 's#^#\\(#' -e "s#,#\\\|#g" -e "s/$/\\\)/g" )
+  echo "::notice ::lunatic_lede_kmod编译排除列表：$(sed -n '/^kmod_compile_exclude_list=/p' package-configs/kmod_exclude_list_lunatic_lede.config | sed -e "s/=[my]\([,]\{0,1\}\)/\1/g" -e 's/.*=//')"
+else
+  echo "::warning ::kmod编译排除列表无法获取或为空，这很有可能导致编译失败。"
+fi
+sed -n  '/^# CONFIG_PACKAGE_kmod/p' .config | sed '/# CONFIG_PACKAGE_kmod is not set/d'|sed 's/# //g'|sed 's/ is not set/=m/g' | sed "s/\($kmod_compile_exclude_list\)=m/\1=n/g" >> .config
+echo "::notice ::当前内核版本$(grep CONFIG_LINUX .config | cut -d'=' -f1 | cut -d'_' -f3-)"
+#sed -i -n '/CONFIG_PACKAGE_kmod/p' .config
+}
+
 if [ "$1" == "mt798x-iptables" ]; then
 refine_mt798x_iptables_config
 elif [ "$1" == "mt798x-nftables" ]; then
@@ -145,6 +157,8 @@ elif [ "$1" == "kmod-ipq" ]; then
 refine_ipq_kmod_config
 elif [ "$1" == "kmod-ipq-nss" ]; then
 refine_ipq_nss_kmod_config
+elif [ "$1" == "kmod-lunatic-lede" ]; then
+refine_lunatic_lede_kmod_config
 elif [ "$1" == "ramips-iptables" ]; then
 refine_ramips_iptables_config
 elif [ "$1" == "ath79-nand-2102" ]; then
