@@ -30,6 +30,7 @@ PKG_CONFIG_DEPENDS:= \
 	CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_uci_meson \
 	CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_uci_ramips \
 	CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_uci_ath79 \
+	CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_uci_ar71xx \
 	CONFIG_PACKAGE_$(PKG_NAME)_INCLUDE_uci_ipq \
 	CONFIG_PACKAGE_$(PKG_NAME)_SIDE_ROUTER_rockchip
 
@@ -102,6 +103,13 @@ define Package/autoset-uci-ipq
   $(Package/autoset/default)
   TITLE:=Support Packages for ipq router uci
   DEPENDS:=autoset +luci-theme-material +luci +@LUCI_LANG_zh_Hans +luci-compat
+  HIDDEN:=1
+endef
+
+define Package/autoset-uci-ar71xx
+  $(Package/autoset/default)
+  TITLE:=Support Packages for ar71xx router uci
+  DEPENDS:=+@LUCI_LANG_zh-cn +luci +luci-theme-material +luci-compat
   HIDDEN:=1
 endef
 
@@ -226,6 +234,7 @@ choice
 	default PACKAGE_$(PKG_NAME)_INCLUDE_uci_ramips if TARGET_ramips=y
 	default PACKAGE_$(PKG_NAME)_INCLUDE_uci_ath79 if TARGET_ath79=y
 	default PACKAGE_$(PKG_NAME)_INCLUDE_uci_ipq if TARGET_qualcommax=y
+	default PACKAGE_$(PKG_NAME)_INCLUDE_uci_ar71xx if TARGET_ar71xx=y
 
 config PACKAGE_$(PKG_NAME)_INCLUDE_uci
 	bool "Common UCI"
@@ -258,6 +267,10 @@ config PACKAGE_$(PKG_NAME)_INCLUDE_uci_ath79
 config PACKAGE_$(PKG_NAME)_INCLUDE_uci_ipq
 	bool "IPQ SUPPORT"
 	select PACKAGE_autoset-uci-ipq
+
+config PACKAGE_$(PKG_NAME)_INCLUDE_uci_ar71xx
+	bool "IPQ SUPPORT"
+	select PACKAGE_autoset-uci-ar71xx
 
 endchoice
 
@@ -314,6 +327,11 @@ define Package/autoset-uci-ath79/install
 	$(INSTALL_BIN) ./files/zzz-autoset-ath79 $(1)/etc/uci-defaults/zz99-autoset
 endef
 
+define Package/autoset-uci-ar71xx/install
+	$(INSTALL_DIR) $(1)/etc/uci-defaults
+	$(INSTALL_BIN) ./files/zzz-autoset-ar71xx $(1)/etc/uci-defaults/zz99-autoset
+endef
+
 define Package/autoset-uci-ipq/install
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
 	$(INSTALL_BIN) ./files/zzz-autoset-ipq $(1)/etc/uci-defaults/zz99-autoset
@@ -364,6 +382,7 @@ $(eval $(call BuildPackage,autoset-uci-rockchip))
 $(eval $(call BuildPackage,autoset-uci-mediatek))
 $(eval $(call BuildPackage,autoset-uci-ramips))
 $(eval $(call BuildPackage,autoset-uci-ath79))
+$(eval $(call BuildPackage,autoset-uci-ar71xx))
 $(eval $(call BuildPackage,autoset-uci-ipq))
 $(eval $(call BuildPackage,autoset-uci-meson))
 $(eval $(call BuildPackage,autoset-resize-rootfs-script))
