@@ -5,33 +5,27 @@
 # QQ group :286754582  https://jq.qq.com/?_wv=1027&k=5QgVYsC
 #=================================================
 
-autosetver() {
-version=21.02
-sed -i "52i\echo \"DISTRIB_DESCRIPTION='OpenWrt $version Compiled by 2U4U'\" >> /etc/openwrt_release" package/kochiya/autoset/files/zzz-autoset-meson
-sed -i "58i\echo \"DISTRIB_DESCRIPTION='OpenWrt $version Compiled by 2U4U'\" >> /etc/openwrt_release" package/kochiya/autoset/files/zzz-autoset-mediatek
-sed -i "51i\echo \"DISTRIB_DESCRIPTION='OpenWrt $version Compiled by 2U4U'\" >> /etc/openwrt_release" package/kochiya/autoset/files/zzz-autoset-ramips
-sed -i "51i\echo \"DISTRIB_DESCRIPTION='OpenWrt $version Compiled by 2U4U'\" >> /etc/openwrt_release" package/kochiya/autoset/files/zzz-autoset-ath79
-sed -i "52i\echo \"DISTRIB_DESCRIPTION='OpenWrt $version Compiled by 2U4U'\" >> /etc/openwrt_release" package/kochiya/autoset/files/zzz-autoset-rockchip
-sed -i "51i\echo \"DISTRIB_DESCRIPTION='OpenWrt $version Compiled by 2U4U'\" >> /etc/openwrt_release" package/kochiya/autoset/files/zzz-autoset-rockchip-siderouter
 
-grep DISTRIB_DESCRIPTION package/kochiya/autoset/files/zzz-autoset-mediatek
-grep DISTRIB_DESCRIPTION package/kochiya/autoset/files/zzz-autoset-meson
-grep DISTRIB_DESCRIPTION package/kochiya/autoset/files/zzz-autoset-rockchip
-grep DISTRIB_DESCRIPTION package/kochiya/autoset/files/zzz-autoset-ramips
-grep DISTRIB_DESCRIPTION package/kochiya/autoset/files/zzz-autoset-ath79
-grep DISTRIB_DESCRIPTION package/kochiya/autoset/files/zzz-autoset-rockchip-siderouter
+function autosetver() {
+    version=21.02
+
+    # 在文件的 'exit 0' 之前插入 DISTRIB_DESCRIPTION 信息
+    sed -i "/^exit 0$/i\
+    \echo \"DISTRIB_DESCRIPTION='OpenWrt $version Compiled by 2U4U'\" >> /etc/openwrt_release
+    " package/kochiya/autoset/files/zzz-autoset*
+
+    # 使用通配符匹配所有以 zzz-autoset- 开头的文件并执行 grep
+    for file in package/kochiya/autoset/files/zzz-autoset-*; do
+        grep DISTRIB_DESCRIPTION "$file"
+    done
+}
 
 
-sed -i '54a \
-uci set firewall.@zone[1].input="ACCEPT"\n\
-uci set firewall.@zone[0].input="ACCEPT"\n\
-uci commit' package/kochiya/autoset/files/zzz-autoset-ath79
-
-sed -i '54a \
-uci set firewall.@zone[1].input="ACCEPT"\n\
-uci set firewall.@zone[0].input="ACCEPT"\n\
-uci commit' package/kochiya/autoset/files/zzz-autoset-ramips
-        }
+function set_firewall_allow() {
+sed -i '/^	commit$/i\
+	set firewall.@zone[1].input="ACCEPT"
+' package/kochiya/autoset/files/zzz-autoset*
+}
 
 function remove_error_package() {
 
@@ -245,6 +239,10 @@ elif [ "$1" == "patchop" ]; then
 patch_openwrt
 elif [ "$1" == "firewallremove" ]; then
 remove_firewall
+elif [ "$1" == "firewall-allow-wan" ]; then
+set_firewall_allow
+elif [ "$1" == "setver" ]; then
+autosetver
 else
 echo "Invalid argument"
 fi

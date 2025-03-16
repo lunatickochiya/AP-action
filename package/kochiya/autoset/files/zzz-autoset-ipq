@@ -19,7 +19,7 @@ function set_2g_name() {
     local phy=$2
     uci -q batch <<-EOF >/dev/null
         set wireless.$iface.ssid=Lunatic_2.4G_$(cat /sys/class/ieee80211/$phy/macaddress | sed 's/.[0-9A-Fa-f]:.[0-9A-Fa-f]:.[0-9A-Fa-f]:\(.[0-9A-Fa-f]\):\(.[0-9A-Fa-f]\):\(.[0-9A-Fa-f]\)/\1\2\3/g' | tr :[a-z] :[A-Z])
-        commit
+        commit wireless
     EOF
 }
 
@@ -28,7 +28,7 @@ function set_5g_name() {
     local phy=$2
     uci -q batch <<-EOF >/dev/null
         set wireless.$iface.ssid=Lunatic_5G_$(cat /sys/class/ieee80211/$phy/macaddress | sed 's/.[0-9A-Fa-f]:.[0-9A-Fa-f]:.[0-9A-Fa-f]:\(.[0-9A-Fa-f]\):\(.[0-9A-Fa-f]\):\(.[0-9A-Fa-f]\)/\1\2\3/g' | tr :[a-z] :[A-Z])
-        commit
+        commit wireless
     EOF
 }
 
@@ -37,7 +37,7 @@ function set_5g_2_name() {
     local phy=$2
     uci -q batch <<-EOF >/dev/null
         set wireless.$iface.ssid=Lunatic_5G_2_$(cat /sys/class/ieee80211/$phy/macaddress | sed 's/.[0-9A-Fa-f]:.[0-9A-Fa-f]:.[0-9A-Fa-f]:\(.[0-9A-Fa-f]\):\(.[0-9A-Fa-f]\):\(.[0-9A-Fa-f]\)/\1\2\3/g' | tr :[a-z] :[A-Z])
-        commit
+        commit wireless
     EOF
 }
 
@@ -134,7 +134,7 @@ uci -q batch <<-EOF >/dev/null
 	set wireless.@wifi-iface[1].ieee80211k='1'
 	set wireless.@wifi-iface[1].ieee80211v='1'
 	set wireless.@wifi-iface[1].time_advertisement='2'
-	commit
+	commit wireless
 EOF
 
 
