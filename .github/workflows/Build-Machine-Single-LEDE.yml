@@ -100,12 +100,13 @@ on:
         - '172.18.0.1'
         - '10.0.0.1'
         - '10.88.0.1'
-      BCM_FULLCONE:
-        description: 'bcm fullcone'
+      Lienol_Luci:
+        description: 'lienol luci'
         default: 'false'
         type: choice
         options:
-        - 'true'
+        - '17.01'
+        - '17.01-dev'
         - 'false'
 env:
   TZ: Asia/Shanghai
@@ -312,11 +313,15 @@ jobs:
         if [ ${{github.event.inputs.AG71XX_FIX}} = true ]; then
         [ -d lunatic-lede/my-patch-ag71xx-fix ] && cp -r lunatic-lede/my-patch-ag71xx-fix/* lunatic-lede/mypatch-lunatic-lede-${{matrix.target}}
         fi
-        if [ "${{ github.event.inputs.BCM_FULLCONE }}" = "true" ] && [[ "${{ matrix.target }}" == *-iptables ]]; then
-        [ -d lunatic-lede/bcmfullcone ] && cp -r lunatic-lede/bcmfullcone/* lunatic-lede/mypatch-lunatic-lede-${{matrix.target}}
-        rm -rf lunatic-lede/luci-patch-lunatic-lede/0004-Revert-luci-app-firewall-add-fullcone.patch
-        echo "----${{matrix.target}}-----ipt-bcm---"
-        echo "BCM_FULLCONE=_BCM_FULLCONE" >> $GITHUB_ENV
+        if [ ${{github.event.inputs.Lienol_Luci}} = 17.01 ]; then
+        [ -d lunatic-lede/Lienol-luci-feed ] && cp -r lunatic-lede/Lienol-luci-feed/* lunatic-lede/mypatch-lunatic-lede-${{matrix.target}}
+        echo "----${{matrix.target}}-----ipt-lienol-17.01---"
+        echo "BCM_FULLCONE=_Lienol_17.01" >> $GITHUB_ENV
+        fi
+        if [ ${{github.event.inputs.Lienol_Luci}} = 17.01-dev ]; then
+        [ -d lunatic-lede/Lienol-luci-feed-dev ] && cp -r lunatic-lede/Lienol-luci-feed-dev/* lunatic-lede/mypatch-lunatic-lede-${{matrix.target}}
+        echo "----${{matrix.target}}-----ipt-lienol-17.01-dev--"
+        echo "BCM_FULLCONE=_Lienol_17.01-dev" >> $GITHUB_ENV
         fi
         echo "status=success" >> $GITHUB_OUTPUT
 
