@@ -1,7 +1,7 @@
-From e0c090e9646e182f2b94df2731e9958a3f49c058 Mon Sep 17 00:00:00 2001
+From 025c5a0de1550595a1fbbd613ea048cb74a08de6 Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
 Date: Sun, 26 Jan 2025 17:40:30 +0800
-Subject: [PATCH 2/6] mediatek:add cmcc rax3000m nand custom uboot mod dts file
+Subject: [PATCH 3/7] mediatek:add cmcc rax3000m nand custom uboot mod dts file
 
 ---
  .../mt7981b-cmcc-rax3000m-nand-ubootmod.dts   | 119 ++++++++++++++++++

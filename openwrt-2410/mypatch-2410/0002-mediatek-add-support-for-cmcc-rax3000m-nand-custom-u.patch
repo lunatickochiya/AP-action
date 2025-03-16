@@ -1,7 +1,7 @@
-From 6a72793c12d23ee1cac6d10b2307c283dee12a21 Mon Sep 17 00:00:00 2001
+From c776b4ef3c24252214716dd3d320f951b56aead1 Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
 Date: Tue, 11 Feb 2025 19:16:28 +0800
-Subject: [PATCH 1/6] mediatek:add support for cmcc rax3000m nand custom uboot
+Subject: [PATCH 2/7] mediatek:add support for cmcc rax3000m nand custom uboot
  mod
 
 ---
@@ -12,10 +12,10 @@ Subject: [PATCH 1/6] mediatek:add support for cmcc rax3000m nand custom uboot
  4 files changed, 28 insertions(+)
 
 diff --git a/package/boot/uboot-envtools/files/mediatek_filogic b/package/boot/uboot-envtools/files/mediatek_filogic
-index 730a28841e..9a226d022f 100644
+index 687c8745f9..2e8cc52682 100644
 --- a/package/boot/uboot-envtools/files/mediatek_filogic
 +++ b/package/boot/uboot-envtools/files/mediatek_filogic
-@@ -89,6 +89,7 @@ comfast,cf-e393ax)
+@@ -99,6 +99,7 @@ comfast,cf-e393ax)
  	ubootenv_add_uci_config "/dev/mtd1" "0x0" "0x20000" "0x80000"
  	;;
  cetron,ct3003|\
@@ -24,7 +24,7 @@ index 730a28841e..9a226d022f 100644
  netgear,wax220|\
  zbtlink,zbt-z8102ax|\
 diff --git a/target/linux/mediatek/filogic/base-files/etc/board.d/02_network b/target/linux/mediatek/filogic/base-files/etc/board.d/02_network
-index b9c149d072..a94692fa77 100644
+index 6da6316823..3fe8071e2c 100644
 --- a/target/linux/mediatek/filogic/base-files/etc/board.d/02_network
 +++ b/target/linux/mediatek/filogic/base-files/etc/board.d/02_network
 @@ -9,6 +9,7 @@ mediatek_setup_interfaces()
@@ -36,7 +36,7 @@ index b9c149d072..a94692fa77 100644
  	h3c,magic-nx30-pro|\
  	nokia,ea0326gmp|\
 diff --git a/target/linux/mediatek/filogic/base-files/etc/hotplug.d/ieee80211/11_fix_wifi_mac b/target/linux/mediatek/filogic/base-files/etc/hotplug.d/ieee80211/11_fix_wifi_mac
-index 6ee525e8d0..9c29f88256 100644
+index a9d06f9b84..0e557aec55 100644
 --- a/target/linux/mediatek/filogic/base-files/etc/hotplug.d/ieee80211/11_fix_wifi_mac
 +++ b/target/linux/mediatek/filogic/base-files/etc/hotplug.d/ieee80211/11_fix_wifi_mac
 @@ -69,6 +69,9 @@ case "$board" in
@@ -50,10 +50,10 @@ index 6ee525e8d0..9c29f88256 100644
  		addr=$(mtd_get_mac_binary "Factory" 0x8000)
  		[ "$PHYNBR" = "1" ] && macaddr_add $addr 1 > /sys${DEVPATH}/macaddress
 diff --git a/target/linux/mediatek/image/filogic.mk b/target/linux/mediatek/image/filogic.mk
-index 135a954400..d1630facc4 100644
+index 0de101df99..82486dd7cb 100644
 --- a/target/linux/mediatek/image/filogic.mk
 +++ b/target/linux/mediatek/image/filogic.mk
-@@ -533,6 +533,29 @@ define Device/cmcc_rax3000m
+@@ -588,6 +588,29 @@ define Device/cmcc_rax3000m
  endef
  TARGET_DEVICES += cmcc_rax3000m
  

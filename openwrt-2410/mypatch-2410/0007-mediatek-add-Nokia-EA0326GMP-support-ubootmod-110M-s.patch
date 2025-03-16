@@ -1,7 +1,7 @@
-From 2a2ec4b5bb873a5eca89945168ea7ac16a71ae62 Mon Sep 17 00:00:00 2001
+From d60e1aa56d5b8a196a0e04fb7809eb04fa5de1fe Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
 Date: Tue, 11 Feb 2025 19:19:25 +0800
-Subject: [PATCH 6/6] mediatek: add Nokia EA0326GMP support ubootmod 110M
+Subject: [PATCH 7/7] mediatek: add Nokia EA0326GMP support ubootmod 110M
  support
 
 ---
@@ -13,7 +13,7 @@ Subject: [PATCH 6/6] mediatek: add Nokia EA0326GMP support ubootmod 110M
  5 files changed, 26 insertions(+), 1 deletion(-)
 
 diff --git a/target/linux/mediatek/filogic/base-files/etc/board.d/01_leds b/target/linux/mediatek/filogic/base-files/etc/board.d/01_leds
-index 5048e9bb8f..175d1e51c6 100644
+index c2d9971f6f..224df5069d 100644
 --- a/target/linux/mediatek/filogic/base-files/etc/board.d/01_leds
 +++ b/target/linux/mediatek/filogic/base-files/etc/board.d/01_leds
 @@ -59,6 +59,7 @@ mercusys,mr90x-v1-ubi)
@@ -25,7 +25,7 @@ index 5048e9bb8f..175d1e51c6 100644
  	ucidef_set_led_netdev "wan" "WAN" "green:wan" "eth1" "link"
  	ucidef_set_led_netdev "lan" "LAN" "green:lan" "br-lan" "link"
 diff --git a/target/linux/mediatek/filogic/base-files/etc/board.d/02_network b/target/linux/mediatek/filogic/base-files/etc/board.d/02_network
-index db438d38c4..0ee7a9d354 100644
+index 92b06ac0ca..8a2110844a 100644
 --- a/target/linux/mediatek/filogic/base-files/etc/board.d/02_network
 +++ b/target/linux/mediatek/filogic/base-files/etc/board.d/02_network
 @@ -14,6 +14,7 @@ mediatek_setup_interfaces()
@@ -37,7 +37,7 @@ index db438d38c4..0ee7a9d354 100644
  		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3" eth1
  		;;
 diff --git a/target/linux/mediatek/filogic/base-files/etc/hotplug.d/ieee80211/11_fix_wifi_mac b/target/linux/mediatek/filogic/base-files/etc/hotplug.d/ieee80211/11_fix_wifi_mac
-index ed087b3380..2328bd14f1 100644
+index e64820abea..a8fa96b08a 100644
 --- a/target/linux/mediatek/filogic/base-files/etc/hotplug.d/ieee80211/11_fix_wifi_mac
 +++ b/target/linux/mediatek/filogic/base-files/etc/hotplug.d/ieee80211/11_fix_wifi_mac
 @@ -75,7 +75,11 @@ case "$board" in
@@ -54,7 +54,7 @@ index ed087b3380..2328bd14f1 100644
  		[ "$PHYNBR" = "1" ] && macaddr_add $addr 1 > /sys${DEVPATH}/macaddress
  		;;
 diff --git a/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh b/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
-index 37f532af41..f56795cb05 100755
+index 98f1c46810..ce283a22f3 100755
 --- a/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
 +++ b/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
 @@ -80,6 +80,7 @@ platform_do_upgrade() {
@@ -66,10 +66,10 @@ index 37f532af41..f56795cb05 100755
  	netcore,n60|\
  	qihoo,360t7|\
 diff --git a/target/linux/mediatek/image/filogic.mk b/target/linux/mediatek/image/filogic.mk
-index ddc88568d8..3336a8f311 100644
+index 571ebe706e..f6d26e94b6 100644
 --- a/target/linux/mediatek/image/filogic.mk
 +++ b/target/linux/mediatek/image/filogic.mk
-@@ -1224,6 +1224,24 @@ define Device/nokia_ea0326gmp
+@@ -1319,6 +1319,24 @@ define Device/nokia_ea0326gmp
  endef
  TARGET_DEVICES += nokia_ea0326gmp
  

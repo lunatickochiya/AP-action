@@ -1,7 +1,7 @@
-From 3b880de6ab7996e0fa48f0e78f1108473e64ad5d Mon Sep 17 00:00:00 2001
+From f7e34cf983606105fc3ff98499b9b3c3a8f8cf66 Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
 Date: Tue, 11 Feb 2025 19:16:55 +0800
-Subject: [PATCH 3/6] mediatek:add support for cmcc rax3000m emmc custom uboot
+Subject: [PATCH 4/7] mediatek:add support for cmcc rax3000m emmc custom uboot
  mod
 
 ---
@@ -13,7 +13,7 @@ Subject: [PATCH 3/6] mediatek:add support for cmcc rax3000m emmc custom uboot
  5 files changed, 33 insertions(+)
 
 diff --git a/target/linux/mediatek/filogic/base-files/etc/board.d/02_network b/target/linux/mediatek/filogic/base-files/etc/board.d/02_network
-index a94692fa77..db438d38c4 100644
+index 3fe8071e2c..92b06ac0ca 100644
 --- a/target/linux/mediatek/filogic/base-files/etc/board.d/02_network
 +++ b/target/linux/mediatek/filogic/base-files/etc/board.d/02_network
 @@ -9,6 +9,7 @@ mediatek_setup_interfaces()
@@ -24,7 +24,7 @@ index a94692fa77..db438d38c4 100644
  	cmcc,rax3000m-nand-ubootmod|\
  	cmcc,rax3000m|\
  	h3c,magic-nx30-pro|\
-@@ -152,6 +153,11 @@ mediatek_setup_macs()
+@@ -156,6 +157,11 @@ mediatek_setup_macs()
  	bananapi,bpi-r4)
  		wan_mac=$(macaddr_add $(cat /sys/class/net/eth0/address) 1)
  		;;
@@ -51,7 +51,7 @@ index 8456c462b6..574cd8b02b 100644
  	;;
  "mediatek/mt7986_eeprom_mt7975_dual.bin")
 diff --git a/target/linux/mediatek/filogic/base-files/etc/hotplug.d/ieee80211/11_fix_wifi_mac b/target/linux/mediatek/filogic/base-files/etc/hotplug.d/ieee80211/11_fix_wifi_mac
-index 9c29f88256..ed087b3380 100644
+index 0e557aec55..e64820abea 100644
 --- a/target/linux/mediatek/filogic/base-files/etc/hotplug.d/ieee80211/11_fix_wifi_mac
 +++ b/target/linux/mediatek/filogic/base-files/etc/hotplug.d/ieee80211/11_fix_wifi_mac
 @@ -72,6 +72,9 @@ case "$board" in
@@ -65,10 +65,10 @@ index 9c29f88256..ed087b3380 100644
  		addr=$(mtd_get_mac_binary "Factory" 0x8000)
  		[ "$PHYNBR" = "1" ] && macaddr_add $addr 1 > /sys${DEVPATH}/macaddress
 diff --git a/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh b/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
-index 11bfad2e7b..37f532af41 100755
+index 44fc45fca5..98f1c46810 100755
 --- a/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
 +++ b/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
-@@ -120,6 +120,11 @@ platform_do_upgrade() {
+@@ -132,6 +132,11 @@ platform_do_upgrade() {
  		CI_KERNPART="linux"
  		nand_do_upgrade "$1"
  		;;
@@ -80,7 +80,7 @@ index 11bfad2e7b..37f532af41 100755
  	cudy,re3000-v1|\
  	cudy,wr3000-v1|\
  	yuncore,ax835)
-@@ -214,6 +219,7 @@ platform_copy_config() {
+@@ -232,6 +237,7 @@ platform_copy_config() {
  	acer,predator-w6d|\
  	acer,vero-w6m|\
  	arcadyan,mozart|\
@@ -89,10 +89,10 @@ index 11bfad2e7b..37f532af41 100755
  	glinet,gl-mt6000|\
  	glinet,gl-x3000|\
 diff --git a/target/linux/mediatek/image/filogic.mk b/target/linux/mediatek/image/filogic.mk
-index d1630facc4..ddc88568d8 100644
+index 82486dd7cb..571ebe706e 100644
 --- a/target/linux/mediatek/image/filogic.mk
 +++ b/target/linux/mediatek/image/filogic.mk
-@@ -533,6 +533,21 @@ define Device/cmcc_rax3000m
+@@ -588,6 +588,21 @@ define Device/cmcc_rax3000m
  endef
  TARGET_DEVICES += cmcc_rax3000m
  
