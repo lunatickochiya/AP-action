@@ -54,8 +54,8 @@ on:
 #        options:
 #        - 'true'
 #        - 'false'
-      AG71XX_FIX:
-        description: 'Fix ag71xx'
+      Firewall_Allow_WAN:
+        description: 'Allow firewall wan'
         default: 'false'
         type: choice
         options:
@@ -88,15 +88,23 @@ on:
         required: false
         type: choice
         options:
-        - '192.168.10.1'
-        - '192.168.8.1'
+        - '192.168.6.1'
+        - '192.168.66.1'
         - '192.168.7.1'
-        - '192.168.17.1'
+        - '192.168.77.1'
+        - '192.168.8.1'
+        - '192.168.88.1'
         - '192.168.16.1'
-        - '192.168.19.1'
-        - '192.168.12.1'
+        - '192.168.17.1'
+        - '192.168.18.1'
+        - '192.168.9.1'
         - '192.168.99.1'
         - '192.168.166.1'
+        - '192.168.177.1'
+        - '192.168.188.1'
+        - '192.168.10.1'
+        - '192.168.12.1'
+        - '192.168.67.1'
         - '172.16.0.1'
         - '172.18.0.1'
         - '10.0.0.1'
@@ -308,8 +316,8 @@ jobs:
     - name: Patch 自定义
       id: patch
       run: |
-        if [ ${{github.event.inputs.AG71XX_FIX}} = true ]; then
-        [ -d openwrt-2410/my-patch-ag71xx-fix ] && cp -r openwrt-2410/my-patch-ag71xx-fix/* openwrt-2410/mypatch-2410-${{matrix.target}}
+        if [ ${{github.event.inputs.Firewall_Allow_WAN}} = true ]; then
+        $GITHUB_WORKSPACE/$DIY_SH firewall-allow-wan
         fi
         if [ ${{github.event.inputs.GCC13}} = true ]; then
         [ -d openwrt-2305/gcc13 ] && cp -r openwrt-2305/gcc13/core/* openwrt-2305/mypatch-2305-${{matrix.target}}

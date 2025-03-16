@@ -45,6 +45,13 @@ on:
         - '172.18.0.1'
         - '10.0.0.1'
 
+      Firewall_Allow_WAN:
+        description: 'Allow firewall wan'
+        default: 'false'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
 env:
   TZ: Asia/Shanghai
 
@@ -153,6 +160,9 @@ jobs:
       if: steps.clone.outputs.status == 'success'
       id: files
       run: |
+        if [ ${{github.event.inputs.Firewall_Allow_WAN}} = true ]; then
+        $GITHUB_WORKSPACE/$DIY_SH firewall-allow-wan
+        fi
         [ -d package ] && mv -f package/* openwrt/package
         [ -d openwrt-2102/mypatch-${{matrix.target}} ] && mv -f openwrt-2102/mypatch-${{matrix.target}} openwrt/mypatch
         cd openwrt

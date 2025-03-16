@@ -55,8 +55,8 @@ on:
         options:
         - 'true'
         - 'false'
-      AG71XX_FIX:
-        description: 'Fix ag71xx'
+      Firewall_Allow_WAN:
+        description: 'Allow firewall wan'
         default: 'false'
         type: choice
         options:
@@ -311,6 +311,9 @@ jobs:
     - name: Patch 自定义
       id: patch
       run: |
+        if [ ${{github.event.inputs.Firewall_Allow_WAN}} = true ]; then
+        $GITHUB_WORKSPACE/$DIY_SH firewall-allow-wan
+        fi
         if [ ${{github.event.inputs.TRY_BBR_V3}} = true ]; then
         [ -d openwrt-2410/mypatch-bbr-v3 ] && cp -r openwrt-2410/mypatch-bbr-v3/* openwrt-2410/mypatch-2410-${{matrix.target}}
         fi

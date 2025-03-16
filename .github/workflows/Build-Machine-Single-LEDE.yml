@@ -81,6 +81,13 @@ on:
 #        options:
 #        - 'true'
 #        - 'false'
+      Firewall_Allow_WAN:
+        description: 'Allow firewall wan'
+        default: 'false'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
       SETIP:
         description: 'Set ip address'
         default: '192.168.17.1'
@@ -315,6 +322,9 @@ jobs:
     - name: Patch 自定义
       id: patch
       run: |
+        if [ ${{github.event.inputs.Firewall_Allow_WAN}} = true ]; then
+        $GITHUB_WORKSPACE/$DIY_SH firewall-allow-wan
+        fi
         if [ ${{github.event.inputs.TRY_BBR_V3}} = true ]; then
         [ -d lunatic-lede/mypatch-bbr-v3 ] && cp -r lunatic-lede/mypatch-bbr-v3/* lunatic-lede/mypatch-lunatic-lede-${{matrix.target}}
         fi
