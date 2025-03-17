@@ -83,7 +83,7 @@ on:
 #        - 'false'
       Firewall_Allow_WAN:
         description: 'Allow firewall wan'
-        default: 'false'
+        default: 'true'
         type: choice
         options:
         - 'true'

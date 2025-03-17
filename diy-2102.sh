@@ -137,6 +137,12 @@ function patch_openwrt() {
             patch -p1 --no-backup-if-mismatch < mypatch/$i
         done
         }
+function patch_openwrt_2102() {
+        for i in $( ls mypatch-2102 ); do
+            echo Applying mypatch-2102 $i
+            patch -p1 --no-backup-if-mismatch --quiet < mypatch-2102/$i
+        done
+        }
 function patch_package() {
         for packagepatch in $( ls feeds/packages/feeds-package-patch-2102 ); do
             cd feeds/packages/
@@ -235,7 +241,8 @@ patch_package
 patch_luci
 patch_lunatic7
 add_ramips_mt7620_2102_packages
-elif [ "$1" == "patchop" ]; then
+elif [ "$1" == "patch-openwrt" ]; then
+patch_openwrt_2102
 patch_openwrt
 elif [ "$1" == "firewallremove" ]; then
 remove_firewall
