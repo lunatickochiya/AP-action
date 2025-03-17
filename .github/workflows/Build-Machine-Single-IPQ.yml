@@ -409,14 +409,8 @@ jobs:
       id: setip
       run: |
         IPSET_VALUE="${{ github.event.inputs.SETIP }}"
-        sed -i "s/192\.168\.10\.1/$IPSET_VALUE/g" openwrt/package/kochiya/autoset/files/zzz-autoset-mediatek
-        sed -i "s/192\.168\.10\.1/$IPSET_VALUE/g" openwrt/package/kochiya/autoset/files/zzz-autoset-ramips
-        sed -i "s/192\.168\.10\.1/$IPSET_VALUE/g" openwrt/package/kochiya/autoset/files/zzz-autoset-ath79
-        sed -i "s/192\.168\.10\.1/$IPSET_VALUE/g" openwrt/package/kochiya/autoset/files/zzz-autoset-ipq
-        grep 'set network.lan.ipaddr=' openwrt/package/kochiya/autoset/files/zzz-autoset-mediatek
-        grep 'set network.lan.ipaddr=' openwrt/package/kochiya/autoset/files/zzz-autoset-ramips
-        grep 'set network.lan.ipaddr=' openwrt/package/kochiya/autoset/files/zzz-autoset-ath79
-        grep 'set network.lan.ipaddr=' openwrt/package/kochiya/autoset/files/zzz-autoset-ipq
+        sed -i "s/192\.168\.10\.1/$IPSET_VALUE/g" openwrt/package/kochiya/autoset/files/def_uci/zzz-autoset*
+        grep 'set network.lan.ipaddr=' openwrt/package/kochiya/autoset/files/def_uci/zzz-autoset*
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 更新 & 安装 feeds
