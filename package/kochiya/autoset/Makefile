@@ -10,7 +10,7 @@ include $(INCLUDE_DIR)/target.mk
 
 PKG_NAME:=autoset
 PKG_VERSION:=4.0
-PKG_RELEASE:=14
+PKG_RELEASE:=15
 PKG_LICENSE:=GPLv3
 PKG_LICENSE_FILES:=LICENSE
 
@@ -302,52 +302,61 @@ endef
 define Package/autoset-uci-rockchip/install
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
 	$(if $(CONFIG_PACKAGE_autoset_SIDE_ROUTER_rockchip), \
-		$(INSTALL_BIN) ./files/zzz-autoset-rockchip-siderouter $(1)/etc/uci-defaults/zz99-autoset, \
-		$(INSTALL_BIN) ./files/zzz-autoset-rockchip $(1)/etc/uci-defaults/zz99-autoset \
+		$(INSTALL_BIN) ./files/def_uci/zzz-autoset-rockchip-siderouter $(1)/etc/uci-defaults/zz99-autoset, \
+		$(INSTALL_BIN) ./files/def_uci/zzz-autoset-rockchip $(1)/etc/uci-defaults/zz99-autoset \
+		$(INSTALL_BIN) ./files/def_uci/998-wireless-set $(1)/etc/uci-defaults/z998-wireless
 	)
 endef
 
 define Package/autoset-uci-meson/install
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
-	$(INSTALL_BIN) ./files/zzz-autoset-meson $(1)/etc/uci-defaults/zz99-autoset
+	$(INSTALL_BIN) ./files/def_uci/zzz-autoset-meson $(1)/etc/uci-defaults/zz99-autoset
+	$(INSTALL_BIN) ./files/def_uci/998-wireless-set $(1)/etc/uci-defaults/z998-wireless
 endef
 
 define Package/autoset-uci-mediatek/install
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
-	$(INSTALL_BIN) ./files/zzz-autoset-mediatek $(1)/etc/uci-defaults/zz99-autoset
+	$(INSTALL_BIN) ./files/def_uci/zzz-autoset-mediatek $(1)/etc/uci-defaults/zz99-autoset
+	$(INSTALL_BIN) ./files/def_uci/998-wireless-set $(1)/etc/uci-defaults/z998-wireless
 endef
 
 define Package/autoset-uci-ramips/install
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
-	$(INSTALL_BIN) ./files/zzz-autoset-ramips $(1)/etc/uci-defaults/zz99-autoset
+	$(INSTALL_BIN) ./files/def_uci/zzz-autoset-ramips $(1)/etc/uci-defaults/zz99-autoset
+	$(INSTALL_BIN) ./files/def_uci/998-wireless-set $(1)/etc/uci-defaults/z998-wireless
 endef
 
 define Package/autoset-uci-ath79/install
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
-	$(INSTALL_BIN) ./files/zzz-autoset-ath79 $(1)/etc/uci-defaults/zz99-autoset
+	$(INSTALL_BIN) ./files/def_uci/zzz-autoset-ath79 $(1)/etc/uci-defaults/zz99-autoset
+	$(INSTALL_BIN) ./files/def_uci/998-wireless-set $(1)/etc/uci-defaults/z998-wireless
 endef
 
 define Package/autoset-uci-ar71xx/install
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
-	$(INSTALL_BIN) ./files/zzz-autoset-ar71xx $(1)/etc/uci-defaults/zz99-autoset
+	$(INSTALL_BIN) ./files/def_uci/zzz-autoset-ar71xx $(1)/etc/uci-defaults/zz99-autoset
+	$(INSTALL_BIN) ./files/def_uci/998-wireless-set $(1)/etc/uci-defaults/z998-wireless
 endef
 
 define Package/autoset-uci-ipq/install
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
-	$(INSTALL_BIN) ./files/zzz-autoset-ipq $(1)/etc/uci-defaults/zz99-autoset
+	$(INSTALL_BIN) ./files/def_uci/zzz-autoset-ipq $(1)/etc/uci-defaults/zz99-autoset
+	$(INSTALL_BIN) ./files/def_uci/998-wireless-set $(1)/etc/uci-defaults/z998-wireless
 	$(INSTALL_DIR) $(1)/sbin
 	$(INSTALL_BIN) ./files/arm/usage $(1)/sbin/usage
 endef
 
 define Package/autoset-uci/install
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
-	$(INSTALL_BIN) ./files/zzz-autoset $(1)/etc/uci-defaults/zz99-autoset
+	$(INSTALL_BIN) ./files/def_uci/zzz-autoset $(1)/etc/uci-defaults/zz99-autoset
+	$(INSTALL_BIN) ./files/def_uci/998-wireless-set $(1)/etc/uci-defaults/z998-wireless
 
 endef
 
 define Package/autoset-uci-oneport/install
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
-	$(INSTALL_BIN) ./files/zzz-autoset-oneport $(1)/etc/uci-defaults/zz99-autoset-oneport
+	$(INSTALL_BIN) ./files/def_uci/zzz-autoset-oneport $(1)/etc/uci-defaults/zz99-autoset-oneport
+	$(INSTALL_BIN) ./files/def_uci/998-wireless-set $(1)/etc/uci-defaults/z998-wireless
 endef
 
 define Package/autoset-resize-rootfs-script/install

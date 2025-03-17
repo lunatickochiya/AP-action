@@ -11,10 +11,10 @@ function autosetver() {
     # 在文件的 'exit 0' 之前插入 DISTRIB_DESCRIPTION 信息
     sed -i "/^exit 0$/i\
     \echo \"DISTRIB_DESCRIPTION='OpenWrt $version Compiled by 2U4U'\" >> /etc/openwrt_release
-    " package/kochiya/autoset/files/zzz-autoset*
+    " package/kochiya/autoset/files/def_uci/zzz-autoset*
 
     # 使用通配符匹配所有以 zzz-autoset- 开头的文件并执行 grep
-    for file in package/kochiya/autoset/files/zzz-autoset-*; do
+    for file in package/kochiya/autoset/files/def_uci/zzz-autoset-*; do
         grep DISTRIB_DESCRIPTION "$file"
     done
 }
@@ -23,7 +23,7 @@ function autosetver() {
 function set_firewall_allow() {
 sed -i '/^	commit$/i\
 	set firewall.@zone[1].input="ACCEPT"
-' package/kochiya/autoset/files/zzz-autoset*
+' package/kochiya/autoset/files/def_uci/zzz-autoset*
 }
 
 
