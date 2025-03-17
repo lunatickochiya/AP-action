@@ -86,10 +86,22 @@ CONFIG_PACKAGE_luci-app-turboacc=y
 " >> "$file"; done
 }
 
+function add_sfe_core_config() {
+for file in package-configs/*-iptables.config; do     echo "# ADD TURBOACC
+
+CONFIG_PACKAGE_kmod-fast-classifier=y
+CONFIG_PACKAGE_kmod-shortcut-fe=y
+CONFIG_PACKAGE_kmod-shortcut-fe-cm=y
+" >> "$file"; done
+echo "---------sfe-core--"
+}
+
 if [ "$1" == "nft" ]; then
 add_nft_config
 elif [ "$1" == "ipt" ]; then
 add_ipt_config
+elif [ "$1" == "sfe-core" ]; then
+add_sfe_core_config
 elif [ "$1" == "ipq-docker" ]; then
 add_docker_ipq_config
 elif [ "$1" == "ipq-ipt-turboacc-sfe" ]; then

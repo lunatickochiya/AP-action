@@ -346,6 +346,7 @@ jobs:
     - name: 添加 SFE
       id: sfe
       run: |
+        bash $GITHUB_WORKSPACE/add-sfe-packages.sh sfe-core
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 自定义安装包(优先于feeds)
