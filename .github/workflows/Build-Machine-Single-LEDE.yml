@@ -322,6 +322,7 @@ jobs:
     - name: Patch 自定义
       id: patch
       run: |
+        mkdir -p lunatic-lede/mypatch-lunatic-lede-${{matrix.target}}
         if [ ${{github.event.inputs.Firewall_Allow_WAN}} = true ]; then
         $GITHUB_WORKSPACE/$DIY_SH firewall-allow-wan
         fi
