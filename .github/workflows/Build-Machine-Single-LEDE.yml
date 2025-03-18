@@ -396,6 +396,10 @@ jobs:
         CONFIG_NF_CONNTRACK_CHAIN_EVENTS=y \\' openwrt/feeds/nss_packages/qca-nss-ecm/Makefile
         rm -rf openwrt/feeds/nss_packages/qca-nss-ecm/patches/0006-treewide-rework-notifier-changes-for-5.15.patch
         fi
+        if [ ${{github.event.inputs.Lienol_Luci}} = 17.01 ] || [ ${{github.event.inputs.Lienol_Luci}} = 17.01-dev ]; then
+        rm -rf openwrt/feeds/luci/modules/luci-base/luasrc/xml.lua
+        rm -rf openwrt/feeds/luci/modules/luci-base/luasrc/xml.luadoc
+        fi
         mkdir -p openwrt/feeds/lunatic7
         [ -d lunatic-lede/lunatic7-revert ] && mv -f lunatic-lede/lunatic7-revert openwrt/feeds/lunatic7/lunatic7-revert
         [ -d lunatic-lede/luci-patch-lunatic-lede ] && mv -f lunatic-lede/luci-patch-lunatic-lede openwrt/feeds/luci/luci-patch-lunatic-lede

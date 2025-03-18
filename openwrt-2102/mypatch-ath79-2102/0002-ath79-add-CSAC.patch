@@ -1,23 +1,22 @@
-From 089ecb800ccc7b41860bd52e81e4615db5176a89 Mon Sep 17 00:00:00 2001
+From 1b01bf0b647444e83276d3bf6caa0251a2fb82fb Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
-Date: Mon, 17 Mar 2025 20:15:45 +0800
+Date: Wed, 19 Mar 2025 18:44:01 +0800
 Subject: [PATCH] ath79: add CSAC
 
 ---
- target/linux/ath79/dts/qca9563_xwrt_csac.dts  | 181 ++++++++++++++++++
- .../generic/base-files/etc/board.d/01_leds    |   4 +
- .../generic/base-files/etc/board.d/02_network |   6 +
+ target/linux/ath79/dts/qca9563_xwrt_csac.dts  | 170 ++++++++++++++++++
+ .../generic/base-files/etc/board.d/02_network |   5 +
  .../etc/hotplug.d/firmware/11-ath10k-caldata  |   1 +
- target/linux/ath79/image/generic.mk           |  42 ++++
- 5 files changed, 234 insertions(+)
+ target/linux/ath79/image/generic.mk           |   9 +
+ 4 files changed, 185 insertions(+)
  create mode 100644 target/linux/ath79/dts/qca9563_xwrt_csac.dts
 
 diff --git a/target/linux/ath79/dts/qca9563_xwrt_csac.dts b/target/linux/ath79/dts/qca9563_xwrt_csac.dts
 new file mode 100644
-index 0000000000..648895879f
+index 0000000000..55e98dcaab
 --- /dev/null
 +++ b/target/linux/ath79/dts/qca9563_xwrt_csac.dts
-@@ -0,0 +1,181 @@
+@@ -0,0 +1,170 @@
 +// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 +/dts-v1/;
 +
@@ -45,18 +44,20 @@ index 0000000000..648895879f
 +		compatible = "gpio-leds";
 +
 +		led_sys: sys {
-+			label = "blue:sys";
++			label = "xwrt:blue:sys";
 +			gpios = <&gpio 7 GPIO_ACTIVE_LOW>;
 +		};
 +
 +		wlan2g {
-+			label = "blue:wlan2g";
++			label = "xwrt:blue:wlan2g";
 +			gpios = <&gpio 8 GPIO_ACTIVE_LOW>;
++			linux,default-trigger = "phy0tpt";
 +		};
 +
 +		wlan5g {
-+			label = "blue:wlan5g";
++			label = "xwrt:blue:wlan5g";
 +			gpios = <&gpio 9 GPIO_ACTIVE_LOW>;
++			linux,default-trigger = "phy1tpt";
 +		};
 +	};
 +
@@ -66,7 +67,6 @@ index 0000000000..648895879f
 +		reset {
 +			linux,code = <KEY_RESTART>;
 +			gpios = <&gpio 2 GPIO_ACTIVE_LOW>;
-+			debounce-interval = <60>;
 +		};
 +	};
 +
@@ -122,27 +122,15 @@ index 0000000000..648895879f
 +			};
 +
 +			partition@50000 {
++				compatible = "denx,uimage";
 +				label = "firmware";
 +				reg = <0x050000 0xfa0000>;
-+
-+				compatible = "fixed-partitions";
-+				#address-cells = <1>;
-+				#size-cells = <1>;
-+
-+				partition@0 {
-+					label = "rootfs";
-+					reg = <0x000000 0xe30000>;
-+				};
-+
-+				partition@e30000 {
-+					label = "kernel";
-+					reg = <0xe30000 0x170000>;
-+				};
 +			};
 +
 +			art: partition@ff0000 {
 +				label = "art";
 +				reg = <0xff0000 0x010000>;
++				read-only;
 +			};
 +		};
 +	};
@@ -199,23 +187,8 @@ index 0000000000..648895879f
 +	status = "okay";
 +	mtd-cal-data = <&art 0x1000>;
 +};
-diff --git a/target/linux/ath79/generic/base-files/etc/board.d/01_leds b/target/linux/ath79/generic/base-files/etc/board.d/01_leds
-index d9511091bc..57deb68f5a 100755
---- a/target/linux/ath79/generic/base-files/etc/board.d/01_leds
-+++ b/target/linux/ath79/generic/base-files/etc/board.d/01_leds
-@@ -411,6 +411,10 @@ wd,mynet-wifi-rangeextender)
- xiaomi,aiot-ac2350)
- 	ucidef_set_led_switch "wan" "WAN" "blue:wan" "switch0" "0x02"
- 	;;
-+xwrt,csac)
-+	ucidef_set_led_wlan "wlan5g" "WLAN5G" "blue:wlan5g" "phy0tpt"
-+	ucidef_set_led_wlan "wlan2g" "WLAN2G" "blue:wlan2g" "phy0tpt"
-+	;;
- yuncore,a770)
- 	ucidef_set_led_netdev "wan" "WAN" "green:wan" "eth1"
- 	ucidef_set_led_switch "lan" "LAN" "green:lan" "switch0" "0x10"
 diff --git a/target/linux/ath79/generic/base-files/etc/board.d/02_network b/target/linux/ath79/generic/base-files/etc/board.d/02_network
-index ec963cd579..a46d1b0b87 100755
+index ec963cd579..63976c5d36 100755
 --- a/target/linux/ath79/generic/base-files/etc/board.d/02_network
 +++ b/target/linux/ath79/generic/base-files/etc/board.d/02_network
 @@ -267,6 +267,7 @@ ath79_setup_interfaces()
@@ -226,14 +199,13 @@ index ec963cd579..a46d1b0b87 100755
  	wd,mynet-n750)
  		ucidef_add_switch "switch0" \
  			"0@eth0" "1:lan" "2:lan" "3:lan" "4:lan" "5:wan"
-@@ -670,6 +671,11 @@ ath79_setup_macs()
+@@ -670,6 +671,10 @@ ath79_setup_macs()
  	xiaomi,aiot-ac2350)
  		lan_mac=$(mtd_get_mac_binary art 0x1002)
  		;;
 +	xwrt,csac)
 +		wan_mac=$(mtd_get_mac_binary art 0)
-+		lan_mac=$(macaddr_add "$wan_mac" 1)
-+		label_mac=$wan_mac
++		lan_mac=$(mtd_get_mac_binary art 6)
 +		;;
  	zyxel,nbg6616)
  		label_mac=$(mtd_get_mac_ascii u-boot-env ethaddr)
@@ -251,45 +223,10 @@ index c7dbaafac1..f77ed9a5da 100644
  	yuncore,xd4200)
  		caldata_extract "art" 0x5000 0x2f20
 diff --git a/target/linux/ath79/image/generic.mk b/target/linux/ath79/image/generic.mk
-index 2963281f15..efe16e8584 100644
+index 2963281f15..356c2dfe27 100644
 --- a/target/linux/ath79/image/generic.mk
 +++ b/target/linux/ath79/image/generic.mk
-@@ -152,6 +152,34 @@ define Build/wrgg-pad-rootfs
- endef
- 
- 
-+define Build/xwrt_csac10-factory
-+  -[ -f "$@" ] && \
-+  mkdir -p "$@.tmp" && \
-+  mv "$@" "$@.tmp/UploadBrush-bin.img" && \
-+  binmd5=$$($(STAGING_DIR_HOST)/bin/mkhash md5 "$@.tmp/UploadBrush-bin.img" | head -c32) && \
-+  oemmd5=$$(echo -n TB-CSAC10-QCA9563_9886-ROUTE-CSAC10 | $(STAGING_DIR_HOST)/bin/mkhash md5 | head -c32) && \
-+  echo -n $${binmd5}$${oemmd5} | $(STAGING_DIR_HOST)/bin/mkhash md5 | head -c32 >"$@.tmp/bin_random_oem.txt" && \
-+  echo -n V4.4-201910201745 >"$@.tmp/version.txt" && \
-+  $(TAR) -czf $@.tmp.tgz -C "$@.tmp" UploadBrush-bin.img bin_random_oem.txt version.txt && \
-+  $(STAGING_DIR_HOST)/bin/openssl aes-256-cbc -md md5 -salt -in $@.tmp.tgz -out "$@" -k QiLunSmartWL && \
-+  printf %32s CSAC10 >>"$@" && \
-+  rm -rf "$@.tmp"
-+endef
-+
-+define Build/xwrt_csac05-factory
-+  -[ -f "$@" ] && \
-+  mkdir -p "$@.tmp" && \
-+  mv "$@" "$@.tmp/UploadBrush-bin.img" && \
-+  binmd5=$$($(STAGING_DIR_HOST)/bin/mkhash md5 "$@.tmp/UploadBrush-bin.img" | head -c32) && \
-+  oemmd5=$$(echo -n TB-CSAC05-QCA9563_9886-ROUTE-CSAC05 | $(STAGING_DIR_HOST)/bin/mkhash md5 | head -c32) && \
-+  echo -n $${binmd5}$${oemmd5} | $(STAGING_DIR_HOST)/bin/mkhash md5 | head -c32 >"$@.tmp/bin_random_oem.txt" && \
-+  echo -n V4.4-201910201745 >"$@.tmp/version.txt" && \
-+  $(TAR) -czf $@.tmp.tgz -C "$@.tmp" UploadBrush-bin.img bin_random_oem.txt version.txt && \
-+  $(STAGING_DIR_HOST)/bin/openssl aes-256-cbc -md md5 -salt -in $@.tmp.tgz -out "$@" -k QiLunSmartWL && \
-+  printf %32s CSAC05 >>"$@" && \
-+  rm -rf "$@.tmp"
-+endef
-+
- define Device/seama
-   KERNEL := kernel-bin | append-dtb | relocate-kernel | lzma
-   KERNEL_INITRAMFS := $$(KERNEL) | seama
-@@ -2230,6 +2258,20 @@ define Device/xiaomi_mi-router-4q
+@@ -2230,6 +2230,15 @@ define Device/xiaomi_mi-router-4q
  endef
  TARGET_DEVICES += xiaomi_mi-router-4q
  
@@ -297,13 +234,8 @@ index 2963281f15..efe16e8584 100644
 +  SOC := qca9563
 +  DEVICE_VENDOR := XWRT
 +  DEVICE_MODEL := CSAC
-+  KERNEL_SIZE := 1472k
 +  IMAGE_SIZE := 16000k
-+  IMAGES += factory-10.bin factory-05.bin
-+  IMAGE/sysupgrade.bin := append-rootfs | pad-rootfs | pad-to 14528k | append-kernel | append-metadata | check-size $$$$(IMAGE_SIZE)
-+  IMAGE/factory-10.bin := $$(IMAGE/sysupgrade.bin) | xwrt_csac10-factory $(1)
-+  IMAGE/factory-05.bin := $$(IMAGE/sysupgrade.bin) | xwrt_csac05-factory $(1)
-+  DEVICE_PACKAGES := kmod-leds-reset kmod-ath10k-ct ath10k-firmware-qca9888-ct kmod-usb-core kmod-usb2
++  DEVICE_PACKAGES := kmod-ath10k-ct ath10k-firmware-qca9888-ct kmod-usb2
 +endef
 +TARGET_DEVICES += xwrt_csac
 +
