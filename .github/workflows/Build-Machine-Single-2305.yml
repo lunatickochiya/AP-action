@@ -46,7 +46,7 @@ on:
         - 'lenovo_newifi-d1'
         - 'd-team_newifi-d2'
         - 'lenovo_newifi-y1'
-        - 'domywifi_dw33d'
+        - 'domywifi_dw33d-ath79'
 #      USE_NX30PRO_EEPROM:
 #        description: 'Use nx30pro eeprom'
 #        default: 'false'
@@ -141,7 +141,7 @@ jobs:
         - ramips: lenovo_newifi-d1
         - ramips: lenovo_newifi-y1
         - ramips: d-team_newifi-d2
-        - ath79: domywifi_dw33d
+        - ath79: domywifi_dw33d-ath79
 
     steps:
       - name: 检查
