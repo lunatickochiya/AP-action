@@ -546,8 +546,10 @@ jobs:
         [ ${{github.event.inputs.UPLOAD_RELEASE}} = true ] && cp -u -f openwrt/ipks.zip firmware
         cp -u -f openwrt/kernelipks.zip ipks
         cp -u -f openwrt/ipks.zip ipks
-        mv -f openwrt/bin/targets/*/*/{*combined*,*ext4*,*sdk*,*imagebuilder*,*buildinfo*,*manifest*,*json*,*sha256sums*} ./firmware/ 2>/dev/null || true
-        [ $UPLOAD_SYSUPGRADE = true ] && mv -f openwrt/bin/targets/*/*/{*combined*,*sysupgrade*,*openwrt*,*initramfs*,*factory*} ./firmware/ 2>/dev/null || true
+        ls -R openwrt/bin/targets/
+        find openwrt/bin/targets/ -type f
+        find openwrt/bin/targets/ -type f \( -name "*combined*" -o -name "*ext4*" -o -name "*sdk*" -o -name "*imagebuilder*" -o -name "*buildinfo*" -o -name "*manifest*" -o -name "*json*" -o -name "*sha256sums*" \) -exec mv -f {} ./firmware/ \; 2>/dev/null || true
+        [ $UPLOAD_SYSUPGRADE = true ] && find openwrt/bin/targets/ -type f \( -name "*combined*" -o -name "*sysupgrade*" -o -name "*openwrt*" -o -name "*initramfs*" -o -name "*factory*" \) -exec mv -f {} ./firmware/ \; 2>/dev/null || true
         cp openwrt/.config  ./firmware/${{matrix.target}}.config
         cp openwrt/build_dir/target-*/linux-*/linux-*/.config ./firmware/${{matrix.target}}_kernel.config
         cd firmware
