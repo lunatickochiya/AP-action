@@ -313,7 +313,7 @@ mv -f package-configs/.config .config
 
 function add_test_kernel_config() {
 sed -i '1i\
-CONFIG_TESTING_KERNEL=y\nCONFIG_HAS_TESTING_KERNEL=y\nCONFIG_LINUX_6_1=y' machine-configs/single/*
+CONFIG_TESTING_KERNEL=y\nCONFIG_HAS_TESTING_KERNEL=y' machine-configs/single/*
 }
 
 function change_qca_start_order() {
