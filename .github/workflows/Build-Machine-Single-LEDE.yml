@@ -44,6 +44,7 @@ on:
         - 'd-team_newifi-d2'
         - 'lenovo_newifi-y1'
         - 'domywifi_dw33d'
+        - 'domywifi_dw33d-ar71xx-generic'
         - 'domywifi_dw33d-ar71xx-nand'
         - 'aliyun_ap8220'
 #      TRY_BBR_V3:
@@ -138,8 +139,9 @@ jobs:
         - ramips: lenovo_newifi-y1
         - ramips: d-team_newifi-d2
         - ipq: aliyun_ap8220
+        - ath79: domywifi_dw33d
         - ar71xx: csac-ar71xx
-        - ar71xx: domywifi_dw33d
+        - ar71xx: domywifi_dw33d-ar71xx-generic
         - ar71xx: domywifi_dw33d-ar71xx-nand
 
     steps:
