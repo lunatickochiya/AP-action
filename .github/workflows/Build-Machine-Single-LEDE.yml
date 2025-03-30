@@ -164,7 +164,7 @@ jobs:
           elif [ "${{ github.event.inputs.MACH }}" == "${{ matrix.mt798x-nousb }}" ]; then
             matrix={\"include\":[{\"target\":\"mt798x-nousb-iptables\"},{\"target\":\"mt798x-nousb-nftables\"}]}
           elif [ "${{ github.event.inputs.MACH }}" == "${{ matrix.ramips }}" ]; then
-            matrix={\"include\":[{\"target\":\"ramips-iptables\"},{\"target\":\"ramips-nftables\"}]}
+            matrix={\"include\":[{\"target\":\"ramips-iptables\"}]}
           elif [ "${{ github.event.inputs.MACH }}" == "${{ matrix.ath79 }}" ]; then
             matrix={\"include\":[{\"target\":\"ath79-iptables\"},{\"target\":\"ath79-nftables\"}]}
           elif [ "${{ github.event.inputs.MACH }}" == "${{ matrix.ipq }}" ]; then
@@ -247,9 +247,9 @@ jobs:
         echo "UPLOAD_ALLKMOD=${UPLOAD_ALLKMOD}" >> $GITHUB_ENV
         echo "UPLOAD_SYSUPGRADE=${UPLOAD_SYSUPGRADE}" >> $GITHUB_ENV
         echo "USE_Cache=${USE_Cache}" >> $GITHUB_ENV
-        #if [ ${{github.event.inputs.TEST-KERNEL}} = true ]; then
-        #echo "Kernel_Test=_Kernel_Test_Ver" >> $GITHUB_ENV
-        #fi
+        if [ ${{github.event.inputs.TEST-KERNEL}} = true ]; then
+        echo "Kernel_Test=_Kernel_Test_Ver" >> $GITHUB_ENV
+        fi
         chmod +x $DIY_SH $DIY_SH_AFB $DIY_SH_RFC gen-sha256sum.sh add-test-packages.sh add-sfe-packages.sh
 
     - name: 导入机器及安装包config
@@ -344,11 +344,15 @@ jobs:
         fi
         if [ ${{github.event.inputs.Lienol_Luci}} = 17.01 ]; then
         [ -d lunatic-lede/Lienol-luci-feed ] && cp -r lunatic-lede/Lienol-luci-feed/* lunatic-lede/mypatch-lunatic-lede-${{matrix.target}}
+        rm -r openwrt/package/network/services/dnsmasq
+        mv -f lunatic-lede/dnsmasq-lunatic-lede-lienol/dnsmasq openwrt/package/network/services/dnsmasq
         echo "----${{matrix.target}}-----ipt-lienol-17.01---"
         echo "BCM_FULLCONE=_Lienol_17.01" >> $GITHUB_ENV
         fi
         if [ ${{github.event.inputs.Lienol_Luci}} = 17.01-dev ]; then
         [ -d lunatic-lede/Lienol-luci-feed-dev ] && cp -r lunatic-lede/Lienol-luci-feed-dev/* lunatic-lede/mypatch-lunatic-lede-${{matrix.target}}
+        rm -r openwrt/package/network/services/dnsmasq
+        mv -f lunatic-lede/dnsmasq-lunatic-lede-lienol/dnsmasq openwrt/package/network/services/dnsmasq
         echo "----${{matrix.target}}-----ipt-lienol-17.01-dev--"
         echo "BCM_FULLCONE=_Lienol_17.01-dev" >> $GITHUB_ENV
         fi
