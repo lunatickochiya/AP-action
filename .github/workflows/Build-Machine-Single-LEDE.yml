@@ -431,14 +431,7 @@ jobs:
       id: config2
       run: |
         cd openwrt
-        if [ ${{matrix.target}} == 'ramips-iptables' ] || [ ${{ matrix.target }} == 'ramips-nftables' ]; then
-        $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ramips
-        make defconfig
-        $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ramips
-        make defconfig
-        $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ramips
-        make defconfig
-        elif [ ${{matrix.target}} == 'ath79-iptables' ] || [ ${{ matrix.target }} == 'ath79-nftables' ]; then
+        if [ ${{matrix.target}} == 'ath79-iptables' ] || [ ${{ matrix.target }} == 'ath79-nftables' ]; then
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ath79
         make defconfig
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ath79
