@@ -51,6 +51,7 @@ on:
         - 'hualu-wifi-dock-ar71xx-generic'
         - 'lunaticbox-ar71xx-generic'
         - 'pisen-cloud-router-ar71xx-generic'
+        - 'pisen-wpr003n-ar71xx'
 #      TRY_BBR_V3:
 #        description: 'Update BBR TO V3'
 #        default: 'true'
@@ -151,6 +152,7 @@ jobs:
         - ar71xx: hualu-wifi-dock-ar71xx-generic
         - ar71xx: lunaticbox-ar71xx-generic
         - ar71xx: pisen-cloud-router-ar71xx-generic
+        - ar71xx: pisen-wpr003n-ar71xx
 
     steps:
       - name: 检查
