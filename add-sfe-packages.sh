@@ -109,6 +109,9 @@ CONFIG_PACKAGE_luci-app-qos-gargoyle=y
 CONFIG_PACKAGE_luci-app-sfe=y
 CONFIG_PACKAGE_luci-theme-material=y
 CONFIG_LUCI_LANG_zh-cn=y
+CONFIG_PACKAGE_curl=m
+CONFIG_PACKAGE_wget-ssl=m
+CONFIG_PACKAGE_luci-lib-ipkg=m
 " >> "$file"; done
 echo "---------lunatic-lede-config-core--"
 }
