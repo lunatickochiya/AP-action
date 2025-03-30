@@ -47,6 +47,10 @@ on:
         - 'domywifi_dw33d-ar71xx-generic'
         - 'domywifi_dw33d-ar71xx-nand'
         - 'aliyun_ap8220'
+        - 'gehua-g-cloud'
+        - 'hualu-wifi-dock-ar71xx-generic'
+        - 'lunaticbox-ar71xx-generic'
+        - 'pisen-cloud-router-ar71xx-generic'
 #      TRY_BBR_V3:
 #        description: 'Update BBR TO V3'
 #        default: 'true'
@@ -138,11 +142,15 @@ jobs:
         - ramips: lenovo_newifi-d1
         - ramips: lenovo_newifi-y1
         - ramips: d-team_newifi-d2
+        - ramips: gehua-g-cloud
         - ipq: aliyun_ap8220
         - ath79: domywifi_dw33d
         - ar71xx: csac-ar71xx
         - ar71xx: domywifi_dw33d-ar71xx-generic
         - ar71xx: domywifi_dw33d-ar71xx-nand
+        - ar71xx: hualu-wifi-dock-ar71xx-generic
+        - ar71xx: lunaticbox-ar71xx-generic
+        - ar71xx: pisen-cloud-router-ar71xx-generic
 
     steps:
       - name: 检查
@@ -350,6 +358,7 @@ jobs:
       id: sfe
       run: |
         bash $GITHUB_WORKSPACE/add-sfe-packages.sh sfe-core
+        bash $GITHUB_WORKSPACE/add-sfe-packages.sh lunatic-lede-config
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 自定义安装包(优先于feeds)
@@ -437,7 +446,7 @@ jobs:
         make defconfig
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ipq-nss
         make defconfig
-        elif [ ${{matrix.target}} == 'ar71xx-iptables' ]; then
+        elif [ ${{matrix.target}} == 'ar71xx-iptables' ] || [ ${{ matrix.target }} == 'ramips-iptables' ]; then
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-lunatic-lede
         make defconfig
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-lunatic-lede

@@ -96,6 +96,24 @@ CONFIG_PACKAGE_kmod-shortcut-fe-cm=y
 echo "---------sfe-core--"
 }
 
+function add_lunatic_lede_core_config() {
+for file in package-configs/*-iptables.config; do     echo "# ADD Lunatic
+CONFIG_PACKAGE_kmod-zram=y
+
+CONFIG_PACKAGE_zram-swap=y
+
+CONFIG_PACKAGE_wpad-openssl=y
+# CONFIG_PACKAGE_wpad-mini is not set
+
+CONFIG_PACKAGE_luci-app-qos-gargoyle=y
+CONFIG_PACKAGE_luci-app-sfe=y
+CONFIG_PACKAGE_luci-theme-material=y
+CONFIG_LUCI_LANG_zh-cn=y
+" >> "$file"; done
+echo "---------lunatic-lede-config-core--"
+}
+
+
 if [ "$1" == "nft" ]; then
 add_nft_config
 elif [ "$1" == "ipt" ]; then
@@ -112,6 +130,8 @@ elif [ "$1" == "ipq-ipt-turboacc-nosfe" ]; then
 add_ipq_turboacc_ipt_config_nosfe
 elif [ "$1" == "ipq-nft-turboacc-nosfe" ]; then
 add_ipq_turboacc_nft_config_nosfe
+elif [ "$1" == "lunatic-lede-config" ]; then
+add_lunatic_lede_core_config
 else
 echo "Invalid argument"
 fi
