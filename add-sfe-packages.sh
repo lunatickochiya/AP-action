@@ -102,7 +102,7 @@ CONFIG_PACKAGE_kmod-zram=y
 
 CONFIG_PACKAGE_zram-swap=y
 
-CONFIG_PACKAGE_wpad-openssl=y
+CONFIG_PACKAGE_wpad-mesh-openssl=y
 # CONFIG_PACKAGE_wpad-mini is not set
 
 CONFIG_PACKAGE_luci-app-qos-gargoyle=y
