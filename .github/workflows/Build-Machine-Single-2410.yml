@@ -9,30 +9,36 @@ on:
   repository_dispatch:
   workflow_dispatch:
     inputs:
-      Cache:
-        description: 'Use Cache'
+#      Cache:
+#        description: 'Use Cache'
+#        required: true
+#        default: 'true'
+#        type: choice
+#        options:
+#        - 'true'
+#        - 'false'
+#      ALLKMOD:
+#        description: 'Compile All Kmods'
+#        required: true
+#        default: 'true'
+#        type: choice
+#        options:
+#        - 'true'
+#        - 'false'
+#      UPLOAD_RELEASE:
+#        description: 'UPLOAD To RELEASE'
+#        required: true
+#        default: 'true'
+#        type: choice
+#        options:
+#        - 'true'
+#        - 'false'
+
+      config_repo:
+        description: 'Use json config repo true(1) or false(0) See ReadME'
         required: true
-        default: 'true'
-        type: choice
-        options:
-        - 'true'
-        - 'false'
-      ALLKMOD:
-        description: 'Compile All Kmods'
-        required: true
-        default: 'true'
-        type: choice
-        options:
-        - 'true'
-        - 'false'
-      UPLOAD_RELEASE:
-        description: 'UPLOAD To RELEASE'
-        required: true
-        default: 'true'
-        type: choice
-        options:
-        - 'true'
-        - 'false'
+        default: '{"Cache": "1", "UPLOAD_RELEASE": "1", "ALLKMOD": "1"}'
+
       MACH:
         description: 'Choose machine'
         required: true
@@ -55,13 +61,13 @@ on:
 #        options:
 #        - 'true'
 #        - 'false'
-      Firewall_Allow_WAN:
-        description: 'Allow firewall wan'
-        default: 'false'
-        type: choice
-        options:
-        - 'true'
-        - 'false'
+#      Firewall_Allow_WAN:
+#        description: 'Allow firewall wan'
+#        default: 'false'
+#        type: choice
+#        options:
+#        - 'true'
+#        - 'false'
       SFE_BUILDIN:
         description: 'Build sfe'
         default: 'true'
@@ -69,13 +75,18 @@ on:
         options:
         - 'true'
         - 'false'
-      DOCKER_BUILDIN:
-        description: 'Build docker'
-        default: 'false'
-        type: choice
-        options:
-        - 'true'
-        - 'false'
+      patch_repo:
+        description: 'Use json patch repo true(1) or false(0) See ReadME'
+        required: true
+        default: '{"OPENSSL_3_4": "1", "BCM_FULLCONE": "1", "TRY_BBR_V3": "1", "Firewall_Allow_WAN": "1", "DOCKER_BUILDIN": "1"}'
+
+#      DOCKER_BUILDIN:
+#        description: 'Build docker'
+#        default: 'false'
+#        type: choice
+#        options:
+#        - 'true'
+#        - 'false'
 #      TEST-KERNEL:
 #        description: 'Use kernel 6.1'
 #        default: 'false'
@@ -117,20 +128,20 @@ on:
         - '172.18.0.1'
         - '10.0.0.1'
         - '10.88.0.1'
-      BCM_FULLCONE:
-        description: 'bcm fullcone'
-        default: 'false'
-        type: choice
-        options:
-        - 'true'
-        - 'false'
-      OPENSSL_3_4:
-        description: 'OPENSSL 3.4'
-        default: 'false'
-        type: choice
-        options:
-        - 'true'
-        - 'false'
+#      BCM_FULLCONE:
+#        description: 'bcm fullcone'
+#        default: 'false'
+#        type: choice
+#        options:
+#        - 'true'
+#        - 'false'
+#      OPENSSL_3_4:
+#        description: 'OPENSSL 3.4'
+#        default: 'false'
+#        type: choice
+#        options:
+#        - 'true'
+#        - 'false'
 env:
   TZ: Asia/Shanghai
 
@@ -241,13 +252,22 @@ jobs:
         echo "UPLOAD_FIRMWARE=${UPLOAD_FIRMWARE}" >> $GITHUB_ENV
         echo "UPLOAD_COWTRANSFER=${UPLOAD_COWTRANSFER}" >> $GITHUB_ENV
         echo "UPLOAD_WETRANSFER=${UPLOAD_WETRANSFER}" >> $GITHUB_ENV
-        echo "UPLOAD_RELEASE=${UPLOAD_RELEASE}" >> $GITHUB_ENV
         echo "UPLOAD_ALLKMOD=${UPLOAD_ALLKMOD}" >> $GITHUB_ENV
         echo "UPLOAD_SYSUPGRADE=${UPLOAD_SYSUPGRADE}" >> $GITHUB_ENV
         echo "USE_Cache=${USE_Cache}" >> $GITHUB_ENV
         #if [ ${{github.event.inputs.TEST-KERNEL}} = true ]; then
         #echo "Kernel_Test=_Kernel_Test_Ver" >> $GITHUB_ENV
         #fi
+        PATCH_JSON_INPUT='${{ github.event.inputs.patch_repo }}'
+        echo -e "OPENSSL_3_4=$(echo $PATCH_JSON_INPUT | jq -r ".OPENSSL_3_4")" >> $GITHUB_ENV
+        echo -e "BCM_FULLCONE=$(echo $PATCH_JSON_INPUT | jq -r ".BCM_FULLCONE")" >> $GITHUB_ENV
+        echo -e "TRY_BBR_V3=$(echo $PATCH_JSON_INPUT | jq -r ".TRY_BBR_V3")" >> $GITHUB_ENV
+        echo -e "Firewall_Allow_WAN=$(echo $PATCH_JSON_INPUT | jq -r ".Firewall_Allow_WAN")" >> $GITHUB_ENV
+        echo -e "DOCKER_BUILDIN=$(echo $PATCH_JSON_INPUT | jq -r ".DOCKER_BUILDIN")" >> $GITHUB_ENV
+        CONFIG_JSON_INPUT='${{ github.event.inputs.config_repo }}'
+        echo -e "Cache=$(echo $CONFIG_JSON_INPUT | jq -r ".Cache")" >> $GITHUB_ENV
+        echo -e "UPLOAD_RELEASE=$(echo $CONFIG_JSON_INPUT | jq -r ".UPLOAD_RELEASE")" >> $GITHUB_ENV
+        echo -e "ALLKMOD=$(echo $CONFIG_JSON_INPUT | jq -r ".ALLKMOD")" >> $GITHUB_ENV
         chmod +x $DIY_SH $DIY_SH_AFB $DIY_SH_RFC gen-sha256sum.sh add-test-packages.sh add-sfe-packages.sh
 
     - name: 导入机器及安装包config
@@ -326,23 +346,34 @@ jobs:
     - name: Patch 自定义
       id: patch
       run: |
-        if [ ${{github.event.inputs.Firewall_Allow_WAN}} = true ]; then
+        if [ ${{ env.Firewall_Allow_WAN }} = 1 ]; then
         $GITHUB_WORKSPACE/$DIY_SH firewall-allow-wan
+        echo "----${{matrix.target}}----wan-allow---"
+        echo "WAN_NAME=_WAN_ALLOW" >> $GITHUB_ENV
         fi
-        # if [ ${{github.event.inputs.TRY_BBR_V3}} = true ]; then
+        if [ ${{ env.TRY_BBR_V3 }} = 1 ]; then
         [ -d openwrt-2410/mypatch-bbr-v3 ] && cp -r openwrt-2410/mypatch-bbr-v3/* openwrt-2410/mypatch-2410-${{matrix.target}}
-        # fi
-        if [ ${{github.event.inputs.OPENSSL_3_4}} = true ]; then
-        [ -d openwrt-2410/openssl-bump ] && cp -r openwrt-2410/openssl-bump/* openwrt-2410/mypatch-2410-${{matrix.target}}
+        echo "----${{matrix.target}}----bbr-v3---"
+        echo "TRY_BBR_V3_NAME=_BBR_V3" >> $GITHUB_ENV
         fi
-        if [ ${{github.event.inputs.AG71XX_FIX}} = true ]; then
+        if [ ${{ env.OPENSSL_3_4}} = 1 ]; then
+        [ -d openwrt-2410/openssl-bump ] && cp -r openwrt-2410/openssl-bump/* openwrt-2410/mypatch-2410-${{matrix.target}}
+        echo "----${{matrix.target}}----openssl-3-4---"
+        echo "OPENSSL_3_4_NAME=_OPENSSL_3_4" >> $GITHUB_ENV
+        fi
+        if [ ${{ env.AG71XX_FIX}} = 1 ]; then
         [ -d openwrt-2410/my-patch-ag71xx-fix ] && cp -r openwrt-2410/my-patch-ag71xx-fix/* openwrt-2410/mypatch-2410-${{matrix.target}}
         fi
-        if [ "${{ github.event.inputs.BCM_FULLCONE }}" = "true" ] && [[ "${{ matrix.target }}" == *-iptables ]]; then
+        if [ ${{ env.BCM_FULLCONE}} = 1 ] && [[ "${{ matrix.target }}" == *-iptables ]]; then
         [ -d openwrt-2410/bcmfullcone ] && cp -r openwrt-2410/bcmfullcone/* openwrt-2410/mypatch-2410-${{matrix.target}}
         rm -rf openwrt-2410/luci-patch-2410/0004-Revert-luci-app-firewall-add-fullcone.patch
         echo "----${{matrix.target}}-----ipt-bcm---"
-        echo "BCM_FULLCONE=_BCM_FULLCONE" >> $GITHUB_ENV
+        echo "BCM_FULLCONE_NAME=_BCM_FULLCONE" >> $GITHUB_ENV
+        fi
+        if [ ${{ env.DOCKER_BUILDIN}} = 1 ]; then
+        bash $GITHUB_WORKSPACE/add-sfe-packages.sh ipq-docker
+        echo "----${{matrix.target}}-----Docker--Config--Added--"
+        echo "DOCKER_NAME=_DOCKER" >> $GITHUB_ENV
         fi
         echo "status=success" >> $GITHUB_OUTPUT
 
@@ -375,14 +406,6 @@ jobs:
         # sed -i 's/"feeds\/lunatic7\/luci-app-turboacc"//g' diy-2410.sh
         echo "status=success" >> $GITHUB_OUTPUT
         echo "SFE=_SFE" >> $GITHUB_ENV
-
-    - name: 添加 Docker
-      if: github.event.inputs.DOCKER_BUILDIN == 'true'
-      id: docker
-      run: |
-        bash $GITHUB_WORKSPACE/add-sfe-packages.sh ipq-docker
-        echo "----${{matrix.target}}-----Docker--Config--Added--"
-        echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 自定义安装包(优先于feeds)
       if: steps.clone.outputs.status == 'success'
@@ -449,7 +472,7 @@ jobs:
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 添加kmod
-      if: steps.config.outputs.status == 'success' && github.event.inputs.ALLKMOD == 'true'
+      if: steps.config.outputs.status == 'success' && env.ALLKMOD == '1'
       id: config2
       run: |
         cd openwrt
@@ -522,7 +545,7 @@ jobs:
 
     - name: 缓存
       uses: stupidloud/cachewrtbuild@main
-      if: github.event.inputs.Cache == 'true' && !cancelled()
+      if: env.Cache == '1' && !cancelled()
       with:
         ccache: 'true'
         mixkey: ${{ matrix.target }}
@@ -563,8 +586,8 @@ jobs:
       if: env.UPLOAD_FIRMWARE == 'true' && steps.afb.outputs.status == 'success' && !cancelled()
       run: |
         mkdir firmware ipks
-        [ ${{github.event.inputs.UPLOAD_RELEASE}} = true ] && cp -u -f openwrt/kernelipks.zip firmware
-        [ ${{github.event.inputs.UPLOAD_RELEASE}} = true ] && cp -u -f openwrt/ipks.zip firmware
+        [ ${{ env.UPLOAD_RELEASE}} = 1 ] && cp -u -f openwrt/kernelipks.zip firmware
+        [ ${{ env.UPLOAD_RELEASE}} = 1 ] && cp -u -f openwrt/ipks.zip firmware
         cp -u -f openwrt/kernelipks.zip ipks
         cp -u -f openwrt/ipks.zip ipks
         mv -f openwrt/bin/targets/*/*/{*combined*,*ext4*,*sdk*,*imagebuilder*,*buildinfo*,*manifest*,*json*,*sha256sums*} ./firmware/ 2>/dev/null || true
@@ -583,7 +606,7 @@ jobs:
       continue-on-error: true
       if: steps.organize.outputs.status == 'success' && env.UPLOAD_FIRMWARE == 'true'
       with:
-        name: ${{ env.VERSION }}_${{matrix.target}}_firmware_24.10-${{github.event.inputs.MACH}}-${{ github.event.inputs.SETIP }}${{ env.Kernel_Test }}${{ env.BCM_FULLCONE }}${{ env.SFE }}
+        name: ${{ env.VERSION }}_${{matrix.target}}_firmware_24.10-${{github.event.inputs.MACH}}-${{ github.event.inputs.SETIP }}${{ env.Kernel_Test }}${{ env.BCM_FULLCONE_NAME }}${{ env.SFE }}${{ env.TRY_BBR_V3_NAME }}${{ env.OPENSSL_3_4_NAME }}${{ env.DOCKER_NAME }}${{ env.WAN_NAME }}
         path: |
           firmware
 
@@ -592,7 +615,7 @@ jobs:
       continue-on-error: true
       if: steps.organize.outputs.status == 'success' && env.UPLOAD_IPK_DIR == 'true' && steps.afb.outputs.status == 'success'
       with:
-        name: ${{ env.VERSION }}_${{matrix.target}}_ipks_24.10-${{github.event.inputs.MACH}}${{ env.Kernel_Test }}${{ env.BCM_FULLCONE }}${{ env.SFE }}
+        name: ${{ env.VERSION }}_${{matrix.target}}_ipks_24.10-${{github.event.inputs.MACH}}${{ env.Kernel_Test }}${{ env.BCM_FULLCONE_NAME }}${{ env.SFE }}${{ env.TRY_BBR_V3_NAME }}${{ env.OPENSSL_3_4_NAME }}${{ env.DOCKER_NAME }}${{ env.WAN_NAME }}
         path: |
           ipks
 
@@ -616,7 +639,7 @@ jobs:
 
     - name: 生成发布标签
       id: tag
-      if: steps.organize.outputs.status == 'success' && github.event.inputs.UPLOAD_RELEASE == 'true' && !cancelled()
+      if: steps.organize.outputs.status == 'success' && env.UPLOAD_RELEASE == '1' && !cancelled()
       run: |
         touch release.txt
         $GITHUB_WORKSPACE/gen-sha256sum.sh
@@ -625,7 +648,7 @@ jobs:
         [ ${{github.event.inputs.MACH}} = rax3000m-emmc ] && echo "- 使用闪存频率: ($(grep -oP "max-frequency = <\K[0-9]*" openwrt/target/linux/mediatek/dts/mt7981b-cmcc-rax3000m-emmc-ubootmod.dts)) Hz" >> release.txt
         [ $UPLOAD_COWTRANSFER = true ] && echo "🔗 [Cowtransfer](${{ steps.cowtransfer.outputs.url }})" >> release.txt
         [ $UPLOAD_WETRANSFER = true ] && echo "🔗 [WeTransfer](${{ steps.wetransfer.outputs.url }})" >> release.txt
-        echo "🔗 ${{ env.BCM_FULLCONE }}${{ env.SFE }}" >> release.txt
+        echo "🔗 ${{ env.BCM_FULLCONE_NAME }}${{ env.SFE }}${{ env.TRY_BBR_V3_NAME }}${{ env.OPENSSL_3_4_NAME }}" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 上传固件发布
@@ -648,7 +671,7 @@ jobs:
 
     - name: 删除旧版本
       uses: dev-drprasad/delete-older-releases@master
-      if: github.event.inputs.UPLOAD_RELEASE == 'true' && !cancelled()
+      if: env.UPLOAD_RELEASE == '1' && !cancelled()
       continue-on-error: true
       with:
         keep_latest: 24
