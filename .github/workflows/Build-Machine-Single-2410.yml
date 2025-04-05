@@ -48,13 +48,13 @@ on:
         - 'lenovo_newifi-y1'
         - 'domywifi_dw33d-ath79'
         - 'aliyun_ap8220'
-      TRY_BBR_V3:
-        description: 'Update BBR TO V3'
-        default: 'true'
-        type: choice
-        options:
-        - 'true'
-        - 'false'
+#      TRY_BBR_V3:
+#        description: 'Update BBR TO V3'
+#        default: 'true'
+#        type: choice
+#        options:
+#        - 'true'
+#        - 'false'
       Firewall_Allow_WAN:
         description: 'Allow firewall wan'
         default: 'false'
@@ -96,21 +96,36 @@ on:
         required: false
         type: choice
         options:
-        - '192.168.10.1'
-        - '192.168.8.1'
+        - '192.168.6.1'
+        - '192.168.66.1'
         - '192.168.7.1'
-        - '192.168.17.1'
+        - '192.168.77.1'
+        - '192.168.8.1'
+        - '192.168.88.1'
         - '192.168.16.1'
-        - '192.168.19.1'
-        - '192.168.12.1'
+        - '192.168.17.1'
+        - '192.168.18.1'
+        - '192.168.9.1'
         - '192.168.99.1'
         - '192.168.166.1'
+        - '192.168.177.1'
+        - '192.168.188.1'
+        - '192.168.10.1'
+        - '192.168.12.1'
+        - '192.168.67.1'
         - '172.16.0.1'
         - '172.18.0.1'
         - '10.0.0.1'
         - '10.88.0.1'
       BCM_FULLCONE:
         description: 'bcm fullcone'
+        default: 'false'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
+      OPENSSL_3_4:
+        description: 'OPENSSL 3.4'
         default: 'false'
         type: choice
         options:
@@ -314,8 +329,11 @@ jobs:
         if [ ${{github.event.inputs.Firewall_Allow_WAN}} = true ]; then
         $GITHUB_WORKSPACE/$DIY_SH firewall-allow-wan
         fi
-        if [ ${{github.event.inputs.TRY_BBR_V3}} = true ]; then
+        # if [ ${{github.event.inputs.TRY_BBR_V3}} = true ]; then
         [ -d openwrt-2410/mypatch-bbr-v3 ] && cp -r openwrt-2410/mypatch-bbr-v3/* openwrt-2410/mypatch-2410-${{matrix.target}}
+        # fi
+        if [ ${{github.event.inputs.OPENSSL_3_4}} = true ]; then
+        [ -d openwrt-2410/openssl-bump ] && cp -r openwrt-2410/openssl-bump/* openwrt-2410/mypatch-2410-${{matrix.target}}
         fi
         if [ ${{github.event.inputs.AG71XX_FIX}} = true ]; then
         [ -d openwrt-2410/my-patch-ag71xx-fix ] && cp -r openwrt-2410/my-patch-ag71xx-fix/* openwrt-2410/mypatch-2410-${{matrix.target}}
