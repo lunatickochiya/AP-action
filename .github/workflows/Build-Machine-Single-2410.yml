@@ -142,6 +142,18 @@ on:
 #        options:
 #        - 'true'
 #        - 'false'
+      packages:
+        description: 'OpenWrt packages（example: luci-app-example,luci-app-helloworld）'
+        required: true
+        default: 'luci-app-example,luci-app-example2'
+      packages_mod:
+        description: 'The Above packages set to which'
+        default: 'y'
+        type: choice
+        options:
+        - 'y'
+        - 'm'
+        - 'n'
 env:
   TZ: Asia/Shanghai
 
@@ -467,7 +479,24 @@ jobs:
         if [ ${{github.event.inputs.TEST-KERNEL}} = true ]; then
         $GITHUB_WORKSPACE/$DIY_SH patchtele
         fi
+        IFS=',' read -r -a package_array <<< "${{ github.event.inputs.packages }}"
+        for pkg in "${package_array[@]}"; do
+            ./scripts/feeds install "$pkg"
+        if [ "${{ github.event.inputs.packages_mod }}" = "y" ]; then
+            echo "CONFIG_PACKAGE_$pkg=y" >> .config
+            echo "$pkg Added ..."
+        elif [ "${{ github.event.inputs.packages_mod }}" = "m" ]; then
+            echo "CONFIG_PACKAGE_$pkg=m" >> .config
+            echo "$pkg Marked ..."
+        elif [ "${{ github.event.inputs.packages_mod }}" = "n" ]; then
+            echo "CONFIG_PACKAGE_$pkg=n" >> .config
+            echo "$pkg Remove ..."
+        fi
+        done
         make defconfig
+        for pkg in "${package_array[@]}"; do
+          awk -v pkg="$pkg" '$0 ~ pkg { print }' .config
+        done
         $GITHUB_WORKSPACE/$DIY_SH_RFC ${{matrix.target}}
         echo "status=success" >> $GITHUB_OUTPUT
 
