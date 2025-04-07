@@ -116,6 +116,19 @@ CONFIG_PACKAGE_luci-lib-ipkg=m
 echo "---------lunatic-lede-config-core--"
 }
 
+function add_lunatic_lede_sdk_config() {
+for file in package-configs/*-iptables.config; do     echo "# ADD SDK
+CONFIG_SDK=y
+" >> "$file"; done
+echo "---------lunatic-lede-sdk--"
+}
+
+function add_lunatic_lede_ib_config() {
+for file in package-configs/*-iptables.config; do     echo "# ADD SDK
+CONFIG_IB=y
+" >> "$file"; done
+echo "---------lunatic-lede-ib--"
+}
 
 if [ "$1" == "nft" ]; then
 add_nft_config
@@ -135,6 +148,10 @@ elif [ "$1" == "ipq-nft-turboacc-nosfe" ]; then
 add_ipq_turboacc_nft_config_nosfe
 elif [ "$1" == "lunatic-lede-config" ]; then
 add_lunatic_lede_core_config
+elif [ "$1" == "lunatic-lede-sdk" ]; then
+add_lunatic_lede_sdk_config
+elif [ "$1" == "lunatic-lede-ib" ]; then
+add_lunatic_lede_ib_config
 else
 echo "Invalid argument"
 fi
