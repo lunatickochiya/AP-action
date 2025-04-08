@@ -78,7 +78,7 @@ on:
       patch_repo:
         description: 'Use json patch repo true(1) or false(0) See ReadME'
         required: true
-        default: '{"OPENSSL_3_4": "1", "BCM_FULLCONE": "1", "TRY_BBR_V3": "1", "Firewall_Allow_WAN": "1", "DOCKER_BUILDIN": "1"}'
+        default: '{"OPENSSL_3_4": "1", "BCM_FULLCONE": "1", "TRY_BBR_V3": "1", "Firewall_Allow_WAN": "1", "DOCKER_BUILDIN": "0", "ADD_IB": "0", "ADD_SDK": "0"}'
 
 #      DOCKER_BUILDIN:
 #        description: 'Build docker'
@@ -103,7 +103,7 @@ on:
 #        - 'false'
       SETIP:
         description: 'Set ip address'
-        default: '192.168.10.1'
+        default: '192.168.7.1'
         required: false
         type: choice
         options:
@@ -276,6 +276,8 @@ jobs:
         echo -e "TRY_BBR_V3=$(echo $PATCH_JSON_INPUT | jq -r ".TRY_BBR_V3")" >> $GITHUB_ENV
         echo -e "Firewall_Allow_WAN=$(echo $PATCH_JSON_INPUT | jq -r ".Firewall_Allow_WAN")" >> $GITHUB_ENV
         echo -e "DOCKER_BUILDIN=$(echo $PATCH_JSON_INPUT | jq -r ".DOCKER_BUILDIN")" >> $GITHUB_ENV
+        echo -e "ADD_IB=$(echo $PATCH_JSON_INPUT | jq -r ".ADD_IB")" >> $GITHUB_ENV
+        echo -e "ADD_SDK=$(echo $PATCH_JSON_INPUT | jq -r ".ADD_SDK")" >> $GITHUB_ENV
         CONFIG_JSON_INPUT='${{ github.event.inputs.config_repo }}'
         echo -e "Cache=$(echo $CONFIG_JSON_INPUT | jq -r ".Cache")" >> $GITHUB_ENV
         echo -e "UPLOAD_RELEASE=$(echo $CONFIG_JSON_INPUT | jq -r ".UPLOAD_RELEASE")" >> $GITHUB_ENV
@@ -386,6 +388,14 @@ jobs:
         bash $GITHUB_WORKSPACE/add-sfe-packages.sh ipq-docker
         echo "----${{matrix.target}}-----Docker--Config--Added--"
         echo "DOCKER_NAME=_DOCKER" >> $GITHUB_ENV
+        fi
+        if [ ${{ env.ADD_SDK }} = 1 ]; then
+        bash $GITHUB_WORKSPACE/add-sfe-packages.sh lunatic-lede-sdk
+        echo "----${{matrix.target}}----SDK---"
+        fi
+        if [ ${{ env.ADD_IB }} = 1 ]; then
+        bash $GITHUB_WORKSPACE/add-sfe-packages.sh lunatic-lede-ib
+        echo "----${{matrix.target}}----IB---"
         fi
         echo "status=success" >> $GITHUB_OUTPUT
 
