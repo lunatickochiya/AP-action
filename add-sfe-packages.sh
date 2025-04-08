@@ -117,17 +117,17 @@ echo "---------lunatic-lede-config-core--"
 }
 
 function add_lunatic_lede_sdk_config() {
-for file in package-configs/*-iptables.config; do     echo "# ADD SDK
+for file in package-configs/*tables.config; do     echo "# ADD SDK
 CONFIG_SDK=y
 " >> "$file"; done
-echo "---------lunatic-lede-sdk--"
+echo "----------sdk-added------"
 }
 
 function add_lunatic_lede_ib_config() {
-for file in package-configs/*-iptables.config; do     echo "# ADD SDK
+for file in package-configs/*tables.config; do     echo "# ADD SDK
 CONFIG_IB=y
 " >> "$file"; done
-echo "---------lunatic-lede-ib--"
+echo "-----------ib-added------"
 }
 
 if [ "$1" == "nft" ]; then

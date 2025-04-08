@@ -78,7 +78,7 @@ on:
       patch_repo:
         description: 'Use json patch repo true(1) or false(0) See ReadME'
         required: true
-        default: '{"OPENSSL_3_4": "1", "BCM_FULLCONE": "1", "TRY_BBR_V3": "1", "Firewall_Allow_WAN": "1", "DOCKER_BUILDIN": "0", "ADD_IB": "0", "ADD_SDK": "0"}'
+        default: '{"OPENSSL_3_4": "1", "BCM_FULLCONE": "1", "TRY_BBR_V3": "1", "Firewall_Allow_WAN": "1", "ADD_IB": "0", "ADD_SDK": "0", "DOCKER_BUILDIN": "0"}'
 
 #      DOCKER_BUILDIN:
 #        description: 'Build docker'
