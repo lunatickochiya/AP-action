@@ -1,5 +1,4 @@
 REPO_URL="https://github.com/lunatickochiya/lunatic-lede"
-REPO_BRANCH="lede-17.01-2025"
 DIY_SH="diy-lunatic-lede.sh"
 DIY_SH_AFB="after_build.sh"
 DIY_SH_RFC="refineconfig.sh"
