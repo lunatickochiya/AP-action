@@ -1,166 +1,17 @@
-From 30a39cba069e55857bc6b9fc71faa3e527cec307 Mon Sep 17 00:00:00 2001
+From f28d8e94877894cfb3c50bf0d9bc207f1030f3e0 Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
-Date: Mon, 3 Mar 2025 20:47:59 +0800
-Subject: [PATCH] bcm fullcone nat patch
+Date: Fri, 25 Apr 2025 20:28:41 +0800
+Subject: [PATCH 4/8] kernel:5.15 6.1 6.6 :add:ipt fullcone patch
 
 ---
- .../patches/101-bcm-fullconenat.patch         |  60 +++++
- .../patches/900-bcm-fullconenat.patch         |  73 ++++++
  .../982-add-bcm-fullconenat-support.patch     | 235 ++++++++++++++++++
  .../982-add-bcm-fullconenat-support.patch     | 235 ++++++++++++++++++
  .../982-add-bcm-fullconenat-support.patch     | 235 ++++++++++++++++++
- 5 files changed, 838 insertions(+)
- create mode 100644 package/network/config/firewall/patches/101-bcm-fullconenat.patch
- create mode 100644 package/network/utils/iptables/patches/900-bcm-fullconenat.patch
+ 3 files changed, 705 insertions(+)
  create mode 100644 target/linux/generic/hack-5.15/982-add-bcm-fullconenat-support.patch
  create mode 100644 target/linux/generic/hack-6.1/982-add-bcm-fullconenat-support.patch
  create mode 100644 target/linux/generic/hack-6.6/982-add-bcm-fullconenat-support.patch
 
-diff --git a/package/network/config/firewall/patches/101-bcm-fullconenat.patch b/package/network/config/firewall/patches/101-bcm-fullconenat.patch
-new file mode 100644
-index 0000000000..a8de4cbe05
---- /dev/null
-+++ b/package/network/config/firewall/patches/101-bcm-fullconenat.patch
-@@ -0,0 +1,60 @@
-+--- a/defaults.c
-++++ b/defaults.c
-+@@ -49,7 +49,7 @@ const struct fw3_option fw3_flag_opts[]
-+ 	FW3_OPT("synflood_rate",       limit,    defaults, syn_flood_rate),
-+ 	FW3_OPT("synflood_burst",      int,      defaults, syn_flood_rate.burst),
-+
-+-	FW3_OPT("fullcone",           bool,     defaults, fullcone),
-++	FW3_OPT("fullcone",           int,     defaults, fullcone),
-+
-+ 	FW3_OPT("tcp_syncookies",      bool,     defaults, tcp_syncookies),
-+ 	FW3_OPT("tcp_ecn",             int,      defaults, tcp_ecn),
-+--- a/options.h
-++++ b/options.h
-+@@ -98,6 +98,13 @@ enum fw3_reject_code
-+ 	__FW3_REJECT_CODE_MAX
-+ };
-+
-++enum fullcone_code
-++{
-++	FULLCONE_DISABLED = 0,
-++	FULLCONE_CHION = 1,
-++	FULLCONE_BCM = 2,
-++};
-++
-+ extern const char *fw3_flag_names[__FW3_FLAG_MAX];
-+
-+
-+@@ -297,7 +304,7 @@ struct fw3_defaults
-+ 	enum fw3_reject_code any_reject_code;
-+
-+ 	bool syn_flood;
-+-	bool fullcone;
-++	int fullcone;
-+ 	struct fw3_limit syn_flood_rate;
-+
-+ 	bool tcp_syncookies;
-+--- a/zones.c
-++++ b/zones.c
-+@@ -757,7 +757,7 @@ print_zone_rule(struct fw3_ipt_handle *h
-+ 					r = fw3_ipt_rule_new(handle);
-+ 					fw3_ipt_rule_src_dest(r, msrc, mdest);
-+ 					/*FIXME: Workaround for FULLCONE-NAT*/
-+-					if(defs->fullcone)
-++					if(defs->fullcone == FULLCONE_CHION)
-+ 					{
-+ 						warn("%s will enable FULLCONE-NAT", zone->name);
-+ 						fw3_ipt_rule_target(r, "FULLCONENAT");
-+@@ -767,6 +767,12 @@ print_zone_rule(struct fw3_ipt_handle *h
-+ 						fw3_ipt_rule_target(r, "FULLCONENAT");
-+ 						fw3_ipt_rule_append(r, "zone_%s_prerouting", zone->name);
-+ 					}
-++					else if (defs->fullcone == FULLCONE_BCM)
-++					{
-++						fw3_ipt_rule_target(r, "MASQUERADE");
-++						fw3_ipt_rule_extra(r, "--mode fullcone");
-++						fw3_ipt_rule_append(r, "zone_%s_postrouting", zone->name);
-++					}
-+ 					else
-+ 					{
-+ 						fw3_ipt_rule_target(r, "MASQUERADE");
-diff --git a/package/network/utils/iptables/patches/900-bcm-fullconenat.patch b/package/network/utils/iptables/patches/900-bcm-fullconenat.patch
-new file mode 100644
-index 0000000000..2ff8db06a2
---- /dev/null
-+++ b/package/network/utils/iptables/patches/900-bcm-fullconenat.patch
-@@ -0,0 +1,73 @@
-+--- a/extensions/libipt_MASQUERADE.c
-++++ b/extensions/libipt_MASQUERADE.c
-+@@ -11,6 +11,7 @@
-+ enum {
-+ 	O_TO_PORTS = 0,
-+ 	O_RANDOM,
-++	O_MODE,
-+ 	O_RANDOM_FULLY,
-+ };
-+ 
-+@@ -23,13 +24,16 @@ static void MASQUERADE_help(void)
-+ " --random\n"
-+ "				Randomize source port.\n"
-+ " --random-fully\n"
-+-"				Fully randomize source port.\n");
-++"				Fully randomize source port.\n"
-++" --mode <fullcone|symmetric>\n"
-++"				NAT mode.\n");
-+ }
-+ 
-+ static const struct xt_option_entry MASQUERADE_opts[] = {
-+ 	{.name = "to-ports", .id = O_TO_PORTS, .type = XTTYPE_STRING},
-+ 	{.name = "random", .id = O_RANDOM, .type = XTTYPE_NONE},
-+ 	{.name = "random-fully", .id = O_RANDOM_FULLY, .type = XTTYPE_NONE},
-++	{.name = "mode", .id = O_MODE, .type = XTTYPE_STRING},
-+ 	XTOPT_TABLEEND,
-+ };
-+ 
-+@@ -90,6 +94,8 @@ static void MASQUERADE_parse(struct xt_o
-+ 	else
-+ 		portok = 0;
-+ 
-++	mr->range[0].min_ip = 0;
-++
-+ 	xtables_option_parse(cb);
-+ 	switch (cb->entry->id) {
-+ 	case O_TO_PORTS:
-+@@ -104,6 +110,15 @@ static void MASQUERADE_parse(struct xt_o
-+ 	case O_RANDOM_FULLY:
-+ 		mr->range[0].flags |=  NF_NAT_RANGE_PROTO_RANDOM_FULLY;
-+ 		break;
-++	case O_MODE:
-++		if (strcasecmp(cb->arg, "fullcone") == 0)
-++			mr->range[0].min_ip = 1;
-++		else if (strcasecmp(cb->arg, "symmetric") == 0)
-++			mr->range[0].min_ip = 0;
-++		else
-++			xtables_error(PARAMETER_PROBLEM,
-++				   "Unknown mode %s", cb->arg);
-++		break;
-+ 	}
-+ }
-+ 
-+@@ -126,6 +141,9 @@ MASQUERADE_print(const void *ip, const s
-+ 
-+ 	if (r->flags & NF_NAT_RANGE_PROTO_RANDOM_FULLY)
-+ 		printf(" random-fully");
-++
-++	if (r->min_ip == 1)
-++		printf(" mode: fullcone");
-+ }
-+ 
-+ static void
-+@@ -145,6 +163,9 @@ MASQUERADE_save(const void *ip, const st
-+ 
-+ 	if (r->flags & NF_NAT_RANGE_PROTO_RANDOM_FULLY)
-+ 		printf(" --random-fully");
-++
-++	if (r->min_ip == 1)
-++		printf(" --mode fullcone");
-+ }
-+ 
-+ static int MASQUERADE_xlate(struct xt_xlate *xl,
 diff --git a/target/linux/generic/hack-5.15/982-add-bcm-fullconenat-support.patch b/target/linux/generic/hack-5.15/982-add-bcm-fullconenat-support.patch
 new file mode 100644
 index 0000000000..41b16c36d6
@@ -885,5 +736,5 @@ index 0000000000..446f6bba5f
 + 				      xt_out(par));
 + }
 -- 
-2.34.1
+2.43.0
 
