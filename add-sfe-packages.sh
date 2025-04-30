@@ -130,6 +130,37 @@ CONFIG_IB=y
 echo "-----------ib-added------"
 }
 
+function add_ipq_firmware_11_4() {
+for file in package-configs/*ipq*.config; do     echo "# NSS
+CONFIG_NSS_FIRMWARE_VERSION_11_4=y
+" >> "$file"; done
+echo "-----------114-added------"
+}
+
+function add_ipq_firmware_12_1() {
+for file in package-configs/*ipq*.config; do     echo "# NSS
+CONFIG_NSS_FIRMWARE_VERSION_11_4=n
+CONFIG_NSS_FIRMWARE_VERSION_12_1=y
+" >> "$file"; done
+echo "-----------121-added------"
+}
+
+function add_ipq_firmware_12_2() {
+for file in package-configs/*ipq*.config; do     echo "# NSS
+CONFIG_NSS_FIRMWARE_VERSION_11_4=n
+CONFIG_NSS_FIRMWARE_VERSION_12_2=y
+" >> "$file"; done
+echo "-----------122-added------"
+}
+
+function add_ipq_firmware_12_5() {
+for file in package-configs/*ipq*.config; do     echo "# NSS
+CONFIG_NSS_FIRMWARE_VERSION_11_4=n
+CONFIG_NSS_FIRMWARE_VERSION_12_5=y
+" >> "$file"; done
+echo "-----------125-added------"
+}
+
 if [ "$1" == "nft" ]; then
 add_nft_config
 elif [ "$1" == "ipt" ]; then
@@ -146,6 +177,14 @@ elif [ "$1" == "ipq-ipt-turboacc-nosfe" ]; then
 add_ipq_turboacc_ipt_config_nosfe
 elif [ "$1" == "ipq-nft-turboacc-nosfe" ]; then
 add_ipq_turboacc_nft_config_nosfe
+elif [ "$1" == "ipq-nss-11-4" ]; then
+add_ipq_firmware_11_4
+elif [ "$1" == "ipq-nss-12-1" ]; then
+add_ipq_firmware_12_1
+elif [ "$1" == "ipq-nss-12-2" ]; then
+add_ipq_firmware_12_2
+elif [ "$1" == "ipq-nss-12-5" ]; then
+add_ipq_firmware_12_5
 elif [ "$1" == "lunatic-lede-config" ]; then
 add_lunatic_lede_core_config
 elif [ "$1" == "lunatic-lede-sdk" ]; then

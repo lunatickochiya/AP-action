@@ -80,7 +80,7 @@ on:
       patch_repo:
         description: 'Use json patch repo true(1) or false(0) See ReadME'
         required: true
-        default: '{"Branch": "24.10-nss-202502","OPENSSL_3_5": "1", "BCM_FULLCONE": "1", "TRY_BBR_V3": "1", "Firewall_Allow_WAN": "0", "ADD_IB": "0", "ADD_SDK": "0", "DOCKER_BUILDIN": "1"}'
+        default: '{"Branch": "24.10-nss-202502","IPQ_Firmware": "ipq-nss-11-4","OPENSSL_3_5": "1", "BCM_FULLCONE": "1", "TRY_BBR_V3": "1", "Firewall_Allow_WAN": "0", "ADD_IB": "0", "ADD_SDK": "0", "DOCKER_BUILDIN": "1"}'
 
 env:
   TZ: Asia/Shanghai
@@ -198,6 +198,7 @@ jobs:
         #fi
         PATCH_JSON_INPUT='${{ github.event.inputs.patch_repo }}'
         echo -e "Branch=$(echo $PATCH_JSON_INPUT | jq -r ".Branch")" >> $GITHUB_ENV
+        echo -e "IPQ_Firmware=$(echo $PATCH_JSON_INPUT | jq -r ".IPQ_Firmware")" >> $GITHUB_ENV
         echo -e "OPENSSL_3_5=$(echo $PATCH_JSON_INPUT | jq -r ".OPENSSL_3_5")" >> $GITHUB_ENV
         echo -e "BCM_FULLCONE=$(echo $PATCH_JSON_INPUT | jq -r ".BCM_FULLCONE")" >> $GITHUB_ENV
         echo -e "TRY_BBR_V3=$(echo $PATCH_JSON_INPUT | jq -r ".TRY_BBR_V3")" >> $GITHUB_ENV
@@ -326,6 +327,7 @@ jobs:
         bash $GITHUB_WORKSPACE/add-sfe-packages.sh lunatic-lede-ib
         echo "----${{matrix.target}}----IB---"
         fi
+        bash $GITHUB_WORKSPACE/add-sfe-packages.sh $IPQ_Firmware
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 添加 SFE
