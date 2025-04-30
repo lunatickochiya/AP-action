@@ -80,7 +80,7 @@ on:
       patch_repo:
         description: 'Use json patch repo true(1) or false(0) See ReadME'
         required: true
-        default: '{"Branch": "24.10-nss-202502","OPENSSL_3_4": "1", "BCM_FULLCONE": "1", "TRY_BBR_V3": "1", "Firewall_Allow_WAN": "0", "ADD_IB": "0", "ADD_SDK": "0", "DOCKER_BUILDIN": "1"}'
+        default: '{"Branch": "24.10-nss-202502","OPENSSL_3_5": "1", "BCM_FULLCONE": "1", "TRY_BBR_V3": "1", "Firewall_Allow_WAN": "0", "ADD_IB": "0", "ADD_SDK": "0", "DOCKER_BUILDIN": "1"}'
 
 env:
   TZ: Asia/Shanghai
@@ -198,7 +198,7 @@ jobs:
         #fi
         PATCH_JSON_INPUT='${{ github.event.inputs.patch_repo }}'
         echo -e "Branch=$(echo $PATCH_JSON_INPUT | jq -r ".Branch")" >> $GITHUB_ENV
-        echo -e "OPENSSL_3_4=$(echo $PATCH_JSON_INPUT | jq -r ".OPENSSL_3_4")" >> $GITHUB_ENV
+        echo -e "OPENSSL_3_5=$(echo $PATCH_JSON_INPUT | jq -r ".OPENSSL_3_5")" >> $GITHUB_ENV
         echo -e "BCM_FULLCONE=$(echo $PATCH_JSON_INPUT | jq -r ".BCM_FULLCONE")" >> $GITHUB_ENV
         echo -e "TRY_BBR_V3=$(echo $PATCH_JSON_INPUT | jq -r ".TRY_BBR_V3")" >> $GITHUB_ENV
         echo -e "Firewall_Allow_WAN=$(echo $PATCH_JSON_INPUT | jq -r ".Firewall_Allow_WAN")" >> $GITHUB_ENV
@@ -293,10 +293,10 @@ jobs:
         echo "----${{matrix.target}}----bbr-v3---"
         echo "TRY_BBR_V3_NAME=_BBR_V3" >> $GITHUB_ENV
         fi
-        if [ ${{ env.OPENSSL_3_4}} = 1 ]; then
+        if [ ${{ env.OPENSSL_3_5}} = 1 ]; then
         [ -d openwrt-ipq/openssl-bump ] && cp -r openwrt-ipq/openssl-bump/* openwrt-ipq/mypatch-openwrt-ipq-${{matrix.target}}
         echo "----${{matrix.target}}----openssl-3-4---"
-        echo "OPENSSL_3_4_NAME=_OPENSSL_3_4" >> $GITHUB_ENV
+        echo "OPENSSL_3_5_NAME=_OPENSSL_3_5" >> $GITHUB_ENV
         fi
         if [ ${{ env.AG71XX_FIX}} = 1 ]; then
         [ -d openwrt-ipq/my-patch-ag71xx-fix ] && cp -r openwrt-ipq/my-patch-ag71xx-fix/* openwrt-ipq/mypatch-openwrt-ipq-${{matrix.target}}
@@ -611,7 +611,7 @@ jobs:
       continue-on-error: true
       if: steps.organize.outputs.status == 'success' && env.UPLOAD_FIRMWARE == 'true'
       with:
-        name: ${{ env.VERSION }}_${{matrix.target}}_firmware_24.10-${{github.event.inputs.MACH}}-${{ github.event.inputs.SETIP }}${{ env.Kernel_Test }}${{ env.BCM_FULLCONE_NAME }}${{ env.SFE }}${{ env.TRY_BBR_V3_NAME }}${{ env.OPENSSL_3_4_NAME }}${{ env.DOCKER_NAME }}${{ env.WAN_NAME }}_${{ env.Branch }}
+        name: ${{ env.VERSION }}_${{matrix.target}}_firmware_24.10-${{github.event.inputs.MACH}}-${{ github.event.inputs.SETIP }}${{ env.Kernel_Test }}${{ env.BCM_FULLCONE_NAME }}${{ env.SFE }}${{ env.TRY_BBR_V3_NAME }}${{ env.OPENSSL_3_5_NAME }}${{ env.DOCKER_NAME }}${{ env.WAN_NAME }}_${{ env.Branch }}
         path: |
           firmware
 
@@ -620,7 +620,7 @@ jobs:
       continue-on-error: true
       if: steps.organize.outputs.status == 'success' && env.UPLOAD_IPK_DIR == 'true' && steps.afb.outputs.status == 'success'
       with:
-        name: ${{ env.VERSION }}_${{matrix.target}}_ipks_24.10-${{github.event.inputs.MACH}}${{ env.Kernel_Test }}${{ env.BCM_FULLCONE_NAME }}${{ env.SFE }}${{ env.TRY_BBR_V3_NAME }}${{ env.OPENSSL_3_4_NAME }}${{ env.DOCKER_NAME }}${{ env.WAN_NAME }}_${{ env.Branch }}
+        name: ${{ env.VERSION }}_${{matrix.target}}_ipks_24.10-${{github.event.inputs.MACH}}${{ env.Kernel_Test }}${{ env.BCM_FULLCONE_NAME }}${{ env.SFE }}${{ env.TRY_BBR_V3_NAME }}${{ env.OPENSSL_3_5_NAME }}${{ env.DOCKER_NAME }}${{ env.WAN_NAME }}_${{ env.Branch }}
         path: |
           ipks
 
@@ -653,7 +653,7 @@ jobs:
         [ ${{github.event.inputs.MACH}} = rax3000m-emmc ] && echo "- 使用闪存频率: ($(grep -oP "max-frequency = <\K[0-9]*" openwrt/target/linux/mediatek/dts/mt7981b-cmcc-rax3000m-emmc-ubootmod.dts)) Hz" >> release.txt
         [ $UPLOAD_COWTRANSFER = true ] && echo "🔗 [Cowtransfer](${{ steps.cowtransfer.outputs.url }})" >> release.txt
         [ $UPLOAD_WETRANSFER = true ] && echo "🔗 [WeTransfer](${{ steps.wetransfer.outputs.url }})" >> release.txt
-        echo "🔗 ${{ env.BCM_FULLCONE_NAME }}${{ env.SFE }}${{ env.TRY_BBR_V3_NAME }}${{ env.OPENSSL_3_4_NAME }}" >> release.txt
+        echo "🔗 ${{ env.BCM_FULLCONE_NAME }}${{ env.SFE }}${{ env.TRY_BBR_V3_NAME }}${{ env.OPENSSL_3_5_NAME }}" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 上传固件发布
