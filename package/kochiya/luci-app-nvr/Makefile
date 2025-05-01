@@ -1,36 +1,21 @@
+# Copyright (C) 2016 Openwrt.org
+#
+# This is free software, licensed under the Apache License, Version 2.0 .
+#
+
 include $(TOPDIR)/rules.mk
 
+LUCI_TITLE:=LuCI support for NVR
+LUCI_DEPENDS:=+ffmpeg
+LUCI_PKGARCH:=all
 PKG_NAME:=luci-app-nvr
 PKG_VERSION:=20240614
+PKG_RELEASE:=1
 
-include $(INCLUDE_DIR)/package.mk
+include $(TOPDIR)/feeds/luci/luci.mk
 
-define Package/luci-app-nvr
- 	SECTION:=luci
-	CATEGORY:=LuCI
-	SUBMENU:=3. Applications
-	TITLE:=LuCI Support for Network Video Recorder
-	PKGARCH:=all
-	DEPENDS:=+ffmpeg
-endef
+# call BuildPackage - OpenWrt buildroot signature
 
-define Build/Prepare
-	$(foreach po,$(wildcard ${CURDIR}/luasrc/i18n/*.po), \
-		po2lmo $(po) $(PKG_BUILD_DIR)/$(patsubst %.po,%.lmo,$(notdir $(po)));)
-endef
 
-define Build/Compile
-endef
 
-define Package/luci-app-nvr/install
-	$(INSTALL_DIR) $(1)/usr/lib/lua/luci
-	cp -pR ./luasrc/* $(1)/usr/lib/lua/luci
-	$(INSTALL_DIR) $(1)/usr/nvr
-	$(INSTALL_BIN) ./files/nvr/* $(1)/usr/nvr
-	$(INSTALL_DIR) $(1)/etc/config
-	$(INSTALL_CONF) ./files/nvr.conf $(1)/etc/config/nvr
-	$(INSTALL_DIR) $(1)/etc/init.d
-	$(INSTALL_BIN) ./files/nvr.init $(1)/etc/init.d/nvr
-endef
 
-$(eval $(call BuildPackage,luci-app-nvr))
