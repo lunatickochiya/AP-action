@@ -7,7 +7,7 @@ index cfac620..9a48788 100644
  endef
 
 +define Package/aria2-openssl/install
-+	$(INSTALL_DIR) $(1)/root
++	true
 +endef
 +
  $(eval $(call BuildPackage,aria2))
