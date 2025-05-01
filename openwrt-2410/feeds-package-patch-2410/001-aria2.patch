@@ -1,0 +1,13 @@
+diff --git a/net/aria2/Makefile b/net/aria2/Makefile
+index 9e3de4b..3ef79bb 100644
+--- a/net/aria2/Makefile
++++ b/net/aria2/Makefile
+@@ -108,5 +108,8 @@ define Package/aria2/install
+ 	$(INSTALL_CONF) ./files/aria2.conf $(1)/etc/config/aria2
+ endef
+ 
++define Package/aria2-openssl/install
++endef
++
+ $(eval $(call BuildPackage,aria2))
+ $(eval $(call BuildPackage,aria2-openssl))
