@@ -13,6 +13,7 @@ on:
         description: 'Use json config repo true(1) or false(0) See ReadME'
         required: true
         default: '{"Cache": "1", "UPLOAD_RELEASE": "1", "ALLKMOD": "1"}'
+
       MACH:
         description: 'Choose machine'
         required: true
@@ -28,6 +29,7 @@ on:
         - 'lenovo_newifi-y1'
         - 'domywifi_dw33d'
         - 'aliyun_ap8220'
+
       SFE_BUILDIN:
         description: 'Build sfe'
         default: 'true'
@@ -42,7 +44,7 @@ on:
         default: 'luci-app-example,luci-app-example2'
       packages_mod:
         description: 'The Above packages set to which'
-        default: 'y'
+        default: 'm'
         type: choice
         options:
         - 'y'
@@ -94,7 +96,7 @@ on:
       patch_repo:
         description: 'Use json patch repo true(1) or false(0) See ReadME'
         required: true
-        default: '{"Branch": "24.10-nss-202502","IPQ_Firmware": "ipq-nss-11-4","OPENSSL_3_5": "1", "BCM_FULLCONE": "1", "TRY_BBR_V3": "1", "Firewall_Allow_WAN": "0", "ADD_IB": "0", "ADD_SDK": "0", "DOCKER_BUILDIN": "1"}'
+        default: '{"Branch": "24.10-nss-202502","IPQ_Firmware": "ipq-nss-11-4","OPENSSL_3_5": "1", "BCM_FULLCONE": "1", "TRY_BBR_V3": "1", "Firewall_Allow_WAN": "0", "ADD_IB": "1", "ADD_SDK": "1", "DOCKER_BUILDIN": "0"}'
 
 env:
   TZ: Asia/Shanghai
