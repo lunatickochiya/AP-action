@@ -1,7 +1,7 @@
-From ba244cd25dd3372d1fb4d1395bab55287ea38b9c Mon Sep 17 00:00:00 2001
+From 1b8402068195dc4d341fc8e228c31bfce1cd0b42 Mon Sep 17 00:00:00 2001
 From: Lienol <23146169+Lienol@users.noreply.github.com>
 Date: Tue, 5 May 2020 02:08:11 +0800
-Subject: [PATCH] mac80211: mt76:hostapd:add support for 256-QAM
+Subject: [PATCH 01/10] mac80211: mt76:hostapd:add support for 256-QAM
 
 ---
  .../ath10k/983-ath10k-allow-vht-on-2g.patch   | 10 ++++
@@ -167,7 +167,7 @@ index d673f5405b..c90d215cbf 100644
  		a)
  			if [ "$cell_density" -eq 1 ]; then
 diff --git a/package/network/config/wifi-scripts/files/lib/netifd/wireless/mac80211.sh b/package/network/config/wifi-scripts/files/lib/netifd/wireless/mac80211.sh
-index b4aa19bf52..102b0bde0a 100755
+index 059fd9b8c8..4bcc06ae4c 100755
 --- a/package/network/config/wifi-scripts/files/lib/netifd/wireless/mac80211.sh
 +++ b/package/network/config/wifi-scripts/files/lib/netifd/wireless/mac80211.sh
 @@ -144,8 +144,8 @@ mac80211_hostapd_setup_base() {
@@ -191,5 +191,5 @@ index b4aa19bf52..102b0bde0a 100755
  			rxldpc:1 \
  			short_gi_80:1 \
 -- 
-2.34.1
+2.43.0
 

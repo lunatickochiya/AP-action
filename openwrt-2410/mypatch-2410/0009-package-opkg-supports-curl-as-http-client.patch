@@ -1,7 +1,7 @@
-From d31ab57d4ed0f13a0555d0e5b5a6a62de27cd0b1 Mon Sep 17 00:00:00 2001
+From 7b7afea008c558ce7551bf3c0a2de5c0e0fc5173 Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
 Date: Mon, 21 Aug 2023 20:32:35 +0800
-Subject: [PATCH 7/7] package/opkg: supports curl as http client
+Subject: [PATCH 09/10] package/opkg: supports curl as http client
 
 pick from https://github.com/istoreos/istoreos/commit/6ce3e5079a9f4f4bdac3b9799b5578852db2cb37
 ---
@@ -106,5 +106,5 @@ index 0000000000..6e76d9e931
 + 		const char *argv[11];
 + 		int i = 0;
 -- 
-2.34.1
+2.43.0
 

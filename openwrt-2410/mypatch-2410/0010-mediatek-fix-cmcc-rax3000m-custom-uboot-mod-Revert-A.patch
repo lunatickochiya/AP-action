@@ -1,8 +1,8 @@
-From 2b1f2cab1e5c2674ae0e5747cf41d4ebc48c1182 Mon Sep 17 00:00:00 2001
+From 16994b0056abde8b603d54fdab4420ce1f9782bd Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
 Date: Mon, 7 Apr 2025 20:02:13 +0800
-Subject: [PATCH] mediatek:fix cmcc rax3000m custom uboot mod Revert "Auxiliary
- commit to revert individual files from
+Subject: [PATCH 10/10] mediatek:fix cmcc rax3000m custom uboot mod Revert
+ "Auxiliary commit to revert individual files from
  553d21865fe2f3bc1ace1c309920f1f4ace1df97"
 
 This reverts commit 62f34b287e1a9f96cfe4b24e1550f72875cc6c89.
@@ -16,10 +16,10 @@ mediatek:fix cmcc rax3000m emmc custom uboot mod
  5 files changed, 15 insertions(+), 5 deletions(-)
 
 diff --git a/package/boot/uboot-envtools/files/mediatek_filogic b/package/boot/uboot-envtools/files/mediatek_filogic
-index bb40e1ad3b..e69ca79009 100644
+index b3b1ecf197..778c5e9472 100644
 --- a/package/boot/uboot-envtools/files/mediatek_filogic
 +++ b/package/boot/uboot-envtools/files/mediatek_filogic
-@@ -142,6 +142,9 @@ zyxel,ex5601-t0)
+@@ -146,6 +146,9 @@ zyxel,ex5601-t0)
  zyxel,ex5700-telenor)
  	ubootenv_add_uci_config "/dev/ubootenv" "0x0" "0x4000" "0x4000" "1"
  	;;
@@ -60,13 +60,13 @@ index 5d4f5a77a7..a36135d532 100644
  	nvmem-cells = <&macaddr_factory_2a 0>;
  	nvmem-cell-names = "mac-address";
 diff --git a/target/linux/mediatek/filogic/base-files/etc/hotplug.d/firmware/11-mt76-caldata b/target/linux/mediatek/filogic/base-files/etc/hotplug.d/firmware/11-mt76-caldata
-index 574cd8b02b..ac01ae8a99 100644
+index a93d2fb947..ca6fc7c7d4 100644
 --- a/target/linux/mediatek/filogic/base-files/etc/hotplug.d/firmware/11-mt76-caldata
 +++ b/target/linux/mediatek/filogic/base-files/etc/hotplug.d/firmware/11-mt76-caldata
-@@ -9,12 +9,10 @@ board=$(board_name)
- case "$FIRMWARE" in
- "mediatek/mt7981_eeprom_mt7976_dbdc.bin")
- 	case "$board" in
+@@ -13,12 +13,10 @@ case "$FIRMWARE" in
+ 		ln -sf /tmp/tp_data/MT7981_EEPROM.bin \
+ 			/lib/firmware/$FIRMWARE
+ 		;;
 +	cmcc,rax3000m-emmc-ubootmod|\
  	ubnt,unifi-6-plus)
  		caldata_extract_mmc "factory" 0x0 0x1000
@@ -95,5 +95,5 @@ index 9d279898ac..b7f423dcab 100644
  		;;
  	esac
 -- 
-2.34.1
+2.43.0
 

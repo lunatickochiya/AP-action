@@ -1,7 +1,7 @@
-From 3a3964e459cea6bf72bced8845f445b7ed76ca64 Mon Sep 17 00:00:00 2001
+From 8756835378edf7b470ae7bff59bb9b2c656dfe5b Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
 Date: Sun, 9 Feb 2025 22:00:39 +0800
-Subject: [PATCH 6/7] mediatek: add Nokia EA0326GMP support ubootmod 110M dts
+Subject: [PATCH 06/10] mediatek: add Nokia EA0326GMP support ubootmod 110M dts
 
 ---
  .../dts/mt7981b-nokia-ea0326gmp-ubootmod.dts  | 273 ++++++++++++++++++
@@ -288,5 +288,5 @@ index 0000000000..030cb6fe92
 +	};
 +};
 -- 
-2.34.1
+2.43.0
 
