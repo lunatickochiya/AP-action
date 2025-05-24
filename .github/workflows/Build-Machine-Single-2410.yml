@@ -578,6 +578,13 @@ jobs:
         make defconfig
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ipq
         make defconfig
+        elif [ ${{ env.TEST_KERNEL }} = 1 ]; then
+        $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-6-12
+        make defconfig
+        $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-6-12
+        make defconfig
+        $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-6-12
+        make defconfig
         else
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod
         make defconfig
