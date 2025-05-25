@@ -516,9 +516,9 @@ jobs:
       if: steps.feeds.outputs.status == 'success'
       id: config
       run: |
-        if [ ${{github.event.inputs.TEST-KERNEL}} = true ]; then
-        mv -f openwrt-2410/K61/tele openwrt/feeds/telephony
-        mv -f openwrt-2410/K61/packages/* openwrt-2410/feeds-package-patch-2410
+        if [ ${{ env.TEST_KERNEL }} = 1 ]; then
+        true
+        # mv -f openwrt-2410/2410-test/999-wct4xxp-Eliminate-old-style-declaration.patch openwrt/feeds/telephony/libs/dahdi-linux/patches/999-wct4xxp-Eliminate-old-style-declaration.patch
         fi
         [ -d openwrt-2410/lunatic7-revert ] && mv -f openwrt-2410/lunatic7-revert openwrt/feeds/lunatic7/lunatic7-revert
         [ -d openwrt-2410/luci-patch-2410 ] && mv -f openwrt-2410/luci-patch-2410 openwrt/feeds/luci/luci-patch-2410
@@ -528,9 +528,6 @@ jobs:
         [ -e machine-configs/${{matrix.target}}.config ] && mv -f machine-configs/${{matrix.target}}.config openwrt/package-configs/.config
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_SH ${{matrix.target}}
-        if [ ${{github.event.inputs.TEST-KERNEL}} = true ]; then
-        $GITHUB_WORKSPACE/$DIY_SH patchtele
-        fi
         IFS=',' read -r -a package_array <<< "${{ github.event.inputs.packages }}"
         for pkg in "${package_array[@]}"; do
             ./scripts/feeds install "$pkg"
@@ -577,6 +574,13 @@ jobs:
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ipq
         make defconfig
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ipq
+        make defconfig
+        elif [ ${{ env.TEST_KERNEL }} = 1 ]; then
+        $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-6-12
+        make defconfig
+        $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-6-12
+        make defconfig
+        $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-6-12
         make defconfig
         else
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod
