@@ -666,32 +666,6 @@ index 86d8e857f1..310f0ef132 100644
  
  / {
  	model = "Cudy TR3000 v1";
-diff --git a/target/linux/mediatek/dts/mt7981b-cudy-wr3000-v1.dts b/target/linux/mediatek/dts/mt7981b-cudy-wr3000-v1.dts
-index 8af8ef401f..b2b353bcd2 100644
---- a/target/linux/mediatek/dts/mt7981b-cudy-wr3000-v1.dts
-+++ b/target/linux/mediatek/dts/mt7981b-cudy-wr3000-v1.dts
-@@ -4,7 +4,7 @@
- 
- #include <dt-bindings/leds/common.h>
- 
--#include "mt7981.dtsi"
-+#include "mt7981b.dtsi"
- 
- / {
- 	model = "Cudy WR3000 v1";
-diff --git a/target/linux/mediatek/dts/mt7981b-cudy-wr3000s-v1.dts b/target/linux/mediatek/dts/mt7981b-cudy-wr3000s-v1.dts
-index bdc6188a4a..c866864e35 100644
---- a/target/linux/mediatek/dts/mt7981b-cudy-wr3000s-v1.dts
-+++ b/target/linux/mediatek/dts/mt7981b-cudy-wr3000s-v1.dts
-@@ -4,7 +4,7 @@
- 
- #include <dt-bindings/leds/common.h>
- 
--#include "mt7981.dtsi"
-+#include "mt7981b.dtsi"
- 
- / {
- 	model = "Cudy WR3000S v1";
 diff --git a/target/linux/mediatek/dts/mt7981b-dlink-aquila-pro-ai-m30-a1.dts b/target/linux/mediatek/dts/mt7981b-dlink-aquila-pro-ai-m30-a1.dts
 index dc14fce2b6..d70402fa66 100644
 --- a/target/linux/mediatek/dts/mt7981b-dlink-aquila-pro-ai-m30-a1.dts
@@ -7262,7 +7236,7 @@ index 0000000000..816763fae1
 + * available at https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
 + *
 + * $Revision: 76333 $
-+ * $Date: 2017-03-09 09:33:15 +0800 (¶g¥|, 09 ¤T¤ë 2017) $
++ * $Date: 2017-03-09 09:33:15 +0800 (ï¿½gï¿½|, 09 ï¿½Tï¿½ï¿½ 2017) $
 + *
 + * Purpose : RTL8367C switch MII access
 + * Feature : MII access functions

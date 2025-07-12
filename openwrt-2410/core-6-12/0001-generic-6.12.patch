@@ -94702,18 +94702,6 @@ index 4d6866db24..c7078cea4e 100644
   obj-$(CONFIG_RENESAS_PHY)	+= uPD60620.o
   obj-$(CONFIG_ROCKCHIP_PHY)	+= rockchip.o
   obj-$(CONFIG_SMSC_PHY)		+= smsc.o
-diff --git a/target/linux/rockchip/armv8/config-6.6 b/target/linux/rockchip/armv8/config-6.6
-index 68eed3e5f9..2b4baadd8c 100644
---- a/target/linux/rockchip/armv8/config-6.6
-+++ b/target/linux/rockchip/armv8/config-6.6
-@@ -551,6 +551,7 @@ CONFIG_RATIONAL=y
- # CONFIG_RAVE_SP_CORE is not set
- CONFIG_RCU_TRACE=y
- CONFIG_REALTEK_PHY=y
-+CONFIG_REALTEK_PHY_HWMON=y
- CONFIG_REGMAP=y
- CONFIG_REGMAP_I2C=y
- CONFIG_REGMAP_IRQ=y
 -- 
 2.43.0
 
