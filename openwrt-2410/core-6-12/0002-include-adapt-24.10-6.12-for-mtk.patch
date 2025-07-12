@@ -653,19 +653,6 @@ index 4025e5aaa3..122cfd8a1f 100644
  
  / {
  	model = "Cudy RE3000 v1";
-diff --git a/target/linux/mediatek/dts/mt7981b-cudy-tr3000-v1.dts b/target/linux/mediatek/dts/mt7981b-cudy-tr3000-v1.dts
-index 86d8e857f1..310f0ef132 100644
---- a/target/linux/mediatek/dts/mt7981b-cudy-tr3000-v1.dts
-+++ b/target/linux/mediatek/dts/mt7981b-cudy-tr3000-v1.dts
-@@ -4,7 +4,7 @@
- 
- #include <dt-bindings/leds/common.h>
- 
--#include "mt7981.dtsi"
-+#include "mt7981b.dtsi"
- 
- / {
- 	model = "Cudy TR3000 v1";
 diff --git a/target/linux/mediatek/dts/mt7981b-dlink-aquila-pro-ai-m30-a1.dts b/target/linux/mediatek/dts/mt7981b-dlink-aquila-pro-ai-m30-a1.dts
 index dc14fce2b6..d70402fa66 100644
 --- a/target/linux/mediatek/dts/mt7981b-dlink-aquila-pro-ai-m30-a1.dts

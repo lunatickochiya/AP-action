@@ -23,8 +23,8 @@ index 70a35aa2ae..3f710bc5ee 100644
 @@ -1,2 +1,2 @@
 -LINUX_VERSION-6.12 = .28
 -LINUX_KERNEL_HASH-6.12.28 = e8a099182562aecff781de72ce769461e706d97af42d740dff20eb450dd5771e
-+LINUX_VERSION-6.12 = .30
-+LINUX_KERNEL_HASH-6.12.30 = df046a48971e40ce0b2e003e7e55b6b1e7da2912120eb216d5d6c8450c9cf82e
++LINUX_VERSION-6.12 = .35
++LINUX_KERNEL_HASH-6.12.35 = 05f4e0b01dde578c3328eb539d305cccec7b84e939f6dd5f21fdaf5f313da748
 diff --git a/target/linux/generic/kernel-6.12 b/target/linux/generic/kernel-6.12
 index 19f5f7f477..3f710bc5ee 100644
 --- a/target/linux/generic/kernel-6.12
