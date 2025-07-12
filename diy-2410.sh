@@ -33,6 +33,7 @@ function remove_error_package() {
 packages=(
     "luci-app-dockerman"
     "luci-app-smartdns"
+    "luci-app-openlist"
     "rtl8821cu"
     "xray-core"
     "smartdns"
@@ -47,6 +48,7 @@ done
 directories=(
     "feeds/luci/applications/luci-app-dockerman"
     "feeds/luci/applications/luci-app-smartdns"
+    "feeds/luci/applications/luci-app-openlist"
     "feeds/lunatic7/rtl8821cu"
     "feeds/packages/net/xray-core"
     "feeds/packages/net/smartdns"
@@ -71,6 +73,7 @@ function remove_error_package_not_install() {
 packages=(
     "luci-app-dockerman"
     "luci-app-smartdns"
+    "luci-app-openlist"
     "rtl8821cu"
     "xray-core"
     "smartdns"
@@ -89,6 +92,7 @@ directories=(
     "feeds/luci/applications/luci-app-smartdns"
     "feeds/luci/applications/luci-app-filebrowser"
     "feeds/luci/applications/luci-app-filemanager"
+    "feeds/luci/applications/luci-app-openlist"
     "feeds/lunatic7/rtl8821cu"
     "feeds/lunatic7/shortcut-fe"
     "feeds/lunatic7/fullconenat-nft"
