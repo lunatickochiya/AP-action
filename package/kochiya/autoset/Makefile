@@ -10,7 +10,7 @@ include $(INCLUDE_DIR)/target.mk
 
 PKG_NAME:=autoset
 PKG_VERSION:=4.0
-PKG_RELEASE:=15
+PKG_RELEASE:=16
 PKG_LICENSE:=GPLv3
 PKG_LICENSE_FILES:=LICENSE
 
@@ -269,7 +269,7 @@ config PACKAGE_$(PKG_NAME)_INCLUDE_uci_ipq
 	select PACKAGE_autoset-uci-ipq
 
 config PACKAGE_$(PKG_NAME)_INCLUDE_uci_ar71xx
-	bool "IPQ SUPPORT"
+	bool "ar71xx SUPPORT"
 	select PACKAGE_autoset-uci-ar71xx
 
 endchoice
