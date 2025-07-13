@@ -96,7 +96,7 @@ on:
       patch_repo:
         description: 'Use json patch repo true(1) or false(0) See ReadME'
         required: true
-        default: '{"Branch": "24.10-nss-202502","IPQ_Firmware": "ipq-nss-11-4","OPENSSL_3_5": "1", "BCM_FULLCONE": "1", "TRY_BBR_V3": "1", "Firewall_Allow_WAN": "0", "ADD_IB": "1", "ADD_SDK": "1", "DOCKER_BUILDIN": "0"}'
+        default: '{"Branch": "24.10-nss-202502","IPQ_Firmware": "ipq-nss-11-4","OPENSSL_3_5": "1", "BCM_FULLCONE": "1", "TRY_BBR_V3": "1", "Firewall_Allow_WAN": "0", "ADD_IB": "1", "ADD_SDK": "1", "TEST_KERNEL": "0", "DOCKER_BUILDIN": "0"}'
 
 env:
   TZ: Asia/Shanghai
@@ -222,6 +222,7 @@ jobs:
         echo -e "DOCKER_BUILDIN=$(echo $PATCH_JSON_INPUT | jq -r ".DOCKER_BUILDIN")" >> $GITHUB_ENV
         echo -e "ADD_IB=$(echo $PATCH_JSON_INPUT | jq -r ".ADD_IB")" >> $GITHUB_ENV
         echo -e "ADD_SDK=$(echo $PATCH_JSON_INPUT | jq -r ".ADD_SDK")" >> $GITHUB_ENV
+        echo -e "TEST_KERNEL=$(echo $PATCH_JSON_INPUT | jq -r ".TEST_KERNEL")" >> $GITHUB_ENV
         CONFIG_JSON_INPUT='${{ github.event.inputs.config_repo }}'
         echo -e "Cache=$(echo $CONFIG_JSON_INPUT | jq -r ".Cache")" >> $GITHUB_ENV
         echo -e "UPLOAD_RELEASE=$(echo $CONFIG_JSON_INPUT | jq -r ".UPLOAD_RELEASE")" >> $GITHUB_ENV
@@ -230,8 +231,9 @@ jobs:
 
     - name: 导入机器及安装包config
       run: |
-        if [ ${{github.event.inputs.TEST-KERNEL}} = true ]; then
+        if [ ${{ env.TEST_KERNEL }} = 1 ]; then
         $GITHUB_WORKSPACE/$DIY_SH add-test-config
+        echo "Kernel_Test=_Kernel_Test_Ver" >> $GITHUB_ENV
         fi
         if [ ${{matrix.target}} == 'mt798x-nftables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-nftables' ] || [ ${{ matrix.target }} == 'ramips-nftables' ] || [ ${{ matrix.target }} == 'ath79-nftables' ] || [ ${{ matrix.target }} == 'ipq-nftables' ]; then
                 bash $GITHUB_WORKSPACE/add-test-packages.sh nft
@@ -371,6 +373,13 @@ jobs:
         echo "----${{matrix.target}}-----SFE-BBR-acc----"
         cd ../
         fi
+        if [ ${{ env.TEST_KERNEL }} = 1 ]; then
+        cd openwrt
+                wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/pending-6.12/613-netfilter_optional_tcp_window_check.patch -P target/linux/generic/pending-6.12/
+                wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/hack-6.12/952-add-net-conntrack-events-support-multiple-registrant.patch -P target/linux/generic/hack-6.12/
+                wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/hack-6.12/953-net-patch-linux-kernel-to-support-shortcut-fe.patch -P target/linux/generic/hack-6.12/
+                cd ../
+        fi
         sed -i 's/kmod-shortcut-fe-cm,kmod-shortcut-fe,kmod-fast-classifier,kmod-fast-classifier-noload,kmod-shortcut-fe-drv,//g' package-configs/kmod_exclude_list*
         mkdir -p openwrt/target/linux/qualcommax/patches-6.6
         if [[ "${Branch}" == "24.10-nss-202502" || "${Branch}" == "24.10-nss-202503" || "${Branch}" == "24.10-nss-202504" ]]; then
@@ -380,6 +389,10 @@ jobs:
         cp -f openwrt-ipq/sfe-ipq-6.6/20250425/0600-1-qca-nss-ecm-support-CORE.patch openwrt/target/linux/qualcommax/patches-6.6/0600-1-qca-nss-ecm-support-CORE.patch
         cp -f openwrt-ipq/sfe-ipq-6.6/20250425/0603-1-qca-nss-clients-add-qdisc-support.patch openwrt/target/linux/qualcommax/patches-6.6/0603-1-qca-nss-clients-add-qdisc-support.patch
         cp -f openwrt-ipq/sfe-ipq-6.6/20250425/0981-0-qca-skbuff-revert.patch openwrt/target/linux/qualcommax/patches-6.6/0981-0-qca-skbuff-revert.patch
+        fi
+        if [[ "${Branch}" == "24.10-nss-6.12" ]]; then
+        cp -f openwrt-ipq/sfe-ipq-6.12/20250425/0600-1-qca-nss-ecm-support-CORE.patch openwrt/target/linux/qualcommax/patches-6.12/0600-1-qca-nss-ecm-support-CORE.patch
+        cp -f openwrt-ipq/sfe-ipq-6.12/20250425/0981-0-qca-skbuff-revert.patch openwrt/target/linux/qualcommax/patches-6.12/0981-0-qca-skbuff-revert.patch
         fi
         mkdir -p openwrt/package/qca
         # git clone --depth 1 https://github.com/coolsnowwolf/lede && mv lede/package/qca/qca-nss-ecm openwrt/package/qca/qca-nss-ecm && rm -rf lede
@@ -416,6 +429,10 @@ jobs:
         [ -d openwrt-ipq/mypatch-openwrt-ipq-${{matrix.target}} ] && mv -f openwrt-ipq/mypatch-openwrt-ipq-${{matrix.target}} openwrt/mypatch
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_SH patch-openwrt
+        if [ "${{ github.event.inputs.SFE_BUILDIN }}" = "true" ] && [[ "${{ env.TEST_KERNEL }}" == 1 ]]; then
+                echo "# CONFIG_NF_CONNTRACK_CHAIN_EVENTS is not set" >> "./target/linux/generic/config-6.12"
+                echo "# CONFIG_SHORTCUT_FE is not set" >> "./target/linux/generic/config-6.12"
+        fi
         cd ../
         echo "status=success" >> $GITHUB_OUTPUT
 
@@ -511,13 +528,23 @@ jobs:
         make defconfig
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ath79
         make defconfig
-        elif [ ${{matrix.target}} == 'ipq-iptables' ] || [ ${{ matrix.target }} == 'ipq-nftables' ]; then
+        fi
+        if [ ${{matrix.target}} == 'ipq-iptables' ] || [ ${{ matrix.target }} == 'ipq-nftables' ]; then
+        if [ ${{ env.TEST_KERNEL }} = 1 ]; then
+        $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-6-12
+        make defconfig
+        $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-6-12
+        make defconfig
+        $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-6-12
+        make defconfig
+        else
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ipq-nss
         make defconfig
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ipq-nss
         make defconfig
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ipq-nss
         make defconfig
+        fi
         else
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod
         make defconfig
