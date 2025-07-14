@@ -1,0 +1,150 @@
+From 81a504adf5fd23a1a9b0fc5f521eb8e3265bb3f0 Mon Sep 17 00:00:00 2001
+From: lunatickochiya <125438787@qq.com>
+Date: Mon, 14 Jul 2025 16:40:09 +0800
+Subject: [PATCH] Revert "mt76: fix system recovery routine for MT7915"
+
+This reverts commit ad765d3cc4035406a4cd748f3339301ecc19dba8.
+---
+ ..._mcu_increase_eeprom_command_timeout.patch | 29 ----------
+ ...t76_mt7915_mcu_lower_default_timeout.patch | 29 ----------
+ ...15_mcu_re-init_MCU_before_loading_FW.patch | 56 -------------------
+ 3 files changed, 114 deletions(-)
+ delete mode 100644 package/kernel/mt76/patches/200-wifi_mt76_mt7915_mcu_increase_eeprom_command_timeout.patch
+ delete mode 100644 package/kernel/mt76/patches/201-wifi_mt76_mt7915_mcu_lower_default_timeout.patch
+ delete mode 100644 package/kernel/mt76/patches/202-wifi_mt76_mt7915_mcu_re-init_MCU_before_loading_FW.patch
+
+diff --git a/package/kernel/mt76/patches/200-wifi_mt76_mt7915_mcu_increase_eeprom_command_timeout.patch b/package/kernel/mt76/patches/200-wifi_mt76_mt7915_mcu_increase_eeprom_command_timeout.patch
+deleted file mode 100644
+index e618e536e6..0000000000
+--- a/package/kernel/mt76/patches/200-wifi_mt76_mt7915_mcu_increase_eeprom_command_timeout.patch
++++ /dev/null
+@@ -1,29 +0,0 @@
+-From ee6dac9b6b765e8aab5727688463880c52f6193d Mon Sep 17 00:00:00 2001
+-From: David Bauer <mail@david-bauer.net>
+-Date: Wed, 2 Apr 2025 02:45:26 +0200
+-Subject: [PATCH] wifi: mt76: mt7915: mcu: increase eeprom command timeout
+-
+-Increase the timeout for MCU_EXT_CMD_EFUSE_BUFFER_MODE command.
+-
+-Regular retries upon hardware-recovery have been observed. Increasing
+-the timeout slightly remedies this problem.
+-
+-Signed-off-by: David Bauer <mail@david-bauer.net>
+-Link: https://patch.msgid.link/20250402004528.1036715-2-mail@david-bauer.net
+-Signed-off-by: Felix Fietkau <nbd@nbd.name>
+----
+- mt7915/mcu.c | 3 +++
+- 1 file changed, 3 insertions(+)
+-
+---- a/mt7915/mcu.c
+-+++ b/mt7915/mcu.c
+-@@ -208,6 +208,9 @@ mt7915_mcu_set_timeout(struct mt76_dev *
+- 	case MCU_EXT_CMD_BSS_INFO_UPDATE:
+- 		mdev->mcu.timeout = 2 * HZ;
+- 		return;
+-+	case MCU_EXT_CMD_EFUSE_BUFFER_MODE:
+-+		mdev->mcu.timeout = 10 * HZ;
+-+		return;
+- 	default:
+- 		break;
+- 	}
+diff --git a/package/kernel/mt76/patches/201-wifi_mt76_mt7915_mcu_lower_default_timeout.patch b/package/kernel/mt76/patches/201-wifi_mt76_mt7915_mcu_lower_default_timeout.patch
+deleted file mode 100644
+index a624fcfa0a..0000000000
+--- a/package/kernel/mt76/patches/201-wifi_mt76_mt7915_mcu_lower_default_timeout.patch
++++ /dev/null
+@@ -1,29 +0,0 @@
+-From 0534761b76e1b2e3390b345e524ce959f3fa50fb Mon Sep 17 00:00:00 2001
+-From: David Bauer <mail@david-bauer.net>
+-Date: Wed, 2 Apr 2025 02:45:25 +0200
+-Subject: [PATCH] wifi: mt76: mt7915: mcu: lower default timeout
+-
+-The default timeout set in mt76_connac2_mcu_fill_message of 20 seconds
+-leads to excessive stalling in case messages are lost.
+-
+-Testing showed that a smaller timeout of 5 seconds is sufficient in
+-normal operation.
+-
+-Signed-off-by: David Bauer <mail@david-bauer.net>
+-Link: https://patch.msgid.link/20250402004528.1036715-1-mail@david-bauer.net
+-Signed-off-by: Felix Fietkau <nbd@nbd.name>
+----
+- mt7915/mcu.c | 2 ++
+- 1 file changed, 2 insertions(+)
+-
+---- a/mt7915/mcu.c
+-+++ b/mt7915/mcu.c
+-@@ -197,6 +197,8 @@ mt7915_mcu_parse_response(struct mt76_de
+- static void
+- mt7915_mcu_set_timeout(struct mt76_dev *mdev, int cmd)
+- {
+-+	mdev->mcu.timeout = 5 * HZ;
+-+
+- 	if ((cmd & __MCU_CMD_FIELD_ID) != MCU_CMD_EXT_CID)
+- 		return;
+- 
+diff --git a/package/kernel/mt76/patches/202-wifi_mt76_mt7915_mcu_re-init_MCU_before_loading_FW.patch b/package/kernel/mt76/patches/202-wifi_mt76_mt7915_mcu_re-init_MCU_before_loading_FW.patch
+deleted file mode 100644
+index 76d005fc21..0000000000
+--- a/package/kernel/mt76/patches/202-wifi_mt76_mt7915_mcu_re-init_MCU_before_loading_FW.patch
++++ /dev/null
+@@ -1,56 +0,0 @@
+-From 79dd14f2e8161b656341b6653261779199aedbe4 Mon Sep 17 00:00:00 2001
+-From: David Bauer <mail@david-bauer.net>
+-Date: Wed, 2 Apr 2025 02:45:27 +0200
+-Subject: [PATCH] wifi: mt76: mt7915: mcu: re-init MCU before loading FW patch
+-
+-Restart the MCU and release the patch semaphore before loading the MCU
+-patch firmware from the host.
+-
+-This fixes failures upon error recovery in case the semaphore was
+-previously taken and never released by the host.
+-
+-This happens from time to time upon triggering a full-chip error
+-recovery. Under this circumstance, the hardware restart fails and the
+-radio is rendered inoperational.
+-
+-Signed-off-by: David Bauer <mail@david-bauer.net>
+-Link: https://patch.msgid.link/20250402004528.1036715-3-mail@david-bauer.net
+-Signed-off-by: Felix Fietkau <nbd@nbd.name>
+----
+- mt7915/mcu.c | 25 +++++++++++++++----------
+- 1 file changed, 15 insertions(+), 10 deletions(-)
+-
+---- a/mt7915/mcu.c
+-+++ b/mt7915/mcu.c
+-@@ -2097,16 +2097,21 @@ static int mt7915_load_firmware(struct m
+- {
+- 	int ret;
+- 
+--	/* make sure fw is download state */
+--	if (mt7915_firmware_state(dev, false)) {
+--		/* restart firmware once */
+--		mt76_connac_mcu_restart(&dev->mt76);
+--		ret = mt7915_firmware_state(dev, false);
+--		if (ret) {
+--			dev_err(dev->mt76.dev,
+--				"Firmware is not ready for download\n");
+--			return ret;
+--		}
+-+	/* Release Semaphore if taken by previous failed attempt */
+-+	ret = mt76_connac_mcu_patch_sem_ctrl(&dev->mt76, false);
+-+	if (ret != PATCH_REL_SEM_SUCCESS) {
+-+		dev_err(dev->mt76.dev, "Could not release semaphore\n");
+-+		/* Continue anyways */
+-+	}
+-+
+-+	/* Always restart MCU firmware */
+-+	mt76_connac_mcu_restart(&dev->mt76);
+-+
+-+	/* Check if MCU is ready */
+-+	ret = mt7915_firmware_state(dev, false);
+-+	if (ret) {
+-+		dev_err(dev->mt76.dev, "Firmware did not enter download state\n");
+-+		return ret;
+- 	}
+- 
+- 	ret = mt76_connac2_load_patch(&dev->mt76, fw_name_var(dev, ROM_PATCH));
+-- 
+2.43.0
+
