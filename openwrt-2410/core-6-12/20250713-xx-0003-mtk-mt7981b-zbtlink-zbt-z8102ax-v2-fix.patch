@@ -16,7 +16,7 @@ index 08fc4b977a..baaf0f7dd6 100644
  #include <dt-bindings/input/input.h>
  
 -#include "mt7981.dtsi"
-+#include "mt7981a.dtsi"
++#include "mt7981b.dtsi"
  
  / {
  	model = "ZBT Z8102AX V2";
