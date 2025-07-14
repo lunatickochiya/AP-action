@@ -1,0 +1,25 @@
+From c5a64ab5fefea476c1b61609fee9c666f3367f8a Mon Sep 17 00:00:00 2001
+From: lunatickochiya <125438787@qq.com>
+Date: Sun, 13 Jul 2025 15:57:25 +0800
+Subject: [PATCH] mtk:mt7981b-zbtlink-zbt-z8102ax-v2 fix
+
+---
+ target/linux/mediatek/dts/mt7981b-zbtlink-zbt-z8102ax-v2.dts | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/target/linux/mediatek/dts/mt7981b-zbtlink-zbt-z8102ax-v2.dts b/target/linux/mediatek/dts/mt7981b-zbtlink-zbt-z8102ax-v2.dts
+index 08fc4b977a..baaf0f7dd6 100644
+--- a/target/linux/mediatek/dts/mt7981b-zbtlink-zbt-z8102ax-v2.dts
++++ b/target/linux/mediatek/dts/mt7981b-zbtlink-zbt-z8102ax-v2.dts
+@@ -4,7 +4,7 @@
+ #include <dt-bindings/gpio/gpio.h>
+ #include <dt-bindings/input/input.h>
+ 
+-#include "mt7981.dtsi"
++#include "mt7981b.dtsi"
+ 
+ / {
+ 	model = "ZBT Z8102AX V2";
+-- 
+2.43.0
+
