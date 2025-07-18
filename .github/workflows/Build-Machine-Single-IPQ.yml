@@ -379,6 +379,7 @@ jobs:
                 wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/hack-6.12/952-add-net-conntrack-events-support-multiple-registrant.patch -P target/linux/generic/hack-6.12/
                 wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/hack-6.12/953-net-patch-linux-kernel-to-support-shortcut-fe.patch -P target/linux/generic/hack-6.12/
                 rm -rf package/turboacc/shortcut-fe/simulated-driver
+                rm -rf package/shortcut-fe/simulated-driver 
                 cd ../
         fi
         sed -i 's/kmod-shortcut-fe-cm,kmod-shortcut-fe,kmod-fast-classifier,kmod-fast-classifier-noload,kmod-shortcut-fe-drv,//g' package-configs/kmod_exclude_list*
@@ -417,6 +418,7 @@ jobs:
         echo "----${{matrix.target}}-----BBR-acc----"
         fi
         fi
+        rm -rf openwrt/tmp
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 自定义安装包(优先于feeds)
