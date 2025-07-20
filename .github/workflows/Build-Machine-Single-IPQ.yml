@@ -96,7 +96,7 @@ on:
       patch_repo:
         description: 'Use json patch repo true(1) or false(0) See ReadME'
         required: true
-        default: '{"Branch": "24.10-nss-202502","IPQ_Firmware": "ipq-nss-11-4","OPENSSL_3_5": "1", "BCM_FULLCONE": "1", "TRY_BBR_V3": "1", "Firewall_Allow_WAN": "0", "ADD_IB": "1", "ADD_SDK": "1", "TEST_KERNEL": "0", "DOCKER_BUILDIN": "0"}'
+        default: '{"Branch": "24.10-nss-202502","IPQ_Firmware": "ipq-nss-11-4","OPENSSL_3_5": "1", "BCM_FULLCONE": "1", "TRY_BBR_V3": "1", "Firewall_Allow_WAN": "0", "ADD_IB": "1", "ADD_SDK": "1", "DOCKER_BUILDIN": "0"}'
 
 env:
   TZ: Asia/Shanghai
@@ -222,7 +222,7 @@ jobs:
         echo -e "DOCKER_BUILDIN=$(echo $PATCH_JSON_INPUT | jq -r ".DOCKER_BUILDIN")" >> $GITHUB_ENV
         echo -e "ADD_IB=$(echo $PATCH_JSON_INPUT | jq -r ".ADD_IB")" >> $GITHUB_ENV
         echo -e "ADD_SDK=$(echo $PATCH_JSON_INPUT | jq -r ".ADD_SDK")" >> $GITHUB_ENV
-        echo -e "TEST_KERNEL=$(echo $PATCH_JSON_INPUT | jq -r ".TEST_KERNEL")" >> $GITHUB_ENV
+        #echo -e "TEST_KERNEL=$(echo $PATCH_JSON_INPUT | jq -r ".TEST_KERNEL")" >> $GITHUB_ENV
         CONFIG_JSON_INPUT='${{ github.event.inputs.config_repo }}'
         echo -e "Cache=$(echo $CONFIG_JSON_INPUT | jq -r ".Cache")" >> $GITHUB_ENV
         echo -e "UPLOAD_RELEASE=$(echo $CONFIG_JSON_INPUT | jq -r ".UPLOAD_RELEASE")" >> $GITHUB_ENV
@@ -231,9 +231,9 @@ jobs:
 
     - name: 导入机器及安装包config
       run: |
-        if [ ${{ env.TEST_KERNEL }} = 1 ]; then
+        if [ ${{ env.Branch }} = 24.10-nss-6.12 ]; then
         $GITHUB_WORKSPACE/$DIY_SH add-test-config
-        echo "Kernel_Test=_Kernel_Test_Ver" >> $GITHUB_ENV
+        # echo "Kernel_Test=_Kernel_Test_Ver" >> $GITHUB_ENV
         fi
         if [ ${{matrix.target}} == 'mt798x-nftables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-nftables' ] || [ ${{ matrix.target }} == 'ramips-nftables' ] || [ ${{ matrix.target }} == 'ath79-nftables' ] || [ ${{ matrix.target }} == 'ipq-nftables' ]; then
                 bash $GITHUB_WORKSPACE/add-test-packages.sh nft
@@ -379,7 +379,7 @@ jobs:
         echo "----${{matrix.target}}-----SFE-BBR-acc----"
         cd ../
         fi
-        if [ ${{ env.TEST_KERNEL }} = 1 ]; then
+        if [ ${{ env.Branch }} = 24.10-nss-6.12 ]; then
         cd openwrt
                 wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/pending-6.12/613-netfilter_optional_tcp_window_check.patch -P target/linux/generic/pending-6.12/
                 wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/hack-6.12/952-add-net-conntrack-events-support-multiple-registrant.patch -P target/linux/generic/hack-6.12/
@@ -438,7 +438,7 @@ jobs:
         [ -d openwrt-ipq/mypatch-openwrt-ipq-${{matrix.target}} ] && mv -f openwrt-ipq/mypatch-openwrt-ipq-${{matrix.target}} openwrt/mypatch
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_SH patch-openwrt
-        if [ "${{ github.event.inputs.SFE_BUILDIN }}" = "true" ] && [[ "${{ env.TEST_KERNEL }}" == 1 ]]; then
+        if [ "${{ github.event.inputs.SFE_BUILDIN }}" = "true" ] && [[ "${{ env.Branch }}" == 24.10-nss-6.12 ]]; then
                 echo "# CONFIG_NF_CONNTRACK_CHAIN_EVENTS is not set" >> "./target/linux/generic/config-6.12"
                 echo "# CONFIG_SHORTCUT_FE is not set" >> "./target/linux/generic/config-6.12"
         fi
@@ -539,7 +539,7 @@ jobs:
         make defconfig
         fi
         if [ ${{matrix.target}} == 'ipq-iptables' ] || [ ${{ matrix.target }} == 'ipq-nftables' ]; then
-        if [ ${{ env.TEST_KERNEL }} = 1 ]; then
+        if [ ${{ env.Branch }} = 24.10-nss-6.12 ]; then
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-6-12
         make defconfig
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-6-12
