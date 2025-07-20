@@ -530,7 +530,7 @@ jobs:
       id: config
       run: |
         if [ ${{ env.TEST_KERNEL }} = 1 ]; then
-        sed -i 's/#include "mt7981.dtsi"/#include "mt7981b.dtsi"/g' openwrt/target/linux/mediatek/dts/mt7981b-nokia-ea0326gmp-ubootmod.dts
+        find openwrt/target/linux/mediatek/dts/ -type f -name 'mt7981*.dts' -exec sed -i 's|#include "mt7981.dtsi"|#include "mt7981b.dtsi"|' {} +
         # mv -f openwrt-2410/2410-test/999-wct4xxp-Eliminate-old-style-declaration.patch openwrt/feeds/telephony/libs/dahdi-linux/patches/999-wct4xxp-Eliminate-old-style-declaration.patch
         fi
         [ -d openwrt-2410/lunatic7-revert ] && mv -f openwrt-2410/lunatic7-revert openwrt/feeds/lunatic7/lunatic7-revert
