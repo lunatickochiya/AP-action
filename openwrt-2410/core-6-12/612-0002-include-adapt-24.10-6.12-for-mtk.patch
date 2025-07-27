@@ -7366,7 +7366,7 @@ diff --git a/target/linux/mediatek/filogic/base-files/etc/board.d/02_network b/t
 index 3440cae019..92e6137c55 100644
 --- a/target/linux/mediatek/filogic/base-files/etc/board.d/02_network
 +++ b/target/linux/mediatek/filogic/base-files/etc/board.d/02_network
-@@ -64,16 +64,19 @@ mediatek_setup_interfaces()
+@@ -66,7 +66,7 @@ mediatek_setup_interfaces()
  		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3 lan4 lan5" eth1
  		;;
  	bananapi,bpi-r3)
@@ -7375,7 +7375,8 @@ index 3440cae019..92e6137c55 100644
  		;;
  	bananapi,bpi-r3-mini|\
  	edgecore,eap111|\
- 	huasifei,wh3000)
+@@ -74,9 +74,12 @@ mediatek_setup_interfaces()
+ 	huasifei,wh3000-pro)
  		ucidef_set_interfaces_lan_wan eth0 eth1
  		;;
 -	bananapi,bpi-r4|\
