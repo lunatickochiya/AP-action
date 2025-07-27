@@ -629,7 +629,7 @@ jobs:
       if: env.UPLOAD_RELEASE == '1' && !cancelled()
       continue-on-error: true
       with:
-        keep_latest: 24
+        keep_latest: 64
         delete_tags: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
