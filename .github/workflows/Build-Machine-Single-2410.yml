@@ -442,9 +442,9 @@ jobs:
       id: sfe
       run: |
         if [ ${{matrix.target}} == 'mt798x-iptables' ] || [ ${{ matrix.target }} == 'mt798x-nousb-iptables' ] || [ ${{ matrix.target }} == 'ramips-iptables' ] || [ ${{ matrix.target }} == 'ath79-iptables' ] || [ ${{ matrix.target }} == 'ipq-iptables' ]; then
+                cd openwrt
                 bash $GITHUB_WORKSPACE/add-sfe-packages.sh ipt
                 echo "----${{matrix.target}}-----ipt-sfe---"
-                cd openwrt
                 wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/pending-6.6/613-netfilter_optional_tcp_window_check.patch -P target/linux/generic/pending-6.6/
                 wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/hack-6.6/952-add-net-conntrack-events-support-multiple-registrant.patch -P target/linux/generic/hack-6.6/
                 wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/hack-6.6/953-net-patch-linux-kernel-to-support-shortcut-fe.patch -P target/linux/generic/hack-6.6/
@@ -635,6 +635,8 @@ jobs:
         awk '/CONFIG_PACKAGE_kmod/ { print }' .config
         echo "------------------------"
         awk '/mt7981/ { print }' .config
+        echo "------------------------"
+        awk '/turboacc/ { print }' .config
 
     - name: 下载包文件
       if: steps.config.outputs.status == 'success'
