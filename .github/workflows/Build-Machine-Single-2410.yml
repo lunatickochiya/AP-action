@@ -54,6 +54,7 @@ on:
         - 'lenovo_newifi-y1'
         - 'domywifi_dw33d-ath79'
         - 'aliyun_ap8220'
+        - 'ath79_generic-2305-multi'
 #      TRY_BBR_V3:
 #        description: 'Update BBR TO V3'
 #        default: 'true'
@@ -187,6 +188,7 @@ jobs:
         - ramips: lenovo_newifi-y1
         - ramips: d-team_newifi-d2
         - ath79: domywifi_dw33d-ath79
+        - ath79: ath79_generic-2305-multi
         - ipq: aliyun_ap8220
 
     steps:
