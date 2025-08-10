@@ -26,7 +26,7 @@ index 0000000000..f6c03ef4c5
 +
 +/ {
 +	compatible = "lunaticbox,wifi", "qca,qca9531";
-+	model = "Lunatic BOX WiFi With Things";
++	model = "Lunatic BOX WiFi For Things";
 +};
 +
 +
