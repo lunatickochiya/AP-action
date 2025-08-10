@@ -1,0 +1,99 @@
+From bd48db2bb0fd55cf8d4bdb4b6de358b85b0384d5 Mon Sep 17 00:00:00 2001
+From: lunatickochiya <125438787@qq.com>
+Date: Sun, 10 Aug 2025 15:47:43 +0800
+Subject: [PATCH] ath79:add lunaticbox support
+
+---
+ .../linux/ath79/dts/qca9531_lunatic-box.dts   | 36 +++++++++++++++++++
+ .../generic/base-files/etc/board.d/01_leds    |  1 +
+ .../generic/base-files/etc/board.d/02_network |  1 +
+ target/linux/ath79/image/generic.mk           |  9 +++++
+ 4 files changed, 47 insertions(+)
+ create mode 100644 target/linux/ath79/dts/qca9531_lunatic-box.dts
+
+diff --git a/target/linux/ath79/dts/qca9531_lunatic-box.dts b/target/linux/ath79/dts/qca9531_lunatic-box.dts
+new file mode 100644
+index 0000000000..f6c03ef4c5
+--- /dev/null
++++ b/target/linux/ath79/dts/qca9531_lunatic-box.dts
+@@ -0,0 +1,36 @@
++// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
++// Base by GL.iNet AR-300M-Lite LunaticKochiya
++
++#include <dt-bindings/leds/common.h>
++
++#include "qca9531_glinet_gl-ar300m.dtsi"
++
++/ {
++	compatible = "lunaticbox,wifi", "qca,qca9531";
++	model = "Lunatic BOX WiFi With Things";
++};
++
++
++/delete-node/ &nand_flash;
++
++&nor_firmware {
++	compatible = "denx,uimage";
++	label = "firmware";
++};
++
++// "Disable" unpopulated GMAC1
++
++&eth1 {
++	compatible = "syscon", "simple-mfd";
++};
++
++&led_status {
++	function = LED_FUNCTION_STATUS;
++	color = <LED_COLOR_ID_RED>;
++};
++
++&led_wlan {
++	function = LED_FUNCTION_WLAN;
++	color = <LED_COLOR_ID_GREEN>;
++};
++
+diff --git a/target/linux/ath79/generic/base-files/etc/board.d/01_leds b/target/linux/ath79/generic/base-files/etc/board.d/01_leds
+index 6409adb78a..3ec2b5128c 100644
+--- a/target/linux/ath79/generic/base-files/etc/board.d/01_leds
++++ b/target/linux/ath79/generic/base-files/etc/board.d/01_leds
+@@ -28,6 +28,7 @@ glinet,6408|\
+ glinet,6416|\
+ glinet,gl-ar300m-lite|\
+ glinet,gl-ar300m16|\
++lunaticbox,wifi|\
+ pcs,cap324|\
+ tplink,cpe605-v1|\
+ tplink,cpe610-v1|\
+diff --git a/target/linux/ath79/generic/base-files/etc/board.d/02_network b/target/linux/ath79/generic/base-files/etc/board.d/02_network
+index dedbaf05b8..50c84ddc59 100644
+--- a/target/linux/ath79/generic/base-files/etc/board.d/02_network
++++ b/target/linux/ath79/generic/base-files/etc/board.d/02_network
+@@ -54,6 +54,7 @@ ath79_setup_interfaces()
+ 	glinet,gl-usb150|\
+ 	hak5,wifi-pineapple-nano|\
+ 	huawei,ap6010dn|\
++	lunaticbox,wifi|\
+ 	meraki,mr16|\
+ 	netgear,ex7300|\
+ 	netgear,ex7300-v2|\
+diff --git a/target/linux/ath79/image/generic.mk b/target/linux/ath79/image/generic.mk
+index 846a9acd20..9e96b111da 100644
+--- a/target/linux/ath79/image/generic.mk
++++ b/target/linux/ath79/image/generic.mk
+@@ -3414,3 +3414,12 @@ define Device/zyxel_nbg6616
+   SUPPORTED_DEVICES += nbg6616
+ endef
+ TARGET_DEVICES += zyxel_nbg6616
++
++define Device/lunatic-box
++  SOC := qca9531
++  DEVICE_VENDOR := Lunatic-Box
++  DEVICE_MODEL := Wifi
++  IMAGE_SIZE := 16000k
++  SUPPORTED_DEVICES += lunaticbox
++endef
++TARGET_DEVICES += lunatic-box
+-- 
+2.43.0
+
