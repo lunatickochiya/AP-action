@@ -159,7 +159,8 @@ index 9d10806572..ab85a75164 100644
    IMAGE_SIZE := 16000k
    SUPPORTED_DEVICES += lunaticbox
  endef
- TARGET_DEVICES += lunatic-box
+- TARGET_DEVICES += lunatic-box
++ TARGET_DEVICES += lunatic-box-lan
 +
 +define Device/lunatic-box-wan
 +  SOC := qca9531
