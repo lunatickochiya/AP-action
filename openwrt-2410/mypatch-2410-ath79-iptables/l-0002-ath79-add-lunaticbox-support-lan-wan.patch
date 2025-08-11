@@ -1,7 +1,7 @@
-From 54e65ca7701074ab4b0b542d9f5fa508d8c92837 Mon Sep 17 00:00:00 2001
+From be53dbe21b22e723233a4ca99df8039f12134659 Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
 Date: Sun, 10 Aug 2025 21:57:15 +0800
-Subject: [PATCH 2/2] ath79:add lunaticbox support lan wan
+Subject: [PATCH 2/3] ath79:add lunaticbox support lan wan
 
 ---
  .../ath79/dts/qca9531_lunatic-box-lan.dts     | 18 ++++++++++
@@ -143,7 +143,7 @@ index 50c84ddc59..1a92e76248 100644
  		ucidef_set_interfaces_lan_wan "eth0" "eth1"
  		;;
 diff --git a/target/linux/ath79/image/generic.mk b/target/linux/ath79/image/generic.mk
-index 9d10806572..259982a6bb 100644
+index 9d10806572..fabeada4a9 100644
 --- a/target/linux/ath79/image/generic.mk
 +++ b/target/linux/ath79/image/generic.mk
 @@ -3415,11 +3415,20 @@ define Device/zyxel_nbg6616

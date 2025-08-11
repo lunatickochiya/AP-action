@@ -1,0 +1,52 @@
+From 84ef311185bcdd491a41f572cccc315740731077 Mon Sep 17 00:00:00 2001
+From: lunatickochiya <125438787@qq.com>
+Date: Mon, 11 Aug 2025 21:29:46 +0800
+Subject: [PATCH 3/3] ath79:fix lunaticbox support1
+
+---
+ package/boot/uboot-envtools/files/ath79                      | 2 ++
+ target/linux/ath79/dts/qca9531_lunatic-box-wan.dts           | 4 ++++
+ target/linux/ath79/generic/base-files/etc/board.d/02_network | 2 +-
+ 3 files changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/package/boot/uboot-envtools/files/ath79 b/package/boot/uboot-envtools/files/ath79
+index c989e61bd5..c590813728 100644
+--- a/package/boot/uboot-envtools/files/ath79
++++ b/package/boot/uboot-envtools/files/ath79
+@@ -99,6 +99,8 @@ glinet,gl-ar300m-lite|\
+ glinet,gl-ar300m-nand|\
+ glinet,gl-ar300m-nor|\
+ glinet,gl-ar300m16|\
++lunaticbox,wifi-lan|\
++lunaticbox,wifi-wan|\
+ glinet,gl-s200-nor|\
+ glinet,gl-s200-nor-nand)
+ 	idx="$(find_mtd_index u-boot-env)"
+diff --git a/target/linux/ath79/dts/qca9531_lunatic-box-wan.dts b/target/linux/ath79/dts/qca9531_lunatic-box-wan.dts
+index c138e4a9c7..15b06686e4 100644
+--- a/target/linux/ath79/dts/qca9531_lunatic-box-wan.dts
++++ b/target/linux/ath79/dts/qca9531_lunatic-box-wan.dts
+@@ -16,3 +16,7 @@
+ 	compatible = "denx,uimage";
+ 	label = "firmware";
+ };
++
++// &eth1 {
++// 	compatible = "syscon", "simple-mfd";
++// };
+diff --git a/target/linux/ath79/generic/base-files/etc/board.d/02_network b/target/linux/ath79/generic/base-files/etc/board.d/02_network
+index 1a92e76248..4f22631c2d 100644
+--- a/target/linux/ath79/generic/base-files/etc/board.d/02_network
++++ b/target/linux/ath79/generic/base-files/etc/board.d/02_network
+@@ -612,7 +612,7 @@ ath79_setup_interfaces()
+ 			"0@eth0" "3:lan:1" "4:lan:2"
+ 		;;
+ 	lunaticbox,wifi-wan)
+-		ucidef_set_interfaces_lan_wan "eth1" "eth0"
++		ucidef_set_interface_wan "eth0"
+ 		;;
+ 	*)
+ 		ucidef_set_interfaces_lan_wan "eth0" "eth1"
+-- 
+2.43.0
+
