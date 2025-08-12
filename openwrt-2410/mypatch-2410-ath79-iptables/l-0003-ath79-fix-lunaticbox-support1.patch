@@ -31,9 +31,9 @@ index c138e4a9c7..15b06686e4 100644
  	label = "firmware";
  };
 +
-+// &eth1 {
-+// 	compatible = "syscon", "simple-mfd";
-+// };
++ &eth1 {
++ 	compatible = "syscon", "simple-mfd";
++ };
 diff --git a/target/linux/ath79/generic/base-files/etc/board.d/02_network b/target/linux/ath79/generic/base-files/etc/board.d/02_network
 index 1a92e76248..4f22631c2d 100644
 --- a/target/linux/ath79/generic/base-files/etc/board.d/02_network
@@ -43,7 +43,7 @@ index 1a92e76248..4f22631c2d 100644
  		;;
  	lunaticbox,wifi-wan)
 -		ucidef_set_interfaces_lan_wan "eth1" "eth0"
-+		ucidef_set_interface_wan "eth0"
++		ucidef_set_interfaces_lan_wan "eth1" "eth0"
  		;;
  	*)
  		ucidef_set_interfaces_lan_wan "eth0" "eth1"
