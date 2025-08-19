@@ -233,7 +233,7 @@ choice
 	default PACKAGE_$(PKG_NAME)_INCLUDE_uci_mediatek if TARGET_mediatek=y
 	default PACKAGE_$(PKG_NAME)_INCLUDE_uci_ramips if TARGET_ramips=y
 	default PACKAGE_$(PKG_NAME)_INCLUDE_uci_ath79 if TARGET_ath79=y
-	default PACKAGE_$(PKG_NAME)_INCLUDE_uci_ipq if TARGET_qualcommax=y
+	default PACKAGE_$(PKG_NAME)_INCLUDE_uci_ipq if TARGET_qualcommax=y || TARGET_ipq50xx=y
 	default PACKAGE_$(PKG_NAME)_INCLUDE_uci_ar71xx if TARGET_ar71xx=y
 
 config PACKAGE_$(PKG_NAME)_INCLUDE_uci
