@@ -438,6 +438,7 @@ jobs:
         fi
         if [ ${{ env.TEST_KERNEL }} = 1 ]; then
         [ -d openwrt-2410/core-6-12 ] && cp -r openwrt-2410/core-6-12/* openwrt-2410/mypatch-2410-${{matrix.target}}
+        rm -rf openwrt/package/kernel/mt76/patches/100-api_compat.patch
         echo "----${{matrix.target}}----TEST-KERNEL---"
         fi
         echo "status=success" >> $GITHUB_OUTPUT
