@@ -15954,47 +15954,7 @@ index 106e41231c..ba1d7973f1 100644
  	.driver = {
  		.name           = NAME,
  		.of_match_table = of_ubootenv_match,
-diff --git a/target/linux/airoha/patches-6.6/108-pwm-airoha-Add-support-for-EN7581-SoC.patch b/target/linux/airoha/patches-6.6/108-pwm-airoha-Add-support-for-EN7581-SoC.patch
-index 8f83c696c4..0b114d5f53 100644
---- a/target/linux/airoha/patches-6.6/108-pwm-airoha-Add-support-for-EN7581-SoC.patch
-+++ b/target/linux/airoha/patches-6.6/108-pwm-airoha-Add-support-for-EN7581-SoC.patch
-@@ -48,7 +48,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
-  obj-$(CONFIG_PWM_ATMEL_HLCDC_PWM)	+= pwm-atmel-hlcdc.o
- --- /dev/null
- +++ b/drivers/pwm/pwm-airoha.c
--@@ -0,0 +1,400 @@
-+@@ -0,0 +1,388 @@
- +// SPDX-License-Identifier: GPL-2.0
- +/*
- + * Copyright 2022 Markus Gothe <markus.gothe@genexis.eu>
-@@ -414,18 +414,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
- +	if (IS_ERR(pc->regmap))
- +		return PTR_ERR(pc->regmap);
- +
--+	platform_set_drvdata(pdev, pc);
--+
--+	return pwmchip_add(&pc->chip);
--+}
--+
--+static int airoha_pwm_remove(struct platform_device *pdev)
--+{
--+	struct airoha_pwm *pc = platform_get_drvdata(pdev);
--+
--+	pwmchip_remove(&pc->chip);
--+
--+	return 0;
-++	return devm_pwmchip_add(&pdev->dev, &pc->chip);
- +}
- +
- +static const struct of_device_id airoha_pwm_of_match[] = {
-@@ -440,7 +429,6 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
- +		.of_match_table = airoha_pwm_of_match,
- +	},
- +	.probe = airoha_pwm_probe,
--+	.remove = airoha_pwm_remove,
- +};
- +module_platform_driver(airoha_pwm_driver);
- +
+
 diff --git a/target/linux/apm821xx/image/nand.mk b/target/linux/apm821xx/image/nand.mk
 index 7b3945183e..ced313f087 100644
 --- a/target/linux/apm821xx/image/nand.mk
