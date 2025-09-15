@@ -1,19 +1,19 @@
-From 8756835378edf7b470ae7bff59bb9b2c656dfe5b Mon Sep 17 00:00:00 2001
+From f6ffd7d662cecd832b205eaeeac19d99548c06e3 Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
-Date: Sun, 9 Feb 2025 22:00:39 +0800
-Subject: [PATCH 06/10] mediatek: add Nokia EA0326GMP support ubootmod 110M dts
+Date: Tue, 27 May 2025 15:26:03 +0800
+Subject: [PATCH 08/12] mediatek: add Nokia EA0326GMP support ubootmod 110M dts
 
 ---
- .../dts/mt7981b-nokia-ea0326gmp-ubootmod.dts  | 273 ++++++++++++++++++
- 1 file changed, 273 insertions(+)
+ .../dts/mt7981b-nokia-ea0326gmp-ubootmod.dts  | 275 ++++++++++++++++++
+ 1 file changed, 275 insertions(+)
  create mode 100644 target/linux/mediatek/dts/mt7981b-nokia-ea0326gmp-ubootmod.dts
 
 diff --git a/target/linux/mediatek/dts/mt7981b-nokia-ea0326gmp-ubootmod.dts b/target/linux/mediatek/dts/mt7981b-nokia-ea0326gmp-ubootmod.dts
 new file mode 100644
-index 0000000000..030cb6fe92
+index 0000000000..32778782fa
 --- /dev/null
 +++ b/target/linux/mediatek/dts/mt7981b-nokia-ea0326gmp-ubootmod.dts
-@@ -0,0 +1,273 @@
+@@ -0,0 +1,275 @@
 +// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 +
 +/dts-v1/;
@@ -143,7 +143,7 @@ index 0000000000..030cb6fe92
 +	pinctrl-0 = <&spi0_flash_pins>;
 +	status = "okay";
 +
-+	spi_nand@0 {
++	spi_nand: spi_nand@1 {
 +		compatible = "spi-nand";
 +		#address-cells = <1>;
 +		#size-cells = <1>;
@@ -270,6 +270,8 @@ index 0000000000..030cb6fe92
 +};
 +
 +&wifi {
++	#address-cells = <1>;
++	#size-cells = <0>;
 +	status = "okay";
 +
 +	mediatek,mtd-eeprom = <&factory 0x0>;

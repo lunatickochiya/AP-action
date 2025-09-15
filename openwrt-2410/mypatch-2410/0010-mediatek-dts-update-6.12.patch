@@ -1,7 +1,7 @@
-From deec11d5907adec709148d251d40887d9be6543a Mon Sep 17 00:00:00 2001
+From 29f259032d263a8ee22fc0fecca83ac822090b2a Mon Sep 17 00:00:00 2001
 From: Shiji Yang <yangshiji66@outlook.com>
 Date: Mon, 19 May 2025 08:50:10 +0800
-Subject: [PATCH] mediatek: dts: update 6.12
+Subject: [PATCH 10/12] mediatek: dts: update 6.12
 
 Based on other mt7622 dts, it is not difficult to infer that the
 missing interrupt controller is "pio". Fix dtc warning:
@@ -342,7 +342,7 @@ index eaa2e74112..02c07c70cd 100644
  	pinctrl-0 = <&mmc0_pins_default>;
  	pinctrl-1 = <&mmc0_pins_uhs>;
 diff --git a/target/linux/mediatek/dts/mt7981a-comfast-cf-e393ax.dts b/target/linux/mediatek/dts/mt7981a-comfast-cf-e393ax.dts
-index 3c5f8704f7..8f7598fc7c 100644
+index 6ff061b1e9..22e48259e3 100644
 --- a/target/linux/mediatek/dts/mt7981a-comfast-cf-e393ax.dts
 +++ b/target/linux/mediatek/dts/mt7981a-comfast-cf-e393ax.dts
 @@ -132,7 +132,7 @@
@@ -355,7 +355,7 @@ index 3c5f8704f7..8f7598fc7c 100644
  		#size-cells = <1>;
  		compatible = "spi-nand";
 diff --git a/target/linux/mediatek/dts/mt7981a-glinet-gl-x3000-xe3000-common.dtsi b/target/linux/mediatek/dts/mt7981a-glinet-gl-x3000-xe3000-common.dtsi
-index 9369d07b73..b475775b36 100644
+index 919fb23c53..2e6d502cfa 100644
 --- a/target/linux/mediatek/dts/mt7981a-glinet-gl-x3000-xe3000-common.dtsi
 +++ b/target/linux/mediatek/dts/mt7981a-glinet-gl-x3000-xe3000-common.dtsi
 @@ -127,6 +127,8 @@
@@ -368,7 +368,7 @@ index 9369d07b73..b475775b36 100644
  	pinctrl-0 = <&mmc0_pins_default>;
  	pinctrl-1 = <&mmc0_pins_uhs>;
 diff --git a/target/linux/mediatek/dts/mt7981a-ubnt-unifi-6-plus.dts b/target/linux/mediatek/dts/mt7981a-ubnt-unifi-6-plus.dts
-index e9eabea6ae..1d73b0f7f3 100644
+index 48fe2f2fc0..0e6e0cd964 100644
 --- a/target/linux/mediatek/dts/mt7981a-ubnt-unifi-6-plus.dts
 +++ b/target/linux/mediatek/dts/mt7981a-ubnt-unifi-6-plus.dts
 @@ -110,7 +110,7 @@
@@ -381,7 +381,7 @@ index e9eabea6ae..1d73b0f7f3 100644
  				reg = <0x00000 0x10000>;
  				read-only;
 diff --git a/target/linux/mediatek/dts/mt7981b-cmcc-a10.dtsi b/target/linux/mediatek/dts/mt7981b-cmcc-a10.dtsi
-index f5c66f515f..91644746a6 100644
+index fe132aa66a..06d829e087 100644
 --- a/target/linux/mediatek/dts/mt7981b-cmcc-a10.dtsi
 +++ b/target/linux/mediatek/dts/mt7981b-cmcc-a10.dtsi
 @@ -242,6 +242,8 @@
@@ -420,7 +420,7 @@ index fded878332..de9ab0e6ff 100644
  			pinctrl-0 = <&spi0_flash_pins>;
  			status = "okay";
 diff --git a/target/linux/mediatek/dts/mt7981b-cudy-ap3000outdoor-v1.dts b/target/linux/mediatek/dts/mt7981b-cudy-ap3000outdoor-v1.dts
-index 49f9932606..dbb21797ab 100644
+index 735cecfe42..b0c6524554 100644
 --- a/target/linux/mediatek/dts/mt7981b-cudy-ap3000outdoor-v1.dts
 +++ b/target/linux/mediatek/dts/mt7981b-cudy-ap3000outdoor-v1.dts
 @@ -57,7 +57,6 @@
@@ -432,7 +432,7 @@ index 49f9932606..dbb21797ab 100644
  		antctrl {
  			/* Not sure if this pin does anything.
 diff --git a/target/linux/mediatek/dts/mt7981b-cudy-re3000-v1.dts b/target/linux/mediatek/dts/mt7981b-cudy-re3000-v1.dts
-index 122cfd8a1f..685b5b9b7a 100644
+index 4025e5aaa3..5143147faf 100644
 --- a/target/linux/mediatek/dts/mt7981b-cudy-re3000-v1.dts
 +++ b/target/linux/mediatek/dts/mt7981b-cudy-re3000-v1.dts
 @@ -132,7 +132,7 @@
@@ -445,7 +445,7 @@ index 122cfd8a1f..685b5b9b7a 100644
  				reg = <0x00000 0x40000>;
  				read-only;
 diff --git a/target/linux/mediatek/dts/mt7981b-cudy-wr3000-v1.dts b/target/linux/mediatek/dts/mt7981b-cudy-wr3000-v1.dts
-index b2b353bcd2..ee1ca56142 100644
+index 8af8ef401f..4c12e676ed 100644
 --- a/target/linux/mediatek/dts/mt7981b-cudy-wr3000-v1.dts
 +++ b/target/linux/mediatek/dts/mt7981b-cudy-wr3000-v1.dts
 @@ -150,7 +150,7 @@
@@ -458,7 +458,7 @@ index b2b353bcd2..ee1ca56142 100644
  				reg = <0x00000 0x40000>;
  				read-only;
 diff --git a/target/linux/mediatek/dts/mt7981b-dlink-aquila-pro-ai-m30-a1.dts b/target/linux/mediatek/dts/mt7981b-dlink-aquila-pro-ai-m30-a1.dts
-index d70402fa66..4ee7cf1ca8 100644
+index dc14fce2b6..6ab48cc5e1 100644
 --- a/target/linux/mediatek/dts/mt7981b-dlink-aquila-pro-ai-m30-a1.dts
 +++ b/target/linux/mediatek/dts/mt7981b-dlink-aquila-pro-ai-m30-a1.dts
 @@ -281,6 +281,8 @@
@@ -471,7 +471,7 @@ index d70402fa66..4ee7cf1ca8 100644
  
  		led_status_red: led@0 {
 diff --git a/target/linux/mediatek/dts/mt7981b-gatonetworks-gdsp.dts b/target/linux/mediatek/dts/mt7981b-gatonetworks-gdsp.dts
-index 6a12502617..ad09ff8bcd 100644
+index fd9fdca124..219fd89934 100644
 --- a/target/linux/mediatek/dts/mt7981b-gatonetworks-gdsp.dts
 +++ b/target/linux/mediatek/dts/mt7981b-gatonetworks-gdsp.dts
 @@ -240,6 +240,8 @@
@@ -493,7 +493,7 @@ index 6a12502617..ad09ff8bcd 100644
  				reg = <0x00000 0x0040000>;
  				read-only;
 diff --git a/target/linux/mediatek/dts/mt7981b-glinet-gl-mt2500.dts b/target/linux/mediatek/dts/mt7981b-glinet-gl-mt2500.dts
-index 3b8130f237..cd4174da9a 100644
+index 0bd3ac0a29..8b8c2ed597 100644
 --- a/target/linux/mediatek/dts/mt7981b-glinet-gl-mt2500.dts
 +++ b/target/linux/mediatek/dts/mt7981b-glinet-gl-mt2500.dts
 @@ -144,6 +144,8 @@
@@ -506,7 +506,7 @@ index 3b8130f237..cd4174da9a 100644
  	pinctrl-0 = <&mmc0_pins_default>;
  	pinctrl-1 = <&mmc0_pins_uhs>;
 diff --git a/target/linux/mediatek/dts/mt7981b-huasifei-wh3000.dts b/target/linux/mediatek/dts/mt7981b-huasifei-wh3000.dts
-index 0e77c81052..3f58ae42a1 100644
+index c12367b84a..7dd2f79f8a 100644
 --- a/target/linux/mediatek/dts/mt7981b-huasifei-wh3000.dts
 +++ b/target/linux/mediatek/dts/mt7981b-huasifei-wh3000.dts
 @@ -101,6 +101,8 @@
@@ -528,7 +528,7 @@ index 0e77c81052..3f58ae42a1 100644
  	nvmem-cell-names = "eeprom";
  	status = "okay";
 diff --git a/target/linux/mediatek/dts/mt7981b-openembed-som7981.dts b/target/linux/mediatek/dts/mt7981b-openembed-som7981.dts
-index eecc5b48aa..7856e52bc0 100644
+index d5c868567b..c7d88952a4 100644
 --- a/target/linux/mediatek/dts/mt7981b-openembed-som7981.dts
 +++ b/target/linux/mediatek/dts/mt7981b-openembed-som7981.dts
 @@ -280,6 +280,8 @@
@@ -541,7 +541,7 @@ index eecc5b48aa..7856e52bc0 100644
  	nvmem-cell-names = "eeprom";
  	status = "okay";
 diff --git a/target/linux/mediatek/dts/mt7981b-openwrt-one.dts b/target/linux/mediatek/dts/mt7981b-openwrt-one.dts
-index 8110be1bb0..d1a24db38a 100644
+index 584b482179..ad08525807 100644
 --- a/target/linux/mediatek/dts/mt7981b-openwrt-one.dts
 +++ b/target/linux/mediatek/dts/mt7981b-openwrt-one.dts
 @@ -302,7 +302,7 @@
@@ -563,7 +563,7 @@ index 8110be1bb0..d1a24db38a 100644
  	nvmem-cell-names = "eeprom";
  	status = "okay";
 diff --git a/target/linux/mediatek/dts/mt7981b-routerich-ax3000-v1.dts b/target/linux/mediatek/dts/mt7981b-routerich-ax3000-v1.dts
-index 6a427bb3af..2643d5dab7 100644
+index 09c555b73c..ba70fc807b 100644
 --- a/target/linux/mediatek/dts/mt7981b-routerich-ax3000-v1.dts
 +++ b/target/linux/mediatek/dts/mt7981b-routerich-ax3000-v1.dts
 @@ -314,6 +314,8 @@
@@ -589,7 +589,7 @@ index 264c985612..c06714edf4 100644
  	pinctrl-0 = <&mmc0_pins_default>;
  	pinctrl-1 = <&mmc0_pins_uhs>;
 diff --git a/target/linux/mediatek/dts/mt7981b-wavlink-wl-wn573hx3.dts b/target/linux/mediatek/dts/mt7981b-wavlink-wl-wn573hx3.dts
-index 980bbfb70c..e5118bc3d1 100644
+index ff222247a6..64e577887a 100644
 --- a/target/linux/mediatek/dts/mt7981b-wavlink-wl-wn573hx3.dts
 +++ b/target/linux/mediatek/dts/mt7981b-wavlink-wl-wn573hx3.dts
 @@ -99,7 +99,7 @@
@@ -602,7 +602,7 @@ index 980bbfb70c..e5118bc3d1 100644
  				reg = <0x00000 0x40000>;
  				read-only;
 diff --git a/target/linux/mediatek/dts/mt7981b-wavlink-wl-wn586x3.dts b/target/linux/mediatek/dts/mt7981b-wavlink-wl-wn586x3.dts
-index 49c7cc8512..9190134e35 100644
+index 62be0faa4a..d6d9a9fee6 100644
 --- a/target/linux/mediatek/dts/mt7981b-wavlink-wl-wn586x3.dts
 +++ b/target/linux/mediatek/dts/mt7981b-wavlink-wl-wn586x3.dts
 @@ -144,7 +144,7 @@
@@ -615,7 +615,7 @@ index 49c7cc8512..9190134e35 100644
  				reg = <0x00000 0x40000>;
  				read-only;
 diff --git a/target/linux/mediatek/dts/mt7981b-yuncore-ax835.dts b/target/linux/mediatek/dts/mt7981b-yuncore-ax835.dts
-index ad9aed9f07..eada07b7ab 100644
+index b5de1c34b4..485b8dbd36 100644
 --- a/target/linux/mediatek/dts/mt7981b-yuncore-ax835.dts
 +++ b/target/linux/mediatek/dts/mt7981b-yuncore-ax835.dts
 @@ -158,7 +158,7 @@
@@ -628,7 +628,7 @@ index ad9aed9f07..eada07b7ab 100644
  				reg = <0x00000 0x40000>;
  				read-only;
 diff --git a/target/linux/mediatek/dts/mt7981b-zbtlink-zbt-z8102ax.dts b/target/linux/mediatek/dts/mt7981b-zbtlink-zbt-z8102ax.dts
-index 99e8a41e95..d58ea48fc3 100644
+index f4d5271f97..4b0921656a 100644
 --- a/target/linux/mediatek/dts/mt7981b-zbtlink-zbt-z8102ax.dts
 +++ b/target/linux/mediatek/dts/mt7981b-zbtlink-zbt-z8102ax.dts
 @@ -93,7 +93,6 @@
@@ -860,10 +860,10 @@ index cfa195034d..b2e4ab91f9 100644
  	nvmem-cell-names = "eeprom";
  
 diff --git a/target/linux/mediatek/dts/mt7988a-arcadyan-mozart.dts b/target/linux/mediatek/dts/mt7988a-arcadyan-mozart.dts
-index 63340173dd..f6ee498ae0 100644
+index 8b5f0526b2..f6752e340a 100644
 --- a/target/linux/mediatek/dts/mt7988a-arcadyan-mozart.dts
 +++ b/target/linux/mediatek/dts/mt7988a-arcadyan-mozart.dts
-@@ -311,8 +311,10 @@
+@@ -326,8 +326,10 @@
  
  	pcie@0,0 {
  		reg = <0x0000 0 0 0 0>;
@@ -876,10 +876,10 @@ index 63340173dd..f6ee498ae0 100644
  			nvmem-cells = <&eeprom_factory_0>;
  			nvmem-cell-names = "eeprom";
 diff --git a/target/linux/mediatek/dts/mt7988a-smartrg-mt-stuart.dtsi b/target/linux/mediatek/dts/mt7988a-smartrg-mt-stuart.dtsi
-index 5f533810d1..302e8a8101 100644
+index a3db288d27..058a96f253 100644
 --- a/target/linux/mediatek/dts/mt7988a-smartrg-mt-stuart.dtsi
 +++ b/target/linux/mediatek/dts/mt7988a-smartrg-mt-stuart.dtsi
-@@ -395,9 +395,11 @@
+@@ -385,9 +385,11 @@
  	pinctrl-0 = <&i2c1_pins>;
  	status = "okay";
  
@@ -892,7 +892,7 @@ index 5f533810d1..302e8a8101 100644
  
  		led_sys_red: system_red {
  			label = "red";
-@@ -556,9 +558,13 @@
+@@ -546,9 +548,13 @@
  
  	pcie@0,0 {
  		reg = <0x0000 0 0 0 0>;

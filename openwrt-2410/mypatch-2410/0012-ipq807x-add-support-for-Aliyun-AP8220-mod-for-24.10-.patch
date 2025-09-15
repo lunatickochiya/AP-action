@@ -1,7 +1,7 @@
-From 19f89b8c2d04cf6117534df74fcaffe7735abe72 Mon Sep 17 00:00:00 2001
+From e3c6d0ab88c0cbe12df1e6337bff5e4db71f0bb8 Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
 Date: Sun, 23 Feb 2025 14:21:23 +0800
-Subject: [PATCH 2/2] ipq807x: add support for Aliyun AP8220 mod for 24.10
+Subject: [PATCH 12/12] ipq807x: add support for Aliyun AP8220 mod for 24.10
  ipq807x: add support for Aliyun AP8220 mod for 24.10 Revert "Auxiliary commit
  to revert individual files from 5e3046cb221a1b7cef554a147c22307c7ff109f8"
 
@@ -9,12 +9,12 @@ This reverts commit b0b4368a2c22e613f5532bcf20398ffd4f3f5291.
 ipq807x: add support for Aliyun AP8220 mod for 24.10
 ---
  .../boot/uboot-envtools/files/qualcommax_ipq807x    |  1 +
- package/firmware/ipq-wifi/Makefile                  |  8 +++++---
+ package/firmware/ipq-wifi/Makefile                  |  2 ++
  target/linux/qualcommax/image/ipq807x.mk            | 13 +++++++++++++
  .../ipq807x/base-files/etc/board.d/02_network       |  6 ++++++
  .../etc/hotplug.d/firmware/11-ath11k-caldata        |  7 +++++++
  .../ipq807x/base-files/lib/upgrade/platform.sh      |  9 +++++++++
- 6 files changed, 41 insertions(+), 3 deletions(-)
+ 6 files changed, 38 insertions(+)
 
 diff --git a/package/boot/uboot-envtools/files/qualcommax_ipq807x b/package/boot/uboot-envtools/files/qualcommax_ipq807x
 index 2d76045c66..26f7d64c54 100644
@@ -29,7 +29,7 @@ index 2d76045c66..26f7d64c54 100644
  edgecore,eap102|\
  zyxel,nbg7815)
 diff --git a/package/firmware/ipq-wifi/Makefile b/package/firmware/ipq-wifi/Makefile
-index 4732a14b1b..d71ee94bb3 100644
+index 41a2a009cb..509768ccf9 100644
 --- a/package/firmware/ipq-wifi/Makefile
 +++ b/package/firmware/ipq-wifi/Makefile
 @@ -28,6 +28,7 @@ endef
@@ -40,7 +40,7 @@ index 4732a14b1b..d71ee94bb3 100644
  	arcadyan_aw1000 \
  	asus_rt-ax89x \
  	buffalo_wxr-5950ax12 \
-@@ -155,6 +156,7 @@ endef
+@@ -159,6 +160,7 @@ endef
  #   board-<devicename>.<qca4019|qca9888|qca9889|qca9984|qca99x0|ipq8074>
  
  $(eval $(call generate-ipq-wifi-package,8devices_mango,8devices Mango))
@@ -135,5 +135,5 @@ index 0691c92184..d67306254c 100644
  	cmcc,rm2-6|\
  	compex,wpq873|\
 -- 
-2.34.1
+2.43.0
 

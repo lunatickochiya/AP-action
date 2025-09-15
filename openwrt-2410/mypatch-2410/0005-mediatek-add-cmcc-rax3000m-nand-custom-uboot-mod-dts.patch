@@ -1,20 +1,20 @@
-From fbc1b309388b80ded50b39d72add50a55daec2cd Mon Sep 17 00:00:00 2001
+From 085bc5a1281a71af12c486777c00981ea9f1a53d Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
-Date: Sun, 26 Jan 2025 17:40:30 +0800
-Subject: [PATCH 03/10] mediatek:add cmcc rax3000m nand custom uboot mod dts
+Date: Mon, 15 Sep 2025 18:18:47 +0800
+Subject: [PATCH 05/12] mediatek:add cmcc rax3000m nand custom uboot mod dts
  file
 
 ---
- .../mt7981b-cmcc-rax3000m-nand-ubootmod.dts   | 119 ++++++++++++++++++
- 1 file changed, 119 insertions(+)
+ .../mt7981b-cmcc-rax3000m-nand-ubootmod.dts   | 120 ++++++++++++++++++
+ 1 file changed, 120 insertions(+)
  create mode 100644 target/linux/mediatek/dts/mt7981b-cmcc-rax3000m-nand-ubootmod.dts
 
 diff --git a/target/linux/mediatek/dts/mt7981b-cmcc-rax3000m-nand-ubootmod.dts b/target/linux/mediatek/dts/mt7981b-cmcc-rax3000m-nand-ubootmod.dts
 new file mode 100644
-index 0000000000..5d4f5a77a7
+index 0000000000..f29ab64bf4
 --- /dev/null
 +++ b/target/linux/mediatek/dts/mt7981b-cmcc-rax3000m-nand-ubootmod.dts
-@@ -0,0 +1,119 @@
+@@ -0,0 +1,120 @@
 +// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 +
 +/dts-v1/;
@@ -29,13 +29,17 @@ index 0000000000..5d4f5a77a7
 +	};
 +};
 +
++&chosen {
++	bootargs-override = "";
++};
++
 +&gmac0 {
-+	nvmem-cells = <&macaddr_factory_2a 0>;
++	nvmem-cells = <&macaddr_factory_2a>;
 +	nvmem-cell-names = "mac-address";
 +};
 +
 +&gmac1 {
-+	nvmem-cells = <&macaddr_factory_24 0>;
++	nvmem-cells = <&macaddr_factory_24>;
 +	nvmem-cell-names = "mac-address";
 +};
 +
@@ -44,10 +48,10 @@ index 0000000000..5d4f5a77a7
 +	pinctrl-0 = <&spi0_flash_pins>;
 +	status = "okay";
 +
-+	spi_nand: flash@0 {
++	flash@0 {
++		compatible = "spi-nand";
 +		#address-cells = <1>;
 +		#size-cells = <1>;
-+		compatible = "spi-nand";
 +		reg = <0>;
 +
 +		spi-max-frequency = <52000000>;
@@ -57,14 +61,14 @@ index 0000000000..5d4f5a77a7
 +		mediatek,bmt-max-ratio = <1>;
 +		mediatek,bmt-max-reserved-blocks = <64>;
 +
-+		partitions: partitions {
++		partitions {
 +			compatible = "fixed-partitions";
 +			#address-cells = <1>;
 +			#size-cells = <1>;
 +
 +			partition@0 {
-+				label = "BL2";
-+				reg = <0x00000 0x100000>;
++				label = "bl2";
++				reg = <0x00000 0x0100000>;
 +				read-only;
 +			};
 +
@@ -74,32 +78,29 @@ index 0000000000..5d4f5a77a7
 +			};
 +
 +			factory: partition@180000 {
-+				label = "Factory";
++				label = "factory";
 +				reg = <0x180000 0x200000>;
++				read-only;
 +
-+				compatible = "nvmem-cells";
 +				nvmem-layout {
 +					compatible = "fixed-layout";
 +					#address-cells = <1>;
 +					#size-cells = <1>;
 +
 +					macaddr_factory_24: macaddr@24 {
-+						compatible = "mac-base";
 +						reg = <0x24 0x6>;
-+						#nvmem-cell-cells = <1>;
 +					};
 +
 +					macaddr_factory_2a: macaddr@2a {
-+						compatible = "mac-base";
 +						reg = <0x2a 0x6>;
-+						#nvmem-cell-cells = <1>;
 +					};
 +				};
 +			};
 +
 +			partition@380000 {
-+				label = "FIP";
++				label = "fip";
 +				reg = <0x380000 0x200000>;
++				read-only;
 +			};
 +
 +			partition@580000 {
@@ -119,14 +120,14 @@ index 0000000000..5d4f5a77a7
 +
 +		conf-pu {
 +			pins = "SPI0_CS", "SPI0_HOLD", "SPI0_WP";
-+			drive-strength = <MTK_DRIVE_8mA>;
-+			bias-pull-up = <MTK_PUPD_SET_R1R0_11>;
++			drive-strength = <8>;
++			mediatek,pull-up-adv = <0>; /* bias-disable */
 +		};
 +
 +		conf-pd {
 +			pins = "SPI0_CLK", "SPI0_MOSI", "SPI0_MISO";
-+			drive-strength = <MTK_DRIVE_8mA>;
-+			bias-pull-down = <MTK_PUPD_SET_R1R0_11>;
++			drive-strength = <8>;
++			mediatek,pull-up-adv = <0>; /* bias-disable */
 +		};
 +	};
 +};

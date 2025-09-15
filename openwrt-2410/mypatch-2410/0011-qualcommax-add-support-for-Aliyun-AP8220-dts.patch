@@ -1,7 +1,7 @@
-From fb38d265aa0c6edfadbbeb9bf2d9965ee6365e69 Mon Sep 17 00:00:00 2001
+From c6bf81b485b5d2928601fe605193b052b1a6f6ce Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
 Date: Sun, 23 Feb 2025 14:22:15 +0800
-Subject: [PATCH 1/2] qualcommax: add support for Aliyun AP8220 dts
+Subject: [PATCH 11/12] qualcommax: add support for Aliyun AP8220 dts
 
 Aliyun AP8220 is an AP manufactured by Edgecore.
 (Very similar to Edgecore EAP102)
@@ -380,5 +380,5 @@ index 0000000000..176dc59155
 +	qcom,ath11k-calibration-variant = "Aliyun-AP8220";
 +};
 -- 
-2.34.1
+2.43.0
 

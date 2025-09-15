@@ -1,21 +1,20 @@
-From b3a225697d36690c64220fda7477d1ce39305453 Mon Sep 17 00:00:00 2001
+From 098beba42bd7883cad0d4af94a9178921fd3b5cf Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
 Date: Tue, 11 Feb 2025 19:16:28 +0800
-Subject: [PATCH 02/10] mediatek:add support for cmcc rax3000m nand custom
+Subject: [PATCH 04/12] mediatek:add support for cmcc rax3000m nand custom
  uboot mod
 
 ---
  .../uboot-envtools/files/mediatek_filogic     |  1 +
  .../filogic/base-files/etc/board.d/02_network |  1 +
- .../etc/hotplug.d/ieee80211/11_fix_wifi_mac   |  3 +++
  target/linux/mediatek/image/filogic.mk        | 23 +++++++++++++++++++
- 4 files changed, 28 insertions(+)
+ 3 files changed, 25 insertions(+)
 
 diff --git a/package/boot/uboot-envtools/files/mediatek_filogic b/package/boot/uboot-envtools/files/mediatek_filogic
-index 0da869cdbf..b3b1ecf197 100644
+index 3f8fa0d543..59600894e8 100644
 --- a/package/boot/uboot-envtools/files/mediatek_filogic
 +++ b/package/boot/uboot-envtools/files/mediatek_filogic
-@@ -92,6 +92,7 @@ comfast,cf-e393ax)
+@@ -93,6 +93,7 @@ comfast,cf-e393ax)
  	ubootenv_add_uci_config "/dev/mtd1" "0x0" "0x20000" "0x80000"
  	;;
  cetron,ct3003|\
@@ -24,7 +23,7 @@ index 0da869cdbf..b3b1ecf197 100644
  netgear,wax220|\
  zbtlink,zbt-z8102ax|\
 diff --git a/target/linux/mediatek/filogic/base-files/etc/board.d/02_network b/target/linux/mediatek/filogic/base-files/etc/board.d/02_network
-index 92e6137c55..7a471f805f 100644
+index 59a7a720f3..bc9ce78bec 100644
 --- a/target/linux/mediatek/filogic/base-files/etc/board.d/02_network
 +++ b/target/linux/mediatek/filogic/base-files/etc/board.d/02_network
 @@ -9,6 +9,7 @@ mediatek_setup_interfaces()
@@ -35,25 +34,11 @@ index 92e6137c55..7a471f805f 100644
  	cmcc,rax3000m|\
  	h3c,magic-nx30-pro|\
  	netis,nx31|\
-diff --git a/target/linux/mediatek/filogic/base-files/etc/hotplug.d/ieee80211/11_fix_wifi_mac b/target/linux/mediatek/filogic/base-files/etc/hotplug.d/ieee80211/11_fix_wifi_mac
-index 872534818f..b9bc7f4aae 100644
---- a/target/linux/mediatek/filogic/base-files/etc/hotplug.d/ieee80211/11_fix_wifi_mac
-+++ b/target/linux/mediatek/filogic/base-files/etc/hotplug.d/ieee80211/11_fix_wifi_mac
-@@ -71,6 +71,9 @@ case "$board" in
- 		addr=$(cat /sys/class/net/eth0/address)
- 		[ "$PHYNBR" = "1" ] && macaddr_add $addr -1 > /sys${DEVPATH}/macaddress
- 		;;
-+	cmcc,rax3000m-nand-ubootmod)
-+		[ "$PHYNBR" = "1" ] && mtd_get_mac_binary Factory 0xa > /sys${DEVPATH}/macaddress
-+		;;
- 	comfast,cf-e393ax)
- 		addr=$(mtd_get_mac_binary "Factory" 0x8000)
- 		[ "$PHYNBR" = "1" ] && macaddr_add $addr 1 > /sys${DEVPATH}/macaddress
 diff --git a/target/linux/mediatek/image/filogic.mk b/target/linux/mediatek/image/filogic.mk
-index 86521daaeb..0f64378873 100644
+index 6a18adaa7b..a99726c54f 100644
 --- a/target/linux/mediatek/image/filogic.mk
 +++ b/target/linux/mediatek/image/filogic.mk
-@@ -610,6 +610,29 @@ define Device/cmcc_rax3000m
+@@ -605,6 +605,29 @@ define Device/cmcc_rax3000m
  endef
  TARGET_DEVICES += cmcc_rax3000m
  
