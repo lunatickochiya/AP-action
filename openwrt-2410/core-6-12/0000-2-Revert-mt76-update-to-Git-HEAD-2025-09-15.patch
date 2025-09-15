@@ -1,23 +1,27 @@
-From 6eb67c093e24b826b43d6745548c9f81e82fc612 Mon Sep 17 00:00:00 2001
+From 0806ca6c5bd987eeb0ea5a22ae2488f1c24d5ea5 Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
 Date: Mon, 15 Sep 2025 21:42:06 +0800
-Subject: [PATCH] Revert "mt76: update to Git HEAD (2025-09-09)"
+Subject: [PATCH] Revert "mt76: update to Git HEAD (2025-09-15)" Revert "mt76:
+ update to Git HEAD (2025-09-09)"
 
 This reverts commit 186534e167b51023a531a0bffafa5dee39ba57d2.
+Revert "mt76: update to Git HEAD (2025-09-15)"
+
+This reverts commit 457d0ca35970b24a2d0b8cc410ee73795b1b0440.
 ---
- .../kernel/mt76/patches/100-api_compat.patch  | 40 ++++---------------
+ .../kernel/mt76/patches/100-api_compat.patch  | 42 ++++---------------
  ...tk_wed-move-dlm-a-dedicated-dts-node.patch |  4 +-
- 2 files changed, 10 insertions(+), 34 deletions(-)
+ 2 files changed, 11 insertions(+), 35 deletions(-)
 
 diff --git a/package/kernel/mt76/patches/100-api_compat.patch b/package/kernel/mt76/patches/100-api_compat.patch
-index 62f51d3243..989967164b 100644
+index 2081b16180..989967164b 100644
 --- a/package/kernel/mt76/patches/100-api_compat.patch
 +++ b/package/kernel/mt76/patches/100-api_compat.patch
 @@ -23,7 +23,7 @@
   	.set_rts_threshold = mt7915_set_rts_threshold,
  --- a/mt7996/main.c
  +++ b/mt7996/main.c
--@@ -717,8 +717,7 @@ static void mt7996_configure_filter(stru
+-@@ -732,8 +732,7 @@ static void mt7996_configure_filter(stru
 +@@ -715,8 +715,7 @@ static void mt7996_configure_filter(stru
   }
   
@@ -26,7 +30,7 @@ index 62f51d3243..989967164b 100644
   {
   	struct mt7996_vif *mvif = (struct mt7996_vif *)vif->drv_priv;
   	struct mt7996_phy *phy = mt7996_vif_link_phy(&mvif->deflink);
--@@ -1702,26 +1701,31 @@ static void mt7996_link_rate_ctrl_update
+-@@ -1716,26 +1715,31 @@ static void mt7996_link_rate_ctrl_update
 - 	spin_unlock_bh(&dev->mt76.sta_poll_lock);
 +@@ -1687,13 +1686,12 @@ out:
 + 	rcu_read_unlock();
@@ -67,13 +71,22 @@ index 62f51d3243..989967164b 100644
 - }
   
 - static void mt7996_sta_rate_ctrl_update(void *data, struct ieee80211_sta *sta)
--@@ -2234,7 +2238,7 @@ const struct ieee80211_ops mt7996_ops =
+-@@ -2248,7 +2252,7 @@ const struct ieee80211_ops mt7996_ops =
 + 	mt7996_link_rate_ctrl_update(&changed, sta);
 + 	ieee80211_queue_work(hw, &dev->rc_work);
 +@@ -2186,7 +2184,7 @@ const struct ieee80211_ops mt7996_ops =
   	.link_info_changed = mt7996_link_info_changed,
   	.sta_state = mt7996_sta_state,
   	.sta_pre_rcu_remove = mt76_sta_pre_rcu_remove,
+@@ -86,7 +62,7 @@
+  	.set_rts_threshold = mt7996_set_rts_threshold,
+ --- a/mac80211.c
+ +++ b/mac80211.c
+-@@ -1752,7 +1752,7 @@ s8 mt76_get_power_bound(struct mt76_phy
++@@ -1745,7 +1745,7 @@ s8 mt76_get_power_bound(struct mt76_phy
+  EXPORT_SYMBOL_GPL(mt76_get_power_bound);
+  
+  int mt76_get_txpower(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 @@ -97,7 +73,7 @@
   	int n_chains, delta;
  --- a/mt76.h
