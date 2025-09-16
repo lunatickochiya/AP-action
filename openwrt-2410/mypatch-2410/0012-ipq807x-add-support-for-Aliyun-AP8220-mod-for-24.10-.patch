@@ -1,4 +1,4 @@
-From e3c6d0ab88c0cbe12df1e6337bff5e4db71f0bb8 Mon Sep 17 00:00:00 2001
+From be1b05779b91d464d5a21f6f27f781afa2242d3d Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
 Date: Sun, 23 Feb 2025 14:21:23 +0800
 Subject: [PATCH 12/12] ipq807x: add support for Aliyun AP8220 mod for 24.10

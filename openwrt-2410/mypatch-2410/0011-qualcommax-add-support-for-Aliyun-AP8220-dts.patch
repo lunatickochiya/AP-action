@@ -1,4 +1,4 @@
-From c6bf81b485b5d2928601fe605193b052b1a6f6ce Mon Sep 17 00:00:00 2001
+From 5949fd838f33f7f719d04d05b4bb7cfebd5522b0 Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
 Date: Sun, 23 Feb 2025 14:22:15 +0800
 Subject: [PATCH 11/12] qualcommax: add support for Aliyun AP8220 dts
