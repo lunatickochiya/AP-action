@@ -187,6 +187,50 @@ fi
 
 }
 
+function ln_openwrt() {
+sudo mkdir -p -m 777 /mnt/openwrt/dl /mnt/openwrt/bin /mnt/openwrt/staging_dir /mnt/openwrt/build_dir
+        ln -sf /mnt/openwrt/dl openwrt/dl
+        ln -sf /mnt/openwrt/bin openwrt/bin
+        ln -sf /mnt/openwrt/staging_dir openwrt/staging_dir
+        ln -sf /mnt/openwrt/build_dir openwrt/build_dir
+        df -hT
+        ls /mnt/openwrt
+}
+
+function add_openwrt_sfe() {
+        if [ $TARGET == 'mt798x-iptables' ] || [ $TARGET == 'mt798x-nousb-iptables' ] || [ $TARGET == 'ramips-iptables' ] || [ $TARGET == 'ath79-iptables' ] || [ $TARGET == 'ipq-iptables' ]; then
+                bash $GITHUB_WORKSPACE/add-sfe-packages.sh ipt
+                echo "----$TARGET-----ipt-sfe---"
+                cd openwrt
+                wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/pending-6.6/613-netfilter_optional_tcp_window_check.patch -P target/linux/generic/pending-6.6/
+                wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/hack-6.6/952-add-net-conntrack-events-support-multiple-registrant.patch -P target/linux/generic/hack-6.6/
+                wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/hack-6.6/953-net-patch-linux-kernel-to-support-shortcut-fe.patch -P target/linux/generic/hack-6.6/
+                echo "# CONFIG_NF_CONNTRACK_CHAIN_EVENTS is not set" >> "./target/linux/generic/config-6.6"
+                echo "# CONFIG_SHORTCUT_FE is not set" >> "./target/linux/generic/config-6.6"
+                # git clone https://github.com/lunatickochiya/luci-app-turboacc-js package/luci-app-turboacc-js && sed -i 's?\.\./\.\./luci.mk?$(TOPDIR)/feeds/luci/luci.mk?' ./package/luci-app-turboacc-js/Makefile ; rm -rf ./package/luci-app-turboacc-js/.git/
+                git clone --depth=1 --single-branch --branch "package" https://github.com/chenmozhijin/turboacc && mv -n turboacc/shortcut-fe ./package ; rm -rf turboacc
+                cd ../
+
+        fi
+        if [ $TARGET == 'mt798x-nftables' ] || [ $TARGET == 'mt798x-nousb-nftables' ] || [ $TARGET == 'ramips-nftables' ] || [ $TARGET == 'ath79-nftables' ] || [ $TARGET == 'ipq-nftables' ]; then
+        cd openwrt
+        curl -sSL https://raw.githubusercontent.com/chenmozhijin/turboacc/luci/add_turboacc.sh -o add_turboacc.sh && bash add_turboacc.sh
+        echo "----$TARGET-----NFT-acc----"
+        cd ../
+        fi
+        if [ "$TEST_KERNEL" = "1" ]; then
+        cd openwrt
+                wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/pending-6.12/613-netfilter_optional_tcp_window_check.patch -P target/linux/generic/pending-6.12/
+                wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/hack-6.12/952-add-net-conntrack-events-support-multiple-registrant.patch -P target/linux/generic/hack-6.12/
+                wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/hack-6.12/953-net-patch-linux-kernel-to-support-shortcut-fe.patch -P target/linux/generic/hack-6.12/
+                rm -rf package/turboacc/shortcut-fe/simulated-driver
+                cd ../
+        fi
+        sed -i 's/kmod-shortcut-fe-cm,kmod-shortcut-fe,kmod-fast-classifier,kmod-fast-classifier-noload,kmod-shortcut-fe-drv,//g' package-configs/kmod_exclude_list*
+        # sed -i 's/"feeds\/lunatic7\/shortcut-fe"//g' diy-2410.sh
+        # sed -i 's/"feeds\/lunatic7\/luci-app-turboacc"//g' diy-2410.sh
+}
+          
 
 if [ "$1" == "init-pkg-env" ]; then
 init_pkg_env
@@ -198,6 +242,10 @@ elif [ "$1" == "init-openwrt-pkg-config" ]; then
 init_openwrt_pkg_config
 elif [ "$1" == "init-openwrt-patch" ]; then
 init_openwrt_patch
+elif [ "$1" == "ln-openwrt" ]; then
+ln_openwrt
+elif [ "$1" == "add-openwrt-sfe" ]; then
+add_openwrt_sfe
 else
 echo "Invalid argument"
 fi
