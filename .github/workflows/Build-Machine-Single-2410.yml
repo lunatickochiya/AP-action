@@ -340,38 +340,11 @@ jobs:
     - name: 自定义配置（修复feeds）
       if: steps.feeds.outputs.status == 'success'
       id: config
+      env:
+        INPUT_PKGS_CFG_STATUS: ${{ github.event.inputs.packages_mod }}
+        INPUT_PKGS_CFG_FOO: ${{ github.event.inputs.packages }}"
       run: |
-        if [ ${{ env.TEST_KERNEL }} = 1 ]; then
-        find openwrt/target/linux/mediatek/dts/ -type f -name 'mt7981*.dts' -exec sed -i 's|#include "mt7981.dtsi"|#include "mt7981b.dtsi"|' {} +
-        # mv -f openwrt-2410/2410-test/999-wct4xxp-Eliminate-old-style-declaration.patch openwrt/feeds/telephony/libs/dahdi-linux/patches/999-wct4xxp-Eliminate-old-style-declaration.patch
-        fi
-        [ -d openwrt-2410/lunatic7-revert ] && mv -f openwrt-2410/lunatic7-revert openwrt/feeds/lunatic7/lunatic7-revert
-        [ -d openwrt-2410/luci-patch-2410 ] && mv -f openwrt-2410/luci-patch-2410 openwrt/feeds/luci/luci-patch-2410
-        [ -d openwrt-2410/feeds-package-patch-2410 ] && mv -f openwrt-2410/feeds-package-patch-2410 openwrt/feeds/packages/feeds-package-patch-2410
-        [ -e files ] && mv files openwrt/files
-        [ -e package-configs ] && mv package-configs openwrt/package-configs
-        [ -e machine-configs/${{matrix.target}}.config ] && mv -f machine-configs/${{matrix.target}}.config openwrt/package-configs/.config
-        cd openwrt
-        $GITHUB_WORKSPACE/$DIY_SH ${{matrix.target}}
-        IFS=',' read -r -a package_array <<< "${{ github.event.inputs.packages }}"
-        for pkg in "${package_array[@]}"; do
-            ./scripts/feeds install "$pkg"
-        if [ "${{ github.event.inputs.packages_mod }}" = "y" ]; then
-            echo "CONFIG_PACKAGE_$pkg=y" >> .config
-            echo "$pkg Added ..."
-        elif [ "${{ github.event.inputs.packages_mod }}" = "m" ]; then
-            echo "CONFIG_PACKAGE_$pkg=m" >> .config
-            echo "$pkg Marked ..."
-        elif [ "${{ github.event.inputs.packages_mod }}" = "n" ]; then
-            echo "CONFIG_PACKAGE_$pkg=n" >> .config
-            echo "$pkg Remove ..."
-        fi
-        done
-        make defconfig
-        for pkg in "${package_array[@]}"; do
-          awk -v pkg="$pkg" '$0 ~ pkg { print }' .config
-        done
-        $GITHUB_WORKSPACE/$DIY_SH_RFC ${{matrix.target}}
+        $GITHUB_WORKSPACE/core.sh fix-openwrt-feeds
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 添加kmod
@@ -385,31 +358,7 @@ jobs:
       if: steps.config.outputs.status == 'success'
       working-directory: ./openwrt
       run: |
-        echo "------------------------"
-        awk '/CONFIG_LINUX/ { print }' .config
-        awk '/${{matrix.target}}/ { print }' .config
-        echo "------------------------"
-        awk '/${{github.event.inputs.MACH}}/ { print }' .config
-        echo "------------------------"
-        awk '/mediatek/ { print }' .config
-        echo "------------------------"
-        awk '/wpad/ { print }' .config
-        echo "------------------------"
-        awk '/docker/ { print }' .config
-        echo "------------------------"
-        awk '/DOCKER/ { print }' .config
-        echo "------------------------"
-        awk '/store/ { print }' .config
-        echo "------------------------"
-        awk '/perl/ { print }' .config
-        echo "------------------------"
-        awk '/dnsmasq/ { print }' .config
-        echo "------------------------"
-        awk '/CONFIG_PACKAGE_kmod/ { print }' .config
-        echo "------------------------"
-        awk '/mt7981/ { print }' .config
-        echo "------------------------"
-        awk '/turboacc/ { print }' .config
+        $GITHUB_WORKSPACE/core.sh awk-openwrt-config
 
     - name: 下载包文件
       if: steps.config.outputs.status == 'success'

@@ -271,46 +271,118 @@ function add_openwrt_files() {
 }
 
 
+
 function add_openwrt_kmods() {
-cd openwrt
-        if [ $Matrix_Target == 'ramips-iptables' ] || [ $Matrix_Target == 'ramips-nftables' ]; then
+    cd openwrt
+
+    if [ "$Matrix_Target" == 'ramips-iptables' ] || [ "$Matrix_Target" == 'ramips-nftables' ]; then
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ramips
         make defconfig
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ramips
         make defconfig
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ramips
         make defconfig
-        elif [ $Matrix_Target == 'ath79-iptables' ] || [ $Matrix_Target == 'ath79-nftables' ]; then
+    elif [ "$Matrix_Target" == 'ath79-iptables' ] || [ "$Matrix_Target" == 'ath79-nftables' ]; then
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ath79
         make defconfig
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ath79
         make defconfig
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ath79
         make defconfig
-        elif [ $Matrix_Target == 'ipq-iptables' ] || [ $Matrix_Target == 'ipq-nftables' ]; then
+    elif [ "$Matrix_Target" == 'ipq-iptables' ] || [ "$Matrix_Target" == 'ipq-nftables' ]; then
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ipq
         make defconfig
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ipq
         make defconfig
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ipq
         make defconfig
-        elif [ "$TEST_KERNEL" = "1" ]; then
+    elif [ "$TEST_KERNEL" = "1" ]; then
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-6-12
         make defconfig
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-6-12
         make defconfig
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod-6-12
         make defconfig
-        else
+    else
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod
         make defconfig
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod
         make defconfig
         $GITHUB_WORKSPACE/$DIY_SH_RFC kmod
         make defconfig
-        fi
-        $GITHUB_WORKSPACE/$DIY_SH_RFC $Matrix_Target
+    fi
+
+    $GITHUB_WORKSPACE/$DIY_SH_RFC $Matrix_Target
 }
+
+function fix_openwrt_feeds() {
+    if [ "$TEST_KERNEL" = "1" ]; then
+        find openwrt/target/linux/mediatek/dts/ -type f -name 'mt7981*.dts' -exec sed -i 's|#include "mt7981.dtsi"|#include "mt7981b.dtsi"|' {} +
+        # mv -f openwrt-2410/2410-test/999-wct4xxp-Eliminate-old-style-declaration.patch openwrt/feeds/telephony/libs/dahdi-linux/patches/999-wct4xxp-Eliminate-old-style-declaration.patch
+    fi
+
+    [ -d openwrt-2410/lunatic7-revert ] && mv -f openwrt-2410/lunatic7-revert openwrt/feeds/lunatic7/lunatic7-revert
+    [ -d openwrt-2410/luci-patch-2410 ] && mv -f openwrt-2410/luci-patch-2410 openwrt/feeds/luci/luci-patch-2410
+    [ -d openwrt-2410/feeds-package-patch-2410 ] && mv -f openwrt-2410/feeds-package-patch-2410 openwrt/feeds/packages/feeds-package-patch-2410
+    [ -e files ] && mv files openwrt/files
+    [ -e package-configs ] && mv package-configs openwrt/package-configs
+    [ -e machine-configs/$Matrix_Target.config ] && mv -f machine-configs/$Matrix_Target.config openwrt/package-configs/.config
+
+    cd openwrt
+    $GITHUB_WORKSPACE/$DIY_SH $Matrix_Target
+
+    IFS=',' read -r -a package_array <<< "$INPUT_PKGS_CFG_FOO"
+    for pkg in "${package_array[@]}"; do
+        ./scripts/feeds install "$pkg"
+
+        if [ "$INPUT_PKGS_CFG_STATUS" = "y" ]; then
+            echo "CONFIG_PACKAGE_$pkg=y" >> .config
+            echo "$pkg Added ..."
+        elif [ "$INPUT_PKGS_CFG_STATUS" = "m" ]; then
+            echo "CONFIG_PACKAGE_$pkg=m" >> .config
+            echo "$pkg Marked ..."
+        elif [ "$INPUT_PKGS_CFG_STATUS" = "n" ]; then
+            echo "CONFIG_PACKAGE_$pkg=n" >> .config
+            echo "$pkg Remove ..."
+        fi
+    done
+
+    make defconfig
+    for pkg in "${package_array[@]}"; do
+        awk -v pkg="$pkg" '\$0 ~ pkg { print }' .config
+    done
+
+    $GITHUB_WORKSPACE/$DIY_SH_RFC $Matrix_Target
+}
+
+function awk_openwrt_config() {
+    echo "------------------------"
+    awk '/CONFIG_LINUX/ { print }' .config
+    awk '/$Matrix_Target/ { print }' .config
+    echo "------------------------"
+    awk '/$Target_CFG_Machine/ { print }' .config
+    echo "------------------------"
+    awk '/mediatek/ { print }' .config
+    echo "------------------------"
+    awk '/wpad/ { print }' .config
+    echo "------------------------"
+    awk '/docker/ { print }' .config
+    echo "------------------------"
+    awk '/DOCKER/ { print }' .config
+    echo "------------------------"
+    awk '/store/ { print }' .config
+    echo "------------------------"
+    awk '/perl/ { print }' .config
+    echo "------------------------"
+    awk '/dnsmasq/ { print }' .config
+    echo "------------------------"
+    awk '/CONFIG_PACKAGE_kmod/ { print }' .config
+    echo "------------------------"
+    awk '/mt7981/ { print }' .config
+    echo "------------------------"
+    awk '/turboacc/ { print }' .config
+}
+
 
 if [ "$1" == "init-pkg-env" ]; then
 init_pkg_env
@@ -330,6 +402,10 @@ elif [ "$1" == "add-openwrt-files" ]; then
 add_openwrt_files
 elif [ "$1" == "add-openwrt-kmods" ]; then
 add_openwrt_kmods
+elif [ "$1" == "fix-openwrt-feeds" ]; then
+fix_openwrt_feeds
+elif [ "$1" == "awk-openwrt-config" ]; then
+awk_openwrt_config
 else
 echo "Invalid argument"
 fi
