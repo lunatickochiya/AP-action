@@ -220,6 +220,9 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     name: Build ${{github.event.inputs.MACH}} openwrt 24.10
+    env:
+      TARGET: ${{ matrix.target }}
+      TARGET_MACH: ${{github.event.inputs.MACH}}
 
     steps:
     - name: 检查
@@ -252,8 +255,6 @@ jobs:
     - name: 设置GITHUB_ENV
       id: env
       env:
-        TARGET: ${{ matrix.target }}
-        TARGET_MACH: ${{github.event.inputs.MACH}}
         PATCH_JSON_INPUT: ${{ github.event.inputs.patch_repo }}
         CONFIG_JSON_INPUT: ${{ github.event.inputs.config_repo }}
       run: |
@@ -262,9 +263,6 @@ jobs:
 
     - name: 导入机器及安装包config
       id: cfg
-      env:
-        TARGET: ${{ matrix.target }}
-        TARGET_MACH: ${{github.event.inputs.MACH}}
       run: |
         if [ ${{ env.TEST_KERNEL }} = 1 ]; then
         $GITHUB_WORKSPACE/$DIY_SH add-test-config
