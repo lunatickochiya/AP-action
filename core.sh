@@ -28,7 +28,11 @@ function init_gh_env() {
     echo "date2=$(date +'%Y/%m %d')" >> "$GITHUB_ENV"
     echo "date3=$(date +'%m.%d')" >> "$GITHUB_ENV"
     VERSION="$(echo "${{github.event.action}}" | grep -Eo " [0-9.]+" | sed -e 's/ //')" || true
-    [ "$VERSION" ] && echo "VERSION=$VERSION" >> "$GITHUB_ENV" || echo "VERSION=$(date +'%m.%d')" >> "$GITHUB_ENV"
+    if [ "$VERSION" ]; then
+        echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+    else
+        echo "VERSION=$(date +'%m.%d')" >> "$GITHUB_ENV"
+    fi
 
     source "${GITHUB_WORKSPACE}/env/common.txt"
     source "${GITHUB_WORKSPACE}/env/openwrt-24.10.repo"
@@ -72,129 +76,137 @@ function init_gh_env() {
     echo "The MATH Matrix_Target is: $Target_CFG_Machine"
 }
 
-
-
 function init_math_config() {
-  if [ "$Matrix_Target" == 'mt798x-nftables' ] || [ "$Matrix_Target" == 'mt798x-nousb-nftables' ] || [ "$Matrix_Target" == 'ramips-nftables' ] || [ "$Matrix_Target" == 'ath79-nftables' ] || [ "$Matrix_Target" == 'ipq-nftables' ]; then
-    bash $GITHUB_WORKSPACE/add-test-packages.sh nft
-    echo "----$Matrix_Target-----NFT-test---"
-  fi
-  if [ "$Matrix_Target" == 'mt798x-iptables' ] || [ "$Matrix_Target" == 'mt798x-nousb-iptables' ] || [ "$Matrix_Target" == 'ramips-iptables' ] || [ "$Matrix_Target" == 'ath79-iptables' ] || [ "$Matrix_Target" == 'ipq-iptables' ]; then
-    mv -f machine-configs/single/$Target_CFG_Machine-iptables.config machine-configs/$Matrix_Target.config
-    echo "----$Matrix_Target-----IPT-Machine--------"
-  elif [ "$Matrix_Target" == 'mt798x-nftables' ] || [ "$Matrix_Target" == 'mt798x-nousb-nftables' ] || [ "$Matrix_Target" == 'ramips-nftables' ] || [ "$Matrix_Target" == 'ath79-nftables' ] || [ "$Matrix_Target" == 'ipq-nftables' ]; then
-    mv -f machine-configs/single/$Target_CFG_Machine-nftables.config machine-configs/$Matrix_Target.config
-    echo "----$Matrix_Target-----NFT-Machine--------"
-  fi
+    if [ "$Matrix_Target" == 'mt798x-nftables' ] || [ "$Matrix_Target" == 'mt798x-nousb-nftables' ] || \
+       [ "$Matrix_Target" == 'ramips-nftables' ] || [ "$Matrix_Target" == 'ath79-nftables' ] || \
+       [ "$Matrix_Target" == 'ipq-nftables' ]; then
+        bash $GITHUB_WORKSPACE/add-test-packages.sh nft
+        echo "----$Matrix_Target-----NFT-test---"
+    fi
 
+    if [ "$Matrix_Target" == 'mt798x-iptables' ] || [ "$Matrix_Target" == 'mt798x-nousb-iptables' ] || \
+       [ "$Matrix_Target" == 'ramips-iptables' ] || [ "$Matrix_Target" == 'ath79-iptables' ] || \
+       [ "$Matrix_Target" == 'ipq-iptables' ]; then
+        mv -f machine-configs/single/$Target_CFG_Machine-iptables.config machine-configs/$Matrix_Target.config
+        echo "----$Matrix_Target-----IPT-Machine--------"
+    elif [ "$Matrix_Target" == 'mt798x-nftables' ] || [ "$Matrix_Target" == 'mt798x-nousb-nftables' ] || \
+         [ "$Matrix_Target" == 'ramips-nftables' ] || [ "$Matrix_Target" == 'ath79-nftables' ] || \
+         [ "$Matrix_Target" == 'ipq-nftables' ]; then
+        mv -f machine-configs/single/$Target_CFG_Machine-nftables.config machine-configs/$Matrix_Target.config
+        echo "----$Matrix_Target-----NFT-Machine--------"
+    fi
 }
 
 function init_openwrt_pkg_config() {
-  if [ "$Matrix_Target" == 'mt798x-iptables' ]; then
-    mv -f package-configs/single/$Target_CFG_Machine-iptables.config package-configs/mt798x-common-iptables.config
-    echo "----$Matrix_Target-----IPT-Package-Config----"
-  elif [ "$Matrix_Target" == 'mt798x-nftables' ]; then
-    mv -f package-configs/single/$Target_CFG_Machine-nftables.config package-configs/mt798x-common-nftables.config
-    echo "----$Matrix_Target-----NFT-Package-Config----"
-  elif [ "$Matrix_Target" == 'mt798x-nousb-nftables' ]; then
-    mv -f package-configs/single/$Target_CFG_Machine-nftables.config package-configs/mt798x-nousb-nftables.config
-    echo "----$Matrix_Target-----NFT-Package-Config----"
-  elif [ "$Matrix_Target" == 'mt798x-nousb-iptables' ]; then
-    mv -f package-configs/single/$Target_CFG_Machine-iptables.config package-configs/mt798x-nousb-iptables.config
-    echo "----$Matrix_Target-----IPT-Package-Config----"
-  elif [ "$Matrix_Target" == 'ramips-iptables' ]; then
-    mv -f package-configs/single/$Target_CFG_Machine-iptables.config package-configs/ramips-common-iptables.config
-    echo "----$Matrix_Target-----IPT-Package-Config----"
-  elif [ "$Matrix_Target" == 'ramips-nftables' ]; then
-    mv -f package-configs/single/$Target_CFG_Machine-nftables.config package-configs/ramips-common-nftables.config
-    echo "----$Matrix_Target-----NFT-Package-Config----"
-  elif [ "$Matrix_Target" == 'ath79-iptables' ]; then
-    mv -f package-configs/single/$Target_CFG_Machine-iptables.config package-configs/ath79-common-iptables.config
-    echo "----$Matrix_Target-----IPT-Package-Config----"
-  elif [ "$Matrix_Target" == 'ath79-nftables' ]; then
-    mv -f package-configs/single/$Target_CFG_Machine-nftables.config package-configs/ath79-common-nftables.config
-    echo "----$Matrix_Target-----NFT-Package-Config----"
-  elif [ "$Matrix_Target" == 'ipq-iptables' ]; then
-    mv -f package-configs/single/$Target_CFG_Machine-iptables.config package-configs/ipq-common-iptables.config
-    echo "----$Matrix_Target-----IPT-Package-Config----"
-  elif [ "$Matrix_Target" == 'ipq-nftables' ]; then
-    mv -f package-configs/single/$Target_CFG_Machine-nftables.config package-configs/ipq-common-nftables.config
-    echo "----$Matrix_Target-----NFT-Package-Config----"
-  fi
-
-
+    case "$Matrix_Target" in
+        mt798x-iptables)
+            mv -f package-configs/single/$Target_CFG_Machine-iptables.config package-configs/mt798x-common-iptables.config
+            echo "----$Matrix_Target-----IPT-Package-Config----"
+            ;;
+        mt798x-nftables)
+            mv -f package-configs/single/$Target_CFG_Machine-nftables.config package-configs/mt798x-common-nftables.config
+            echo "----$Matrix_Target-----NFT-Package-Config----"
+            ;;
+        mt798x-nousb-nftables)
+            mv -f package-configs/single/$Target_CFG_Machine-nftables.config package-configs/mt798x-nousb-nftables.config
+            echo "----$Matrix_Target-----NFT-Package-Config----"
+            ;;
+        mt798x-nousb-iptables)
+            mv -f package-configs/single/$Target_CFG_Machine-iptables.config package-configs/mt798x-nousb-iptables.config
+            echo "----$Matrix_Target-----IPT-Package-Config----"
+            ;;
+        ramips-iptables)
+            mv -f package-configs/single/$Target_CFG_Machine-iptables.config package-configs/ramips-common-iptables.config
+            echo "----$Matrix_Target-----IPT-Package-Config----"
+            ;;
+        ramips-nftables)
+            mv -f package-configs/single/$Target_CFG_Machine-nftables.config package-configs/ramips-common-nftables.config
+            echo "----$Matrix_Target-----NFT-Package-Config----"
+            ;;
+        ath79-iptables)
+            mv -f package-configs/single/$Target_CFG_Machine-iptables.config package-configs/ath79-common-iptables.config
+            echo "----$Matrix_Target-----IPT-Package-Config----"
+            ;;
+        ath79-nftables)
+            mv -f package-configs/single/$Target_CFG_Machine-nftables.config package-configs/ath79-common-nftables.config
+            echo "----$Matrix_Target-----NFT-Package-Config----"
+            ;;
+        ipq-iptables)
+            mv -f package-configs/single/$Target_CFG_Machine-iptables.config package-configs/ipq-common-iptables.config
+            echo "----$Matrix_Target-----IPT-Package-Config----"
+            ;;
+        ipq-nftables)
+            mv -f package-configs/single/$Target_CFG_Machine-nftables.config package-configs/ipq-common-nftables.config
+            echo "----$Matrix_Target-----NFT-Package-Config----"
+            ;;
+    esac
 }
 
-
-
-
 function init_openwrt_patch() {
+    if [ "$Firewall_Allow_WAN" = "1" ]; then
+        $GITHUB_WORKSPACE/$DIY_SH firewall-allow-wan
+        echo "----$Matrix_Target----wan-allow---"
+        echo "WAN_NAME=_WAN_ALLOW" >> $GITHUB_ENV
+    fi
 
-if [ "$Firewall_Allow_WAN" = "1" ]; then
-    $GITHUB_WORKSPACE/$DIY_SH firewall-allow-wan
-    echo "----$Matrix_Target----wan-allow---"
-    echo "WAN_NAME=_WAN_ALLOW" >> $GITHUB_ENV
-fi
+    if [ "$TRY_BBR_V3" = "1" ]; then
+        [ -d openwrt-2410/mypatch-bbr-v3 ] && cp -r openwrt-2410/mypatch-bbr-v3/* openwrt-2410/mypatch-2410-$Matrix_Target
+        echo "----$Matrix_Target----bbr-v3---"
+        echo "TRY_BBR_V3_NAME=_BBR_V3" >> $GITHUB_ENV
+    fi
 
-if [ "$TRY_BBR_V3" = "1" ]; then
-    [ -d openwrt-2410/mypatch-bbr-v3 ] && cp -r openwrt-2410/mypatch-bbr-v3/* openwrt-2410/mypatch-2410-$Matrix_Target
-    echo "----$Matrix_Target----bbr-v3---"
-    echo "TRY_BBR_V3_NAME=_BBR_V3" >> $GITHUB_ENV
-fi
+    if [ "$OPENSSL_3_5" = "1" ]; then
+        [ -d openwrt-2410/openssl-bump ] && cp -r openwrt-2410/openssl-bump/* openwrt-2410/mypatch-2410-$Matrix_Target
+        echo "----$Matrix_Target----openssl-3-5---"
+        echo "OPENSSL_3_5_NAME=_OPENSSL_3_5" >> $GITHUB_ENV
+    fi
 
-if [ "$OPENSSL_3_5" = "1" ]; then
-    [ -d openwrt-2410/openssl-bump ] && cp -r openwrt-2410/openssl-bump/* openwrt-2410/mypatch-2410-$Matrix_Target
-    echo "----$Matrix_Target----openssl-3-5---"
-    echo "OPENSSL_3_5_NAME=_OPENSSL_3_5" >> $GITHUB_ENV
-fi
+    if [ "$MAC80211_616" = "1" ]; then
+        [ -d openwrt-2410/mac80211-616 ] && cp -r openwrt-2410/mac80211-616/* openwrt-2410/mypatch-2410-$Matrix_Target
+        rm -rf openwrt/package/kernel/mt76/patches/100-api_compat.patch
+        echo "----$Matrix_Target----mac80211-6-16---"
+        echo "MAC80211_616_NAME=_MAC80211_616" >> $GITHUB_ENV
+    fi
 
-if [ "$MAC80211_616" = "1" ]; then
-    [ -d openwrt-2410/mac80211-616 ] && cp -r openwrt-2410/mac80211-616/* openwrt-2410/mypatch-2410-$Matrix_Target
-    rm -rf openwrt/package/kernel/mt76/patches/100-api_compat.patch
-    echo "----$Matrix_Target----mac80211-6-16---"
-    echo "MAC80211_616_NAME=_MAC80211_616" >> $GITHUB_ENV
-fi
+    if [ "$AG71XX_FIX" = "1" ]; then
+        [ -d openwrt-2410/my-patch-ag71xx-fix ] && cp -r openwrt-2410/my-patch-ag71xx-fix/* openwrt-2410/mypatch-2410-$Matrix_Target
+    fi
 
-if [ "$AG71XX_FIX" = "1" ]; then
-    [ -d openwrt-2410/my-patch-ag71xx-fix ] && cp -r openwrt-2410/my-patch-ag71xx-fix/* openwrt-2410/mypatch-2410-$Matrix_Target
-fi
+    if [ "$BCM_FULLCONE" = "1" ] && [[ "$Matrix_Target" == *-iptables ]]; then
+        [ -d openwrt-2410/bcmfullcone ] && cp -r openwrt-2410/bcmfullcone/a-* openwrt-2410/mypatch-2410-$Matrix_Target
+        rm -rf openwrt-2410/luci-patch-2410/0004-Revert-luci-app-firewall-add-fullcone.patch
+        echo "----$Matrix_Target-----ipt-bcm---"
+        echo "BCM_FULLCONE_NAME=_BCM_FULLCONE" >> $GITHUB_ENV
+    fi
 
-if [ "$BCM_FULLCONE" = "1" ] && [[ "$Matrix_Target" == *-iptables ]]; then
-    [ -d openwrt-2410/bcmfullcone ] && cp -r openwrt-2410/bcmfullcone/a-* openwrt-2410/mypatch-2410-$Matrix_Target
-    rm -rf openwrt-2410/luci-patch-2410/0004-Revert-luci-app-firewall-add-fullcone.patch
-    echo "----$Matrix_Target-----ipt-bcm---"
-    echo "BCM_FULLCONE_NAME=_BCM_FULLCONE" >> $GITHUB_ENV
-fi
+    if [ "$BCM_FULLCONE" = "1" ] && [[ "$Matrix_Target" == *-nftables ]]; then
+        [ -d openwrt-2410/bcmfullcone ] && cp -r openwrt-2410/bcmfullcone/b-* openwrt-2410/mypatch-2410-$Matrix_Target
+        rm -rf openwrt-2410/luci-patch-2410/0004-Revert-luci-app-firewall-add-fullcone.patch
+        echo "----$Matrix_Target-----nft-bcm---"
+        echo "BCM_FULLCONE_NAME=_BCM_FULLCONE" >> $GITHUB_ENV
+    fi
 
-if [ "$BCM_FULLCONE" = "1" ] && [[ "$Matrix_Target" == *-nftables ]]; then
-    [ -d openwrt-2410/bcmfullcone ] && cp -r openwrt-2410/bcmfullcone/b-* openwrt-2410/mypatch-2410-$Matrix_Target
-    rm -rf openwrt-2410/luci-patch-2410/0004-Revert-luci-app-firewall-add-fullcone.patch
-    echo "----$Matrix_Target-----nft-bcm---"
-    echo "BCM_FULLCONE_NAME=_BCM_FULLCONE" >> $GITHUB_ENV
-fi
+    if [ "$DOCKER_BUILDIN" = "1" ]; then
+        bash $GITHUB_WORKSPACE/add-sfe-packages.sh ipq-docker
+        echo "----$Matrix_Target-----Docker--Config--Added--"
+        echo "DOCKER_NAME=_DOCKER" >> $GITHUB_ENV
+    fi
 
-if [ "$DOCKER_BUILDIN" = "1" ]; then
-    bash $GITHUB_WORKSPACE/add-sfe-packages.sh ipq-docker
-    echo "----$Matrix_Target-----Docker--Config--Added--"
-    echo "DOCKER_NAME=_DOCKER" >> $GITHUB_ENV
-fi
+    if [ "$ADD_SDK" = "1" ]; then
+        bash $GITHUB_WORKSPACE/add-sfe-packages.sh lunatic-lede-sdk
+        echo "----$Matrix_Target----SDK---"
+    fi
 
-if [ "$ADD_SDK" = "1" ]; then
-    bash $GITHUB_WORKSPACE/add-sfe-packages.sh lunatic-lede-sdk
-    echo "----$Matrix_Target----SDK---"
-fi
+    if [ "$ADD_IB" = "1" ]; then
+        bash $GITHUB_WORKSPACE/add-sfe-packages.sh lunatic-lede-ib
+        echo "----$Matrix_Target----IB---"
+    fi
 
-if [ "$ADD_IB" = "1" ]; then
-    bash $GITHUB_WORKSPACE/add-sfe-packages.sh lunatic-lede-ib
-    echo "----$Matrix_Target----IB---"
-fi
-
-if [ "$TEST_KERNEL" = "1" ]; then
-    [ -d openwrt-2410/core-6-12 ] && cp -r openwrt-2410/core-6-12/* openwrt-2410/mypatch-2410-$Matrix_Target
-    rm -rf openwrt/package/kernel/mt76/patches/100-api_compat.patch
-    echo "----$Matrix_Target----TEST-KERNEL---"
-fi
-
+    if [ "$TEST_KERNEL" = "1" ]; then
+        [ -d openwrt-2410/core-6-12 ] && cp -r openwrt-2410/core-6-12/* openwrt-2410/mypatch-2410-$Matrix_Target
+        rm -rf openwrt/package/kernel/mt76/patches/100-api_compat.patch
+        echo "----$Matrix_Target----TEST-KERNEL---"
+    fi
 }
 
 function ln_openwrt() {
@@ -208,7 +220,9 @@ function ln_openwrt() {
 }
 
 function add_openwrt_sfe() {
-    if [ "$Matrix_Target" == 'mt798x-iptables' ] || [ "$Matrix_Target" == 'mt798x-nousb-iptables' ] || [ "$Matrix_Target" == 'ramips-iptables' ] || [ "$Matrix_Target" == 'ath79-iptables' ] || [ "$Matrix_Target" == 'ipq-iptables' ]; then
+    if [ "$Matrix_Target" == 'mt798x-iptables' ] || [ "$Matrix_Target" == 'mt798x-nousb-iptables' ] || \
+       [ "$Matrix_Target" == 'ramips-iptables' ] || [ "$Matrix_Target" == 'ath79-iptables' ] || \
+       [ "$Matrix_Target" == 'ipq-iptables' ]; then
         bash "$GITHUB_WORKSPACE/add-sfe-packages.sh" ipt
         echo "----$Matrix_Target-----ipt-sfe---"
         cd openwrt
@@ -224,7 +238,9 @@ function add_openwrt_sfe() {
         cd ../
     fi
 
-    if [ "$Matrix_Target" == 'mt798x-nftables' ] || [ "$Matrix_Target" == 'mt798x-nousb-nftables' ] || [ "$Matrix_Target" == 'ramips-nftables' ] || [ "$Matrix_Target" == 'ath79-nftables' ] || [ "$Matrix_Target" == 'ipq-nftables' ]; then
+    if [ "$Matrix_Target" == 'mt798x-nftables' ] || [ "$Matrix_Target" == 'mt798x-nousb-nftables' ] || \
+       [ "$Matrix_Target" == 'ramips-nftables' ] || [ "$Matrix_Target" == 'ath79-nftables' ] || \
+       [ "$Matrix_Target" == 'ipq-nftables' ]; then
         cd openwrt
         curl -sSL https://raw.githubusercontent.com/chenmozhijin/turboacc/luci/add_turboacc.sh -o add_turboacc.sh && bash add_turboacc.sh
         echo "----$Matrix_Target-----NFT-acc----"
@@ -249,7 +265,8 @@ function add_openwrt_files() {
     [ -d package ] && mv -f package/* openwrt/package
     [ -d openwrt-2410/package-for-mt798x ] && mv -f openwrt-2410/package-for-mt798x/* openwrt/package
 
-    if [ "$Matrix_Target" == 'ramips-iptables' ] || [ "$Matrix_Target" == 'ramips-nftables' ] || [ "$Matrix_Target" == 'ath79-iptables' ] || [ "$Matrix_Target" == 'ath79-nftables' ]; then
+    if [ "$Matrix_Target" == 'ramips-iptables' ] || [ "$Matrix_Target" == 'ramips-nftables' ] || \
+       [ "$Matrix_Target" == 'ath79-iptables' ] || [ "$Matrix_Target" == 'ath79-nftables' ]; then
         mkdir -p openwrt/package/kochiya/pcre
         [ -d openwrt-2410/package-for-2410 ] && cp -r openwrt-2410/package-for-2410/kochiya/pcre openwrt/package/kochiya/pcre
     else
@@ -269,8 +286,6 @@ function add_openwrt_files() {
 
     cd ../
 }
-
-
 
 function add_openwrt_kmods() {
     cd openwrt
@@ -348,6 +363,7 @@ function fix_openwrt_feeds() {
     done
 
     make defconfig
+
     for pkg in "${package_array[@]}"; do
         awk -v pkg="$pkg" '\$0 ~ pkg { print }' .config
     done
@@ -358,9 +374,9 @@ function fix_openwrt_feeds() {
 function awk_openwrt_config() {
     echo "------------------------"
     awk '/CONFIG_LINUX/ { print }' .config
-    awk '/$Matrix_Target/ { print }' .config
+    awk '/'"$Matrix_Target"'/ { print }' .config
     echo "------------------------"
-    awk '/$Target_CFG_Machine/ { print }' .config
+    awk '/'"$Target_CFG_Machine"'/ { print }' .config
     echo "------------------------"
     awk '/mediatek/ { print }' .config
     echo "------------------------"
@@ -382,6 +398,7 @@ function awk_openwrt_config() {
     echo "------------------------"
     awk '/turboacc/ { print }' .config
 }
+
 
 
 if [ "$1" == "init-pkg-env" ]; then
