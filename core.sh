@@ -73,46 +73,49 @@ function init_math_config() {
     echo "----$TARGET-----NFT-test---"
   fi
   if [ "$TARGET" == 'mt798x-iptables' ] || [ "$TARGET" == 'mt798x-nousb-iptables' ] || [ "$TARGET" == 'ramips-iptables' ] || [ "$TARGET" == 'ath79-iptables' ] || [ "$TARGET" == 'ipq-iptables' ]; then
-    mv -f machine-configs/single/"$TARGET_MACH"-iptables.config machine-configs/"$TARGET".config
+    mv -f machine-configs/single/$TARGET_MACH-iptables.config machine-configs/$TARGET.config
     echo "----$TARGET-----IPT-Machine--------"
   elif [ "$TARGET" == 'mt798x-nftables' ] || [ "$TARGET" == 'mt798x-nousb-nftables' ] || [ "$TARGET" == 'ramips-nftables' ] || [ "$TARGET" == 'ath79-nftables' ] || [ "$TARGET" == 'ipq-nftables' ]; then
-    mv -f machine-configs/single/"$TARGET_MACH"-nftables.config machine-configs/"$TARGET".config
+    mv -f machine-configs/single/$TARGET_MACH-nftables.config machine-configs/$TARGET.config
     echo "----$TARGET-----NFT-Machine--------"
   fi
+ls machine-configs
 }
 
 function init_openwrt_pkg_config() {
   if [ "$TARGET" == 'mt798x-iptables' ]; then
-    mv -f package-configs/single/"$TARGET_MACH"-iptables.config package-configs/mt798x-common-iptables.config
+    mv -f package-configs/single/$TARGET_MACH-iptables.config package-configs/mt798x-common-iptables.config
     echo "----$TARGET-----IPT-Package-Config----"
   elif [ "$TARGET" == 'mt798x-nftables' ]; then
-    mv -f package-configs/single/"$TARGET_MACH"-nftables.config package-configs/mt798x-common-nftables.config
+    mv -f package-configs/single/$TARGET_MACH-nftables.config package-configs/mt798x-common-nftables.config
     echo "----$TARGET-----NFT-Package-Config----"
   elif [ "$TARGET" == 'mt798x-nousb-nftables' ]; then
-    mv -f package-configs/single/"$TARGET_MACH"-nftables.config package-configs/mt798x-nousb-nftables.config
+    mv -f package-configs/single/$TARGET_MACH-nftables.config package-configs/mt798x-nousb-nftables.config
     echo "----$TARGET-----NFT-Package-Config----"
   elif [ "$TARGET" == 'mt798x-nousb-iptables' ]; then
-    mv -f package-configs/single/"$TARGET_MACH"-iptables.config package-configs/mt798x-nousb-iptables.config
+    mv -f package-configs/single/$TARGET_MACH-iptables.config package-configs/mt798x-nousb-iptables.config
     echo "----$TARGET-----IPT-Package-Config----"
   elif [ "$TARGET" == 'ramips-iptables' ]; then
-    mv -f package-configs/single/"$TARGET_MACH"-iptables.config package-configs/ramips-common-iptables.config
+    mv -f package-configs/single/$TARGET_MACH-iptables.config package-configs/ramips-common-iptables.config
     echo "----$TARGET-----IPT-Package-Config----"
   elif [ "$TARGET" == 'ramips-nftables' ]; then
-    mv -f package-configs/single/"$TARGET_MACH"-nftables.config package-configs/ramips-common-nftables.config
+    mv -f package-configs/single/$TARGET_MACH-nftables.config package-configs/ramips-common-nftables.config
     echo "----$TARGET-----NFT-Package-Config----"
   elif [ "$TARGET" == 'ath79-iptables' ]; then
-    mv -f package-configs/single/"$TARGET_MACH"-iptables.config package-configs/ath79-common-iptables.config
+    mv -f package-configs/single/$TARGET_MACH-iptables.config package-configs/ath79-common-iptables.config
     echo "----$TARGET-----IPT-Package-Config----"
   elif [ "$TARGET" == 'ath79-nftables' ]; then
-    mv -f package-configs/single/"$TARGET_MACH"-nftables.config package-configs/ath79-common-nftables.config
+    mv -f package-configs/single/$TARGET_MACH-nftables.config package-configs/ath79-common-nftables.config
     echo "----$TARGET-----NFT-Package-Config----"
   elif [ "$TARGET" == 'ipq-iptables' ]; then
-    mv -f package-configs/single/"$TARGET_MACH"-iptables.config package-configs/ipq-common-iptables.config
+    mv -f package-configs/single/$TARGET_MACH-iptables.config package-configs/ipq-common-iptables.config
     echo "----$TARGET-----IPT-Package-Config----"
   elif [ "$TARGET" == 'ipq-nftables' ]; then
-    mv -f package-configs/single/"$TARGET_MACH"-nftables.config package-configs/ipq-common-nftables.config
+    mv -f package-configs/single/$TARGET_MACH-nftables.config package-configs/ipq-common-nftables.config
     echo "----$TARGET-----NFT-Package-Config----"
   fi
+ls package-configs
+
 }
 
 
