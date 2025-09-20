@@ -79,7 +79,7 @@ function init_math_config() {
     mv -f machine-configs/single/$TARGET_MACH-nftables.config machine-configs/$TARGET.config
     echo "----$TARGET-----NFT-Machine--------"
   fi
-ls machine-configs
+
 }
 
 function init_openwrt_pkg_config() {
@@ -114,7 +114,7 @@ function init_openwrt_pkg_config() {
     mv -f package-configs/single/$TARGET_MACH-nftables.config package-configs/ipq-common-nftables.config
     echo "----$TARGET-----NFT-Package-Config----"
   fi
-ls package-configs
+
 
 }
 
