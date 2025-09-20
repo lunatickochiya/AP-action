@@ -119,60 +119,72 @@ function init_openwrt_pkg_config() {
 
 
 function init_openwrt_patch() {
-if [ ${{ env.Firewall_Allow_WAN }} = 1 ]; then
-        $GITHUB_WORKSPACE/$DIY_SH firewall-allow-wan
-        echo "----$TARGET----wan-allow---"
-        echo "WAN_NAME=_WAN_ALLOW" >> $GITHUB_ENV
-        fi
-        if [ ${{ env.TRY_BBR_V3 }} = 1 ]; then
-        [ -d openwrt-2410/mypatch-bbr-v3 ] && cp -r openwrt-2410/mypatch-bbr-v3/* openwrt-2410/mypatch-2410-$TARGET
-        echo "----$TARGET----bbr-v3---"
-        echo "TRY_BBR_V3_NAME=_BBR_V3" >> $GITHUB_ENV
-        fi
-        if [ ${{ env.OPENSSL_3_5}} = 1 ]; then
-        [ -d openwrt-2410/openssl-bump ] && cp -r openwrt-2410/openssl-bump/* openwrt-2410/mypatch-2410-$TARGET
-        echo "----$TARGET----openssl-3-4---"
-        echo "OPENSSL_3_5_NAME=_OPENSSL_3_5" >> $GITHUB_ENV
-        fi
-        if [ ${{ env.MAC80211_616}} = 1 ]; then
-        [ -d openwrt-2410/mac80211-616 ] && cp -r openwrt-2410/mac80211-616/* openwrt-2410/mypatch-2410-$TARGET
-        rm -rf openwrt/package/kernel/mt76/patches/100-api_compat.patch
-        echo "----$TARGET----mac80211-6-14---"
-        echo "MAC80211_616_NAME=_MAC80211_616" >> $GITHUB_ENV
-        fi
-        if [ ${{ env.AG71XX_FIX}} = 1 ]; then
-        [ -d openwrt-2410/my-patch-ag71xx-fix ] && cp -r openwrt-2410/my-patch-ag71xx-fix/* openwrt-2410/mypatch-2410-$TARGET
-        fi
-        if [ ${{ env.BCM_FULLCONE}} = 1 ] && [[ "${{ matrix.target }}" == *-iptables ]]; then
-        [ -d openwrt-2410/bcmfullcone ] && cp -r openwrt-2410/bcmfullcone/a-* openwrt-2410/mypatch-2410-$TARGET
-        rm -rf openwrt-2410/luci-patch-2410/0004-Revert-luci-app-firewall-add-fullcone.patch
-        echo "----$TARGET-----ipt-bcm---"
-        echo "BCM_FULLCONE_NAME=_BCM_FULLCONE" >> $GITHUB_ENV
-        fi
-        if [ ${{ env.BCM_FULLCONE}} = 1 ] && [[ "${{ matrix.target }}" == *-nftables ]]; then
-        [ -d openwrt-2410/bcmfullcone ] && cp -r openwrt-2410/bcmfullcone/b-* openwrt-2410/mypatch-2410-$TARGET
-        rm -rf openwrt-2410/luci-patch-2410/0004-Revert-luci-app-firewall-add-fullcone.patch
-        echo "----$TARGET-----nft-bcm---"
-        echo "BCM_FULLCONE_NAME=_BCM_FULLCONE" >> $GITHUB_ENV
-        fi
-        if [ ${{ env.DOCKER_BUILDIN}} = 1 ]; then
-        bash $GITHUB_WORKSPACE/add-sfe-packages.sh ipq-docker
-        echo "----$TARGET-----Docker--Config--Added--"
-        echo "DOCKER_NAME=_DOCKER" >> $GITHUB_ENV
-        fi
-        if [ ${{ env.ADD_SDK }} = 1 ]; then
-        bash $GITHUB_WORKSPACE/add-sfe-packages.sh lunatic-lede-sdk
-        echo "----$TARGET----SDK---"
-        fi
-        if [ ${{ env.ADD_IB }} = 1 ]; then
-        bash $GITHUB_WORKSPACE/add-sfe-packages.sh lunatic-lede-ib
-        echo "----$TARGET----IB---"
-        fi
-        if [ ${{ env.TEST_KERNEL }} = 1 ]; then
-        [ -d openwrt-2410/core-6-12 ] && cp -r openwrt-2410/core-6-12/* openwrt-2410/mypatch-2410-$TARGET
-        rm -rf openwrt/package/kernel/mt76/patches/100-api_compat.patch
-        echo "----$TARGET----TEST-KERNEL---"
-        fi
+
+if [ "$Firewall_Allow_WAN" = "1" ]; then
+    $GITHUB_WORKSPACE/$DIY_SH firewall-allow-wan
+    echo "----$TARGET----wan-allow---"
+    echo "WAN_NAME=_WAN_ALLOW" >> $GITHUB_ENV
+fi
+
+if [ "$TRY_BBR_V3" = "1" ]; then
+    [ -d openwrt-2410/mypatch-bbr-v3 ] && cp -r openwrt-2410/mypatch-bbr-v3/* openwrt-2410/mypatch-2410-$TARGET
+    echo "----$TARGET----bbr-v3---"
+    echo "TRY_BBR_V3_NAME=_BBR_V3" >> $GITHUB_ENV
+fi
+
+if [ "$OPENSSL_3_5" = "1" ]; then
+    [ -d openwrt-2410/openssl-bump ] && cp -r openwrt-2410/openssl-bump/* openwrt-2410/mypatch-2410-$TARGET
+    echo "----$TARGET----openssl-3-5---"
+    echo "OPENSSL_3_5_NAME=_OPENSSL_3_5" >> $GITHUB_ENV
+fi
+
+if [ "$MAC80211_616" = "1" ]; then
+    [ -d openwrt-2410/mac80211-616 ] && cp -r openwrt-2410/mac80211-616/* openwrt-2410/mypatch-2410-$TARGET
+    rm -rf openwrt/package/kernel/mt76/patches/100-api_compat.patch
+    echo "----$TARGET----mac80211-6-16---"
+    echo "MAC80211_616_NAME=_MAC80211_616" >> $GITHUB_ENV
+fi
+
+if [ "$AG71XX_FIX" = "1" ]; then
+    [ -d openwrt-2410/my-patch-ag71xx-fix ] && cp -r openwrt-2410/my-patch-ag71xx-fix/* openwrt-2410/mypatch-2410-$TARGET
+fi
+
+if [ "$BCM_FULLCONE" = "1" ] && [[ "$TARGET" == *-iptables ]]; then
+    [ -d openwrt-2410/bcmfullcone ] && cp -r openwrt-2410/bcmfullcone/a-* openwrt-2410/mypatch-2410-$TARGET
+    rm -rf openwrt-2410/luci-patch-2410/0004-Revert-luci-app-firewall-add-fullcone.patch
+    echo "----$TARGET-----ipt-bcm---"
+    echo "BCM_FULLCONE_NAME=_BCM_FULLCONE" >> $GITHUB_ENV
+fi
+
+if [ "$BCM_FULLCONE" = "1" ] && [[ "$TARGET" == *-nftables ]]; then
+    [ -d openwrt-2410/bcmfullcone ] && cp -r openwrt-2410/bcmfullcone/b-* openwrt-2410/mypatch-2410-$TARGET
+    rm -rf openwrt-2410/luci-patch-2410/0004-Revert-luci-app-firewall-add-fullcone.patch
+    echo "----$TARGET-----nft-bcm---"
+    echo "BCM_FULLCONE_NAME=_BCM_FULLCONE" >> $GITHUB_ENV
+fi
+
+if [ "$DOCKER_BUILDIN" = "1" ]; then
+    bash $GITHUB_WORKSPACE/add-sfe-packages.sh ipq-docker
+    echo "----$TARGET-----Docker--Config--Added--"
+    echo "DOCKER_NAME=_DOCKER" >> $GITHUB_ENV
+fi
+
+if [ "$ADD_SDK" = "1" ]; then
+    bash $GITHUB_WORKSPACE/add-sfe-packages.sh lunatic-lede-sdk
+    echo "----$TARGET----SDK---"
+fi
+
+if [ "$ADD_IB" = "1" ]; then
+    bash $GITHUB_WORKSPACE/add-sfe-packages.sh lunatic-lede-ib
+    echo "----$TARGET----IB---"
+fi
+
+if [ "$TEST_KERNEL" = "1" ]; then
+    [ -d openwrt-2410/core-6-12 ] && cp -r openwrt-2410/core-6-12/* openwrt-2410/mypatch-2410-$TARGET
+    rm -rf openwrt/package/kernel/mt76/patches/100-api_compat.patch
+    echo "----$TARGET----TEST-KERNEL---"
+fi
+
 }
 
 
