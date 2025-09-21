@@ -358,6 +358,10 @@ function add_openwrt_sfe_kmods() {
 
 function add_openwrt_files() {
 	mkdir -p openwrt/feeds/lunatic7
+	mkdir -p openwrt/feeds/packages
+	mkdir -p openwrt/feeds/luci
+	mkdir -p openwrt/feeds/nss_packages
+
 	[ -d package ] && mv -f package/* openwrt/package
 	[ -d $OpenWrt_PATCH_FILE_DIR/package-for-mt798x ] && mv -f $OpenWrt_PATCH_FILE_DIR/package-for-mt798x/* openwrt/package
 # for 2410
@@ -462,10 +466,6 @@ function move_openwrt_config_ready() {
 	[ -e machine-configs/$Matrix_Target.config ] && mv -f machine-configs/$Matrix_Target.config openwrt/package-configs/.config
 }
 
-function fix_openwrt_feeds() {
-	cd openwrt
-	$GITHUB_WORKSPACE/$DIY_SH $Matrix_Target
-}
 
 function fix_openwrt_nss_sfe_feeds() {
 	if [ "$SFE_INPUT_STATUS" = "true" ]; then
@@ -473,6 +473,11 @@ function fix_openwrt_nss_sfe_feeds() {
 		CONFIG_NF_CONNTRACK_CHAIN_EVENTS=y \\' openwrt/feeds/nss_packages/qca-nss-ecm/Makefile
 		rm -rf openwrt/feeds/nss_packages/qca-nss-ecm/patches/0006-treewide-rework-notifier-changes-for-5.15.patch
     fi
+}
+
+function fix_openwrt_feeds() {
+	cd openwrt
+	$GITHUB_WORKSPACE/$DIY_SH $Matrix_Target
 }
 
 function refine_openwrt_config() {
