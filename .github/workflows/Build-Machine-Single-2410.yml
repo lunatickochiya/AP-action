@@ -223,6 +223,7 @@ jobs:
     env:
       Matrix_Target: ${{ matrix.target }}
       Target_CFG_Machine: ${{github.event.inputs.MACH}}
+      OpenWrt_PATCH_FILE_DIR: openwrt-2410
 
     steps:
     - name: 检查
@@ -259,7 +260,7 @@ jobs:
         CONFIG_JSON_INPUT: ${{ github.event.inputs.config_repo }}
       run: |
         echo ${{matrix.target}}
-        $GITHUB_WORKSPACE/core.sh init-gh-env
+        $GITHUB_WORKSPACE/core.sh init-gh-env-2410
 
     - name: 导入机器及安装包config
       id: cfg
@@ -297,14 +298,14 @@ jobs:
     - name: Patch 自定义
       id: patch
       run: |
-        $GITHUB_WORKSPACE/core.sh init-openwrt-patch
+        $GITHUB_WORKSPACE/core.sh init-openwrt-patch-2410
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 添加 SFE
       if: github.event.inputs.SFE_BUILDIN == 'true'
       id: sfe
       run: |
-        $GITHUB_WORKSPACE/core.sh add-openwrt-sfe
+        $GITHUB_WORKSPACE/core.sh add-openwrt-sfe-2410
         echo "status=success" >> $GITHUB_OUTPUT
         echo "SFE=_SFE" >> $GITHUB_ENV
 
@@ -314,7 +315,7 @@ jobs:
       env:
         SFE_INPUT_STATUS: ${{ github.event.inputs.SFE_BUILDIN }}
       run: |
-        $GITHUB_WORKSPACE/core.sh add-openwrt-files
+        $GITHUB_WORKSPACE/core.sh add-openwrt-files-2410
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 设置 IP 地址
