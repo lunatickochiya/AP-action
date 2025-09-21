@@ -458,7 +458,8 @@ function add_openwrt_kmods() {
 		make defconfig
 	fi
 
-	$GITHUB_WORKSPACE/$DIY_SH_RFC $Matrix_Target
+	"$GITHUB_WORKSPACE/$DIY_SH_RFC" "$Matrix_Target"
+	cd ../
 }
 
 function move_openwrt_config_ready() {
@@ -477,10 +478,12 @@ function fix_openwrt_nss_sfe_feeds() {
 
 function fix_openwrt_feeds() {
 	cd openwrt
-	$GITHUB_WORKSPACE/$DIY_SH $Matrix_Target
+	"$GITHUB_WORKSPACE/$DIY_SH"  "$Matrix_Target"
+	cd ../
 }
 
 function refine_openwrt_config() {
+	cd openwrt
 	IFS=',' read -r -a package_array <<< "$INPUT_PKGS_CFG_FOO"
 	for pkg in "${package_array[@]}"; do
 		./scripts/feeds install "$pkg"
@@ -503,7 +506,8 @@ function refine_openwrt_config() {
 		awk -v pkg="$pkg" '\$0 ~ pkg { print }' .config
 	done
 
-	$GITHUB_WORKSPACE/$DIY_SH_RFC $Matrix_Target
+	"$GITHUB_WORKSPACE/$DIY_SH_RFC" "$Matrix_Target"
+	cd ../
 }
 
 function awk_openwrt_config() {
