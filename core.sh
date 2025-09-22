@@ -198,14 +198,14 @@ function init_openwrt_patch_common() {
 
 	if [ "$BCM_FULLCONE" = "1" ] && [[ "$Matrix_Target" == *-iptables ]]; then
 		[ -d $OpenWrt_PATCH_FILE_DIR/bcmfullcone ] && cp -r $OpenWrt_PATCH_FILE_DIR/bcmfullcone/a-* $OpenWrt_PATCH_FILE_DIR/mypatch-2410-$Matrix_Target
-		rm -rf $OpenWrt_PATCH_FILE_DIR/luci-patch-2410/0004-Revert-luci-app-firewall-add-fullcone.patch
+		rm -rf $OpenWrt_PATCH_FILE_DIR/feeds-luci-patch/0004-Revert-luci-app-firewall-add-fullcone.patch
 		echo "----$Matrix_Target-----ipt-bcm---"
 		echo "BCM_FULLCONE_NAME=_BCM_FULLCONE" >> $GITHUB_ENV
 	fi
 
 	if [ "$BCM_FULLCONE" = "1" ] && [[ "$Matrix_Target" == *-nftables ]]; then
 		[ -d $OpenWrt_PATCH_FILE_DIR/bcmfullcone ] && cp -r $OpenWrt_PATCH_FILE_DIR/bcmfullcone/b-* $OpenWrt_PATCH_FILE_DIR/mypatch-2410-$Matrix_Target
-		rm -rf $OpenWrt_PATCH_FILE_DIR/luci-patch-2410/0004-Revert-luci-app-firewall-add-fullcone.patch
+		rm -rf $OpenWrt_PATCH_FILE_DIR/feeds-luci-patch/0004-Revert-luci-app-firewall-add-fullcone.patch
 		echo "----$Matrix_Target-----nft-bcm---"
 		echo "BCM_FULLCONE_NAME=_BCM_FULLCONE" >> $GITHUB_ENV
 	fi
@@ -478,9 +478,9 @@ function fix_openwrt_nss_sfe_feeds() {
 function fix_openwrt_feeds() {
 	if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-2410" ]; then
 	[ -d $OpenWrt_PATCH_FILE_DIR/lunatic7-revert ] && mv -f $OpenWrt_PATCH_FILE_DIR/lunatic7-revert openwrt/feeds/lunatic7/lunatic7-revert
-	[ -d $OpenWrt_PATCH_FILE_DIR/luci-patch-2410 ] && mv -f $OpenWrt_PATCH_FILE_DIR/luci-patch-2410 openwrt/feeds/luci/luci-patch-2410
-	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-package-patch-2410 ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-package-patch-2410 openwrt/feeds/packages/feeds-package-patch-2410
-	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-telephony-patch-2410 ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-telephony-patch-2410 openwrt/feeds/packages/feeds-telephony-patch-2410
+	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-luci-patch ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-luci-patch openwrt/feeds/luci/feeds-luci-patch
+	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-packages-patch ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-package-patch openwrt/feeds/packages/feeds-package-patch
+	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-telephony-patch ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-telephony-patch openwrt/feeds/packages/feeds-telephony-patch
 	fi
 	if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-ipq" ]; then
 	[ -d $OpenWrt_PATCH_FILE_DIR/lunatic7-revert ] && mv -f $OpenWrt_PATCH_FILE_DIR/lunatic7-revert openwrt/feeds/lunatic7/lunatic7-revert

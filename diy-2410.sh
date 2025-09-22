@@ -136,21 +136,32 @@ function patch_openwrt_custom() {
         }
 
 function patch_package() {
-        for packagepatch in $( ls feeds/packages/feeds-package-patch-2410 ); do
+        for packagepatch in $( ls feeds/packages/feeds-packages-patch ); do
             cd feeds/packages/
-            echo Applying feeds-package-patch-2410 $packagepatch
-            patch -p1 --no-backup-if-mismatch < feeds-package-patch-2410/$packagepatch
+            echo Applying feeds-packages-patch $packagepatch
+            patch -p1 --no-backup-if-mismatch < feeds-packages-patch/$packagepatch
             cd ../..
         done
         }
+
 function patch_luci() {
-        for lucipatch in $( ls feeds/luci/luci-patch-2410 ); do
+        for lucipatch in $( ls feeds/luci/feeds-luci-patch ); do
             cd feeds/luci/
-            echo Applying luci-patch-2410 $lucipatch
-            patch -p1 --no-backup-if-mismatch < luci-patch-2410/$lucipatch
+            echo Applying feeds-luci-patch $lucipatch
+            patch -p1 --no-backup-if-mismatch < feeds-luci-patch/$lucipatch
             cd ../..
         done
         }
+
+function patch_feeds_telephony() {
+        for telepatch in $( ls feeds/telephony/feeds-telephony-patch ); do
+        cd feeds/telephony/
+        echo Applying feeds-telephony-patch $telepatch
+            patch -p1 --no-backup-if-mismatch < feeds-telephony-patch/$telepatch
+        cd ../..
+        done
+        }
+
 function patch_lunatic7() {
         for lunatic7patch in $( ls feeds/lunatic7/lunatic7-revert ); do
             cd feeds/lunatic7/
@@ -160,14 +171,7 @@ function patch_lunatic7() {
         done
         }
 
-function patch_feeds_telephony() {
-        for telepatch in $( ls feeds/telephony/feeds-telephony-patch-2410 ); do
-        cd feeds/telephony/
-        echo Applying telepatch $telepatch
-            patch -p1 --no-backup-if-mismatch < feeds-telephony-patch-2410/$telepatch
-        cd ../..
-        done
-        }
+
 
 function patch_kernel61() {
 
