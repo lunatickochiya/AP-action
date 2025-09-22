@@ -426,12 +426,21 @@ function add_openwrt_kmods() {
 		$GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ath79
 		make defconfig
 	elif [ "$Matrix_Target" == 'ipq-iptables' ] || [ "$Matrix_Target" == 'ipq-nftables' ]; then
+		if [ "$Branch" = "24.10-nss-6.12" ]; then
+		$GITHUB_WORKSPACE/$DIY_SH_RFC kmod-6-12
+		make defconfig
+		$GITHUB_WORKSPACE/$DIY_SH_RFC kmod-6-12
+		make defconfig
+		$GITHUB_WORKSPACE/$DIY_SH_RFC kmod-6-12
+		make defconfig
+		else
 		$GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ipq-nss
 		make defconfig
 		$GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ipq-nss
 		make defconfig
 		$GITHUB_WORKSPACE/$DIY_SH_RFC kmod-ipq-nss
 		make defconfig
+		fi
 	elif [ "$TEST_KERNEL" = "1" ] || [ "$Branch" = "24.10-nss-6.12" ]; then
 		$GITHUB_WORKSPACE/$DIY_SH_RFC kmod-6-12
 		make defconfig
