@@ -160,11 +160,11 @@ function patch_lunatic7() {
         done
         }
 
-function patch_op_tele() {
-        for telepatch in $( ls feeds/telephony/tele ); do
+function patch_feeds_telephony() {
+        for telepatch in $( ls feeds/telephony/feeds-telephony-patch-2410 ); do
         cd feeds/telephony/
         echo Applying telepatch $telepatch
-            patch -p1 --no-backup-if-mismatch < tele/$telepatch
+            patch -p1 --no-backup-if-mismatch < feeds-telephony-patch-2410/$telepatch
         cd ../..
         done
         }

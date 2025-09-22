@@ -480,11 +480,13 @@ function fix_openwrt_feeds() {
 	[ -d $OpenWrt_PATCH_FILE_DIR/lunatic7-revert ] && mv -f $OpenWrt_PATCH_FILE_DIR/lunatic7-revert openwrt/feeds/lunatic7/lunatic7-revert
 	[ -d $OpenWrt_PATCH_FILE_DIR/luci-patch-2410 ] && mv -f $OpenWrt_PATCH_FILE_DIR/luci-patch-2410 openwrt/feeds/luci/luci-patch-2410
 	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-package-patch-2410 ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-package-patch-2410 openwrt/feeds/packages/feeds-package-patch-2410
+	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-telephony-patch-2410 ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-telephony-patch-2410 openwrt/feeds/packages/feeds-telephony-patch-2410
 	fi
 	if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-ipq" ]; then
 	[ -d $OpenWrt_PATCH_FILE_DIR/lunatic7-revert ] && mv -f $OpenWrt_PATCH_FILE_DIR/lunatic7-revert openwrt/feeds/lunatic7/lunatic7-revert
 	[ -d $OpenWrt_PATCH_FILE_DIR/luci-patch-openwrt-ipq ] && mv -f $OpenWrt_PATCH_FILE_DIR/luci-patch-openwrt-ipq openwrt/feeds/luci/luci-patch-openwrt-ipq
 	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-package-patch-openwrt-ipq ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-package-patch-openwrt-ipq openwrt/feeds/packages/feeds-package-patch-openwrt-ipq
+	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-telephony-patch-openwrt-ipq ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-telephony-patch-openwrt-ipq openwrt/feeds/packages/feeds-telephony-patch-openwrt-ipq
 	fi
 
 	cd openwrt

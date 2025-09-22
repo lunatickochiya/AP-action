@@ -155,11 +155,11 @@ function patch_lunatic7() {
         done
         }
 
-function patch_op_tele() {
-        for telepatch in $( ls feeds/telephony/tele ); do
+function patch_feeds_telephony() {
+        for telepatch in $( ls feeds/telephony/feeds-telephony-patch-openwrt-ipq ); do
         cd feeds/telephony/
         echo Applying telepatch $telepatch
-            patch -p1 --no-backup-if-mismatch < tele/$telepatch
+            patch -p1 --no-backup-if-mismatch < feeds-telephony-patch-openwrt-ipq/$telepatch
         cd ../..
         done
         }
@@ -397,6 +397,7 @@ remove_error_package_not_install
 patch_package
 patch_luci
 patch_lunatic7
+patch_feeds_telephony
 add_ipq_iptables_packages
 change_qca_start_order
 elif [ "$1" == "ipq-nftables" ]; then
@@ -405,6 +406,7 @@ remove_error_package_not_install
 patch_package
 patch_luci
 patch_lunatic7
+patch_feeds_telephony
 add_ipq_nftables_packages
 change_qca_start_order
 elif [ "$1" == "patch-openwrt" ]; then
