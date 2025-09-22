@@ -371,8 +371,8 @@ function add_openwrt_files() {
 		[ -d $OpenWrt_PATCH_FILE_DIR/package-for-2410 ] && cp -r $OpenWrt_PATCH_FILE_DIR/package-for-2410/* openwrt/package
 	fi
 
-	[ -d $OpenWrt_PATCH_FILE_DIR/mypatch-2410 ] && mv -f $OpenWrt_PATCH_FILE_DIR/mypatch-2410 openwrt/mypatch-2410
-	[ -d $OpenWrt_PATCH_FILE_DIR/mypatch-2410-$Matrix_Target ] && mv -f $OpenWrt_PATCH_FILE_DIR/mypatch-2410-$Matrix_Target openwrt/mypatch
+	[ -d $OpenWrt_PATCH_FILE_DIR/mypatch-core ] && mv -f $OpenWrt_PATCH_FILE_DIR/mypatch-core openwrt/mypatch-core
+	[ -d $OpenWrt_PATCH_FILE_DIR/mypatch-custom-$Matrix_Target ] && mv -f $OpenWrt_PATCH_FILE_DIR/mypatch-custom-$Matrix_Target openwrt/mypatch-custom
 
 	if [ "$TEST_KERNEL" = "1" ]; then
 		find openwrt/target/linux/mediatek/dts/ -type f -name 'mt7981*.dts' -exec sed -i 's|#include "mt7981.dtsi"|#include "mt7981b.dtsi"|' {} +

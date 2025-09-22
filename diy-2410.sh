@@ -121,17 +121,17 @@ for package2 in "${packages[@]}"; do
 done
         }
 
-function patch_openwrt() {
-        for i in $( ls mypatch ); do
-            echo Applying mypatch $i
-            patch -p1 --no-backup-if-mismatch --quiet < mypatch/$i
+function patch_openwrt_core() {
+        for i in $( ls mypatch-core ); do
+            echo Applying mypatch-core $i
+            patch -p1 --no-backup-if-mismatch --quiet < mypatch-core/$i
         done
         }
 
-function patch_openwrt_2410() {
-        for i in $( ls mypatch-2410 ); do
-            echo Applying mypatch-2410 $i
-            patch -p1 --no-backup-if-mismatch --quiet < mypatch-2410/$i
+function patch_openwrt_custom() {
+        for i in $( ls mypatch-custom ); do
+            echo Applying mypatch-custom $i
+            patch -p1 --no-backup-if-mismatch --quiet < mypatch-custom/$i
         done
         }
 
@@ -394,8 +394,8 @@ patch_luci
 patch_lunatic7
 add_ipq_nftables_packages
 elif [ "$1" == "patch-openwrt" ]; then
-patch_openwrt_2410
-patch_openwrt
+patch_openwrt_core
+patch_openwrt_custom
 elif [ "$1" == "firewallremove" ]; then
 remove_firewall
 elif [ "$1" == "firewall-allow-wan" ]; then
