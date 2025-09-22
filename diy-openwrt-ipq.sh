@@ -116,51 +116,53 @@ for package2 in "${packages[@]}"; do
 done
         }
 
-function patch_openwrt() {
-        for i in $( ls mypatch ); do
-            echo Applying mypatch $i
-            patch -p1 --no-backup-if-mismatch --quiet < mypatch/$i
+function patch_openwrt_core() {
+        for i in $( ls mypatch-core ); do
+            echo Applying mypatch-core $i
+            patch -p1 --no-backup-if-mismatch --quiet < mypatch-core/$i
         done
         }
 
-function patch_openwrt_openwrt-ipq() {
-        for i in $( ls mypatch-openwrt-ipq ); do
-            echo Applying mypatch-openwrt-ipq $i
-            patch -p1 --no-backup-if-mismatch --quiet < mypatch-openwrt-ipq/$i
+function patch_openwrt_custom() {
+        for i in $( ls mypatch-custom ); do
+            echo Applying mypatch-custom $i
+            patch -p1 --no-backup-if-mismatch --quiet < mypatch-custom/$i
         done
         }
 
 function patch_package() {
-        for packagepatch in $( ls feeds/packages/feeds-package-patch-openwrt-ipq ); do
+        for packagepatch in $( ls feeds/packages/feeds-packages-patch ); do
             cd feeds/packages/
-            echo Applying feeds-package-patch-openwrt-ipq $packagepatch
-            patch -p1 --no-backup-if-mismatch < feeds-package-patch-openwrt-ipq/$packagepatch
+            echo Applying feeds-packages-patch $packagepatch
+            patch -p1 --no-backup-if-mismatch < feeds-packages-patch/$packagepatch
             cd ../..
         done
         }
+
 function patch_luci() {
-        for lucipatch in $( ls feeds/luci/luci-patch-openwrt-ipq ); do
+        for lucipatch in $( ls feeds/luci/feeds-luci-patch ); do
             cd feeds/luci/
-            echo Applying luci-patch-openwrt-ipq $lucipatch
-            patch -p1 --no-backup-if-mismatch < luci-patch-openwrt-ipq/$lucipatch
+            echo Applying feeds-luci-patch $lucipatch
+            patch -p1 --no-backup-if-mismatch < feeds-luci-patch/$lucipatch
             cd ../..
         done
         }
+
+function patch_feeds_telephony() {
+        for telepatch in $( ls feeds/telephony/feeds-telephony-patch ); do
+        cd feeds/telephony/
+        echo Applying feeds-telephony-patch $telepatch
+            patch -p1 --no-backup-if-mismatch < feeds-telephony-patch/$telepatch
+        cd ../..
+        done
+        }
+
 function patch_lunatic7() {
         for lunatic7patch in $( ls feeds/lunatic7/lunatic7-revert ); do
             cd feeds/lunatic7/
             echo Revert lunatic7 $lunatic7patch
             patch -p1 -R --no-backup-if-mismatch < lunatic7-revert/$lunatic7patch
             cd ../..
-        done
-        }
-
-function patch_feeds_telephony() {
-        for telepatch in $( ls feeds/telephony/feeds-telephony-patch-openwrt-ipq ); do
-        cd feeds/telephony/
-        echo Applying telepatch $telepatch
-            patch -p1 --no-backup-if-mismatch < feeds-telephony-patch-openwrt-ipq/$telepatch
-        cd ../..
         done
         }
 
@@ -410,8 +412,8 @@ patch_feeds_telephony
 add_ipq_nftables_packages
 change_qca_start_order
 elif [ "$1" == "patch-openwrt" ]; then
-patch_openwrt_openwrt-ipq
-patch_openwrt
+patch_openwrt_core
+patch_openwrt_custom
 elif [ "$1" == "firewallremove" ]; then
 remove_firewall
 elif [ "$1" == "firewall-allow-wan" ]; then

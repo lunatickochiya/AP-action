@@ -361,6 +361,9 @@ function add_openwrt_files() {
 
 	[ -d package ] && mv -f package/* openwrt/package
 	[ -d $OpenWrt_PATCH_FILE_DIR/package-for-mt798x ] && mv -f $OpenWrt_PATCH_FILE_DIR/package-for-mt798x/* openwrt/package
+	[ -d $OpenWrt_PATCH_FILE_DIR/mypatch-core ] && mv -f $OpenWrt_PATCH_FILE_DIR/mypatch-core openwrt/mypatch-core
+	[ -d $OpenWrt_PATCH_FILE_DIR/mypatch-custom-$Matrix_Target ] && mv -f $OpenWrt_PATCH_FILE_DIR/mypatch-custom-$Matrix_Target openwrt/mypatch-custom
+
 # for 2410
 	if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-2410" ]; then
 	if [ "$Matrix_Target" == 'ramips-iptables' ] || [ "$Matrix_Target" == 'ramips-nftables' ] || \
@@ -370,10 +373,6 @@ function add_openwrt_files() {
 	else
 		[ -d $OpenWrt_PATCH_FILE_DIR/package-for-2410 ] && cp -r $OpenWrt_PATCH_FILE_DIR/package-for-2410/* openwrt/package
 	fi
-
-	[ -d $OpenWrt_PATCH_FILE_DIR/mypatch-core ] && mv -f $OpenWrt_PATCH_FILE_DIR/mypatch-core openwrt/mypatch-core
-	[ -d $OpenWrt_PATCH_FILE_DIR/mypatch-custom-$Matrix_Target ] && mv -f $OpenWrt_PATCH_FILE_DIR/mypatch-custom-$Matrix_Target openwrt/mypatch-custom
-
 	if [ "$TEST_KERNEL" = "1" ]; then
 		find openwrt/target/linux/mediatek/dts/ -type f -name 'mt7981*.dts' -exec sed -i 's|#include "mt7981.dtsi"|#include "mt7981b.dtsi"|' {} +
 		# mv -f $OpenWrt_PATCH_FILE_DIR/2410-test/999-wct4xxp-Eliminate-old-style-declaration.patch openwrt/feeds/telephony/libs/dahdi-linux/patches/999-wct4xxp-Eliminate-old-style-declaration.patch
@@ -384,8 +383,6 @@ function add_openwrt_files() {
 # for 2410 ipq
 	if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-ipq" ]; then
 	[ -d $OpenWrt_PATCH_FILE_DIR/package-for-openwrt-ipq ] && cp -r $OpenWrt_PATCH_FILE_DIR/package-for-openwrt-ipq/* openwrt/package
-	[ -d $OpenWrt_PATCH_FILE_DIR/mypatch-openwrt-ipq ] && mv -f $OpenWrt_PATCH_FILE_DIR/mypatch-openwrt-ipq openwrt/mypatch-openwrt-ipq
-	[ -d $OpenWrt_PATCH_FILE_DIR/mypatch-openwrt-ipq-$Matrix_Target ] && mv -f $OpenWrt_PATCH_FILE_DIR/mypatch-openwrt-ipq-$Matrix_Target openwrt/mypatch
 	fi
 
 	[ -e files ] && mv files openwrt/files
@@ -476,18 +473,11 @@ function fix_openwrt_nss_sfe_feeds() {
 }
 
 function fix_openwrt_feeds() {
-	if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-2410" ]; then
+
 	[ -d $OpenWrt_PATCH_FILE_DIR/lunatic7-revert ] && mv -f $OpenWrt_PATCH_FILE_DIR/lunatic7-revert openwrt/feeds/lunatic7/lunatic7-revert
 	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-luci-patch ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-luci-patch openwrt/feeds/luci/feeds-luci-patch
 	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-packages-patch ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-package-patch openwrt/feeds/packages/feeds-package-patch
 	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-telephony-patch ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-telephony-patch openwrt/feeds/packages/feeds-telephony-patch
-	fi
-	if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-ipq" ]; then
-	[ -d $OpenWrt_PATCH_FILE_DIR/lunatic7-revert ] && mv -f $OpenWrt_PATCH_FILE_DIR/lunatic7-revert openwrt/feeds/lunatic7/lunatic7-revert
-	[ -d $OpenWrt_PATCH_FILE_DIR/luci-patch-openwrt-ipq ] && mv -f $OpenWrt_PATCH_FILE_DIR/luci-patch-openwrt-ipq openwrt/feeds/luci/luci-patch-openwrt-ipq
-	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-package-patch-openwrt-ipq ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-package-patch-openwrt-ipq openwrt/feeds/packages/feeds-package-patch-openwrt-ipq
-	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-telephony-patch-openwrt-ipq ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-telephony-patch-openwrt-ipq openwrt/feeds/packages/feeds-telephony-patch-openwrt-ipq
-	fi
 
 	cd openwrt
 	"$GITHUB_WORKSPACE/$DIY_SH"  "$Matrix_Target"
