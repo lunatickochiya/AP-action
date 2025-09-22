@@ -69,6 +69,7 @@ function update_openwrt_feeds() {
 	./scripts/feeds install -a
 	cd ../
 }
+
 function init_pkg_env() {
 	sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
 	sudo -E apt-get -qq update
@@ -254,14 +255,14 @@ function init_openwrt_patch_common() {
 
 	if [ "$BCM_FULLCONE" = "1" ] && [[ "$Matrix_Target" == *-iptables ]]; then
 		[ -d $OpenWrt_PATCH_FILE_DIR/bcmfullcone ] && cp -r $OpenWrt_PATCH_FILE_DIR/bcmfullcone/a-* $OpenWrt_PATCH_FILE_DIR/mypatch-2410-$Matrix_Target
-		rm -rf $OpenWrt_PATCH_FILE_DIR/luci-patch-2410/0004-Revert-luci-app-firewall-add-fullcone.patch
+		rm -rf $OpenWrt_PATCH_FILE_DIR/feeds-luci-patch/0004-Revert-luci-app-firewall-add-fullcone.patch
 		echo "----$Matrix_Target-----ipt-bcm---"
 		echo "BCM_FULLCONE_NAME=_BCM_FULLCONE" >> $GITHUB_ENV
 	fi
 
 	if [ "$BCM_FULLCONE" = "1" ] && [[ "$Matrix_Target" == *-nftables ]]; then
 		[ -d $OpenWrt_PATCH_FILE_DIR/bcmfullcone ] && cp -r $OpenWrt_PATCH_FILE_DIR/bcmfullcone/b-* $OpenWrt_PATCH_FILE_DIR/mypatch-2410-$Matrix_Target
-		rm -rf $OpenWrt_PATCH_FILE_DIR/luci-patch-2410/0004-Revert-luci-app-firewall-add-fullcone.patch
+		rm -rf $OpenWrt_PATCH_FILE_DIR/feeds-luci-patch/0004-Revert-luci-app-firewall-add-fullcone.patch
 		echo "----$Matrix_Target-----nft-bcm---"
 		echo "BCM_FULLCONE_NAME=_BCM_FULLCONE" >> $GITHUB_ENV
 	fi
@@ -417,6 +418,9 @@ function add_openwrt_files() {
 
 	[ -d package ] && mv -f package/* openwrt/package
 	[ -d $OpenWrt_PATCH_FILE_DIR/package-for-mt798x ] && mv -f $OpenWrt_PATCH_FILE_DIR/package-for-mt798x/* openwrt/package
+	[ -d $OpenWrt_PATCH_FILE_DIR/mypatch-core ] && mv -f $OpenWrt_PATCH_FILE_DIR/mypatch-core openwrt/mypatch-core
+	[ -d $OpenWrt_PATCH_FILE_DIR/mypatch-custom-$Matrix_Target ] && mv -f $OpenWrt_PATCH_FILE_DIR/mypatch-custom-$Matrix_Target openwrt/mypatch-custom
+
 # for 2410
 	if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-2410" ]; then
 	if [ "$Matrix_Target" == 'ramips-iptables' ] || [ "$Matrix_Target" == 'ramips-nftables' ] || \
@@ -426,10 +430,6 @@ function add_openwrt_files() {
 	else
 		[ -d $OpenWrt_PATCH_FILE_DIR/package-for-2410 ] && cp -r $OpenWrt_PATCH_FILE_DIR/package-for-2410/* openwrt/package
 	fi
-
-	[ -d $OpenWrt_PATCH_FILE_DIR/mypatch-2410 ] && mv -f $OpenWrt_PATCH_FILE_DIR/mypatch-2410 openwrt/mypatch-2410
-	[ -d $OpenWrt_PATCH_FILE_DIR/mypatch-2410-$Matrix_Target ] && mv -f $OpenWrt_PATCH_FILE_DIR/mypatch-2410-$Matrix_Target openwrt/mypatch
-
 	if [ "$TEST_KERNEL" = "1" ]; then
 		find openwrt/target/linux/mediatek/dts/ -type f -name 'mt7981*.dts' -exec sed -i 's|#include "mt7981.dtsi"|#include "mt7981b.dtsi"|' {} +
 		# mv -f $OpenWrt_PATCH_FILE_DIR/2410-test/999-wct4xxp-Eliminate-old-style-declaration.patch openwrt/feeds/telephony/libs/dahdi-linux/patches/999-wct4xxp-Eliminate-old-style-declaration.patch
@@ -440,8 +440,6 @@ function add_openwrt_files() {
 # for 2410 ipq
 	if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-ipq" ]; then
 	[ -d $OpenWrt_PATCH_FILE_DIR/package-for-openwrt-ipq ] && cp -r $OpenWrt_PATCH_FILE_DIR/package-for-openwrt-ipq/* openwrt/package
-	[ -d $OpenWrt_PATCH_FILE_DIR/mypatch-openwrt-ipq ] && mv -f $OpenWrt_PATCH_FILE_DIR/mypatch-openwrt-ipq openwrt/mypatch-openwrt-ipq
-	[ -d $OpenWrt_PATCH_FILE_DIR/mypatch-openwrt-ipq-$Matrix_Target ] && mv -f $OpenWrt_PATCH_FILE_DIR/mypatch-openwrt-ipq-$Matrix_Target openwrt/mypatch
 	fi
 
 	[ -e files ] && mv files openwrt/files
@@ -532,16 +530,11 @@ function fix_openwrt_nss_sfe_feeds() {
 }
 
 function fix_openwrt_feeds() {
-	if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-2410" ]; then
+
 	[ -d $OpenWrt_PATCH_FILE_DIR/lunatic7-revert ] && mv -f $OpenWrt_PATCH_FILE_DIR/lunatic7-revert openwrt/feeds/lunatic7/lunatic7-revert
-	[ -d $OpenWrt_PATCH_FILE_DIR/luci-patch-2410 ] && mv -f $OpenWrt_PATCH_FILE_DIR/luci-patch-2410 openwrt/feeds/luci/luci-patch-2410
-	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-package-patch-2410 ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-package-patch-2410 openwrt/feeds/packages/feeds-package-patch-2410
-	fi
-	if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-ipq" ]; then
-	[ -d $OpenWrt_PATCH_FILE_DIR/lunatic7-revert ] && mv -f $OpenWrt_PATCH_FILE_DIR/lunatic7-revert openwrt/feeds/lunatic7/lunatic7-revert
-	[ -d $OpenWrt_PATCH_FILE_DIR/luci-patch-openwrt-ipq ] && mv -f $OpenWrt_PATCH_FILE_DIR/luci-patch-openwrt-ipq openwrt/feeds/luci/luci-patch-openwrt-ipq
-	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-package-patch-openwrt-ipq ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-package-patch-openwrt-ipq openwrt/feeds/packages/feeds-package-patch-openwrt-ipq
-	fi
+	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-luci-patch ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-luci-patch openwrt/feeds/luci/feeds-luci-patch
+	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-packages-patch ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-package-patch openwrt/feeds/packages/feeds-package-patch
+	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-telephony-patch ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-telephony-patch openwrt/feeds/packages/feeds-telephony-patch
 
 	cd openwrt
 	"$GITHUB_WORKSPACE/$DIY_SH"  "$Matrix_Target"
@@ -604,7 +597,47 @@ function awk_openwrt_config() {
 	awk '/turboacc/ { print }' .config
 }
 
+function add_machine_package_iptables_config() {
+echo "$(cat machine-configs/$OpenWrt_PATCH_FILE_DIR/$Target_CFG_Machine-iptables.config)" >> openwrt/.config
+echo "$(cat package-configs/$OpenWrt_PATCH_FILE_DIR/$Target_CFG_Machine-iptables.config)" >> openwrt/.config
+}
 
+function add_machine_package_nftables_config() {
+echo "$(cat machine-configs/$OpenWrt_PATCH_FILE_DIR/$Target_CFG_Machine-nftables.config)" >> openwrt/.config
+echo "$(cat package-configs/$OpenWrt_PATCH_FILE_DIR/$Target_CFG_Machine-nftables.config)" >> openwrt/.config
+}
+
+function add_machine_package_config() {
+echo "$(cat machine-configs/$OpenWrt_PATCH_FILE_DIR/$Target_CFG_Machine-$Matrix_Target.config)" >> openwrt/.config
+echo "$(cat package-configs/$OpenWrt_PATCH_FILE_DIR/$Target_CFG_Machine-$Matrix_Target.config)" >> openwrt/.config
+}
+
+function add_turboacc_luci_config_nftables() {
+echo "# ADD TURBOACC
+CONFIG_PACKAGE_luci-app-turboacc=y
+
+# sfe
+CONFIG_PACKAGE_kmod-fast-classifier=y
+CONFIG_PACKAGE_kmod-shortcut-fe=y
+CONFIG_PACKAGE_kmod-shortcut-fe-cm=n
+CONFIG_PACKAGE_kmod-nft-fullcone=y
+" >> "openwrt/.config"
+}
+
+function add_turboacc_luci_config_iptables() {
+echo "# ADD TURBOACC
+CONFIG_PACKAGE_luci-app-turboacc=y
+
+# iptable legacy in nft
+CONFIG_PACKAGE_ip6tables-zz-legacy=y
+CONFIG_PACKAGE_iptables-zz-legacy=y
+
+# sfe
+CONFIG_PACKAGE_kmod-fast-classifier=m
+CONFIG_PACKAGE_kmod-shortcut-fe=m
+CONFIG_PACKAGE_kmod-shortcut-fe-cm=m
+" >> "openwrt/.config"
+}
 
 if [ "$1" == "init-pkg-env" ]; then
 init_pkg_env
@@ -660,3 +693,4 @@ awk_openwrt_config
 else
 echo "Invalid argument"
 fi
+
