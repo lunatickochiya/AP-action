@@ -343,7 +343,7 @@ jobs:
       id: config
       env:
         INPUT_PKGS_CFG_STATUS: ${{ github.event.inputs.packages_mod }}
-        INPUT_PKGS_CFG_FOO: ${{ github.event.inputs.packages }}"
+        INPUT_PKGS_CFG_FOO: ${{ github.event.inputs.packages }}
       run: |
         $GITHUB_WORKSPACE/core.sh fix-openwrt-feeds
         echo "status=success" >> $GITHUB_OUTPUT
