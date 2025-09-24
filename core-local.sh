@@ -71,7 +71,6 @@ function update_openwrt_feeds() {
 	cd ../
 }
 
-
 function init_pkg_env() {
 	sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
 	sudo -E apt-get -qq update
@@ -351,17 +350,17 @@ function add_openwrt_sfe_kernel_nss_patch() {
 		mkdir -p openwrt/target/linux/qualcommax/patches-6.6
 		mkdir -p openwrt/target/linux/qualcommax/patches-6.12
 	if [ "$Branch" = "24.10-nss-6.12" ]; then
-		cp -f openwrt-ipq/sfe-ipq-6.12/20250425/0600-1-qca-nss-ecm-support-CORE.patch openwrt/target/linux/qualcommax/patches-6.12/0600-1-qca-nss-ecm-support-CORE.patch
-		cp -f openwrt-ipq/sfe-ipq-6.12/20250425/0981-0-qca-skbuff-revert.patch openwrt/target/linux/qualcommax/patches-6.12/0981-0-qca-skbuff-revert.patch
+		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.12/20250425/0600-1-qca-nss-ecm-support-CORE.patch openwrt/target/linux/qualcommax/patches-6.12/0600-1-qca-nss-ecm-support-CORE.patch
+		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.12/20250425/0981-0-qca-skbuff-revert.patch openwrt/target/linux/qualcommax/patches-6.12/0981-0-qca-skbuff-revert.patch
 	fi
 
 	if [ "$Branch" = "24.10-nss-202502" ] || [ "$Branch" = "24.10-nss-202503" ] || [ "$Branch" = "24.10-nss-202504" ]; then
-		cp -f openwrt-ipq/sfe-ipq-6.6/202502/0600-1-qca-nss-ecm-support-CORE.patch openwrt/target/linux/qualcommax/patches-6.6/0600-1-qca-nss-ecm-support-CORE.patch
-		cp -f openwrt-ipq/sfe-ipq-6.6/202502/0603-1-qca-nss-clients-add-qdisc-support.patch openwrt/target/linux/qualcommax/patches-6.6/0603-1-qca-nss-clients-add-qdisc-support.patch
+		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/202502/0600-1-qca-nss-ecm-support-CORE.patch openwrt/target/linux/qualcommax/patches-6.6/0600-1-qca-nss-ecm-support-CORE.patch
+		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/202502/0603-1-qca-nss-clients-add-qdisc-support.patch openwrt/target/linux/qualcommax/patches-6.6/0603-1-qca-nss-clients-add-qdisc-support.patch
 	else
-		cp -f openwrt-ipq/sfe-ipq-6.6/20250425/0600-1-qca-nss-ecm-support-CORE.patch openwrt/target/linux/qualcommax/patches-6.6/0600-1-qca-nss-ecm-support-CORE.patch
-		cp -f openwrt-ipq/sfe-ipq-6.6/20250425/0603-1-qca-nss-clients-add-qdisc-support.patch openwrt/target/linux/qualcommax/patches-6.6/0603-1-qca-nss-clients-add-qdisc-support.patch
-		cp -f openwrt-ipq/sfe-ipq-6.6/20250425/0981-0-qca-skbuff-revert.patch openwrt/target/linux/qualcommax/patches-6.6/0981-0-qca-skbuff-revert.patch
+		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/20250425/0600-1-qca-nss-ecm-support-CORE.patch openwrt/target/linux/qualcommax/patches-6.6/0600-1-qca-nss-ecm-support-CORE.patch
+		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/20250425/0603-1-qca-nss-clients-add-qdisc-support.patch openwrt/target/linux/qualcommax/patches-6.6/0603-1-qca-nss-clients-add-qdisc-support.patch
+		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/20250425/0981-0-qca-skbuff-revert.patch openwrt/target/linux/qualcommax/patches-6.6/0981-0-qca-skbuff-revert.patch
 	fi
 
 		mkdir -p openwrt/package/qca
@@ -400,7 +399,7 @@ function add_openwrt_files() {
 	mkdir -p openwrt/feeds/lunatic7
 
 	[ -d package ] && mv -f package/* openwrt/package
-	[ -d $OpenWrt_PATCH_FILE_DIR/package-for-mt798x ] && mv -f $OpenWrt_PATCH_FILE_DIR/package-for-mt798x/* openwrt/package
+	[ -d $OpenWrt_PATCH_FILE_DIR/package-for-$OpenWrt_PATCH_FILE_DIR ] && mv -f $OpenWrt_PATCH_FILE_DIR/package-for-$OpenWrt_PATCH_FILE_DIR/* openwrt/package
 	[ -d $OpenWrt_PATCH_FILE_DIR/mypatch-core ] && mv -f $OpenWrt_PATCH_FILE_DIR/mypatch-core openwrt/mypatch-core
 	[ -d $OpenWrt_PATCH_FILE_DIR/mypatch-custom-$Matrix_Target ] && mv -f $OpenWrt_PATCH_FILE_DIR/mypatch-custom-$Matrix_Target openwrt/mypatch-custom
 
@@ -422,7 +421,7 @@ function add_openwrt_files() {
 
 # for 2410 ipq
 	if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-ipq" ]; then
-	[ -d $OpenWrt_PATCH_FILE_DIR/package-for-openwrt-ipq ] && cp -r $OpenWrt_PATCH_FILE_DIR/package-for-openwrt-ipq/* openwrt/package
+	[ -d $OpenWrt_PATCH_FILE_DIR/package-for-$OpenWrt_PATCH_FILE_DIR ] && cp -r $OpenWrt_PATCH_FILE_DIR/package-for-$OpenWrt_PATCH_FILE_DIR/* openwrt/package
 	fi
 
 	[ -e files ] && mv files openwrt/files
@@ -812,4 +811,5 @@ awk_openwrt_config
 else
 echo "Invalid argument"
 fi
+
 
