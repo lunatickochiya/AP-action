@@ -326,6 +326,7 @@ remove_error_package_not_install
 patch_package
 patch_luci
 patch_lunatic7
+patch_feeds_telephony
 add_mt798x_iptables_packages
 elif [ "$1" == "mt798x-nftables" ]; then
 autosetver
@@ -333,6 +334,7 @@ remove_error_package_not_install
 patch_package
 patch_luci
 patch_lunatic7
+patch_feeds_telephony
 add_mt798x_nftables_packages
 elif [ "$1" == "mt798x-nousb-nftables" ]; then
 autosetver

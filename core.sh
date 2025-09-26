@@ -174,37 +174,37 @@ function init_openwrt_patch_common() {
 	fi
 
 	if [ "$TRY_BBR_V3" = "1" ]; then
-		[ -d $OpenWrt_PATCH_FILE_DIR/mypatch-bbr-v3 ] && cp -r $OpenWrt_PATCH_FILE_DIR/mypatch-bbr-v3/* $OpenWrt_PATCH_FILE_DIR/mypatch-2410-$Matrix_Target
+		[ -d $OpenWrt_PATCH_FILE_DIR/mypatch-bbr-v3 ] && cp -r $OpenWrt_PATCH_FILE_DIR/mypatch-bbr-v3/* $OpenWrt_PATCH_FILE_DIR/mypatch-custom-$Matrix_Target
 		echo "----$Matrix_Target----bbr-v3---"
 		echo "TRY_BBR_V3_NAME=_BBR_V3" >> $GITHUB_ENV
 	fi
 
 	if [ "$OPENSSL_3_5" = "1" ]; then
-		[ -d $OpenWrt_PATCH_FILE_DIR/openssl-bump ] && cp -r $OpenWrt_PATCH_FILE_DIR/openssl-bump/* $OpenWrt_PATCH_FILE_DIR/mypatch-2410-$Matrix_Target
+		[ -d $OpenWrt_PATCH_FILE_DIR/openssl-bump ] && cp -r $OpenWrt_PATCH_FILE_DIR/openssl-bump/* $OpenWrt_PATCH_FILE_DIR/mypatch-custom-$Matrix_Target
 		echo "----$Matrix_Target----openssl-3-5---"
 		echo "OPENSSL_3_5_NAME=_OPENSSL_3_5" >> $GITHUB_ENV
 	fi
 
 	if [ "$MAC80211_616" = "1" ]; then
-		[ -d $OpenWrt_PATCH_FILE_DIR/mac80211-616 ] && cp -r $OpenWrt_PATCH_FILE_DIR/mac80211-616/* $OpenWrt_PATCH_FILE_DIR/mypatch-2410-$Matrix_Target
+		[ -d $OpenWrt_PATCH_FILE_DIR/mac80211-616 ] && cp -r $OpenWrt_PATCH_FILE_DIR/mac80211-616/* $OpenWrt_PATCH_FILE_DIR/mypatch-custom-$Matrix_Target
 		rm -rf openwrt/package/kernel/mt76/patches/100-api_compat.patch
 		echo "----$Matrix_Target----mac80211-6-16---"
 		echo "MAC80211_616_NAME=_MAC80211_616" >> $GITHUB_ENV
 	fi
 
 	if [ "$AG71XX_FIX" = "1" ]; then
-		[ -d $OpenWrt_PATCH_FILE_DIR/my-patch-ag71xx-fix ] && cp -r $OpenWrt_PATCH_FILE_DIR/my-patch-ag71xx-fix/* $OpenWrt_PATCH_FILE_DIR/mypatch-2410-$Matrix_Target
+		[ -d $OpenWrt_PATCH_FILE_DIR/my-patch-ag71xx-fix ] && cp -r $OpenWrt_PATCH_FILE_DIR/my-patch-ag71xx-fix/* $OpenWrt_PATCH_FILE_DIR/mypatch-custom-$Matrix_Target
 	fi
 
 	if [ "$BCM_FULLCONE" = "1" ] && [[ "$Matrix_Target" == *-iptables ]]; then
-		[ -d $OpenWrt_PATCH_FILE_DIR/bcmfullcone ] && cp -r $OpenWrt_PATCH_FILE_DIR/bcmfullcone/a-* $OpenWrt_PATCH_FILE_DIR/mypatch-2410-$Matrix_Target
+		[ -d $OpenWrt_PATCH_FILE_DIR/bcmfullcone ] && cp -r $OpenWrt_PATCH_FILE_DIR/bcmfullcone/a-* $OpenWrt_PATCH_FILE_DIR/mypatch-custom-$Matrix_Target
 		rm -rf $OpenWrt_PATCH_FILE_DIR/feeds-luci-patch/0004-Revert-luci-app-firewall-add-fullcone.patch
 		echo "----$Matrix_Target-----ipt-bcm---"
 		echo "BCM_FULLCONE_NAME=_BCM_FULLCONE" >> $GITHUB_ENV
 	fi
 
 	if [ "$BCM_FULLCONE" = "1" ] && [[ "$Matrix_Target" == *-nftables ]]; then
-		[ -d $OpenWrt_PATCH_FILE_DIR/bcmfullcone ] && cp -r $OpenWrt_PATCH_FILE_DIR/bcmfullcone/b-* $OpenWrt_PATCH_FILE_DIR/mypatch-2410-$Matrix_Target
+		[ -d $OpenWrt_PATCH_FILE_DIR/bcmfullcone ] && cp -r $OpenWrt_PATCH_FILE_DIR/bcmfullcone/b-* $OpenWrt_PATCH_FILE_DIR/mypatch-custom-$Matrix_Target
 		rm -rf $OpenWrt_PATCH_FILE_DIR/feeds-luci-patch/0004-Revert-luci-app-firewall-add-fullcone.patch
 		echo "----$Matrix_Target-----nft-bcm---"
 		echo "BCM_FULLCONE_NAME=_BCM_FULLCONE" >> $GITHUB_ENV
@@ -229,7 +229,8 @@ function init_openwrt_patch_common() {
 
 function init_openwrt_patch_2410() {
 	if [ "$TEST_KERNEL" = "1" ]; then
-		[ -d $OpenWrt_PATCH_FILE_DIR/core-6-12 ] && cp -r $OpenWrt_PATCH_FILE_DIR/core-6-12/* $OpenWrt_PATCH_FILE_DIR/mypatch-2410-$Matrix_Target
+		[ -d $OpenWrt_PATCH_FILE_DIR/core-6-12 ] && cp -r $OpenWrt_PATCH_FILE_DIR/core-6-12/* $OpenWrt_PATCH_FILE_DIR/mypatch-custom-$Matrix_Target
+		#rm -rf $OpenWrt_PATCH_FILE_DIR/mypatch-core/0010-mediatek-dts-update-6.12.patch
 		rm -rf openwrt/package/kernel/mt76/patches/100-api_compat.patch
 		echo "----$Matrix_Target----TEST-KERNEL---"
 	fi
@@ -373,10 +374,6 @@ function add_openwrt_files() {
 	else
 		[ -d $OpenWrt_PATCH_FILE_DIR/package-for-2410 ] && cp -r $OpenWrt_PATCH_FILE_DIR/package-for-2410/* openwrt/package
 	fi
-	if [ "$TEST_KERNEL" = "1" ]; then
-		find openwrt/target/linux/mediatek/dts/ -type f -name 'mt7981*.dts' -exec sed -i 's|#include "mt7981.dtsi"|#include "mt7981b.dtsi"|' {} +
-		# mv -f $OpenWrt_PATCH_FILE_DIR/2410-test/999-wct4xxp-Eliminate-old-style-declaration.patch openwrt/feeds/telephony/libs/dahdi-linux/patches/999-wct4xxp-Eliminate-old-style-declaration.patch
-	fi
 	fi
 # for 2410 end
 
@@ -386,6 +383,13 @@ function add_openwrt_files() {
 	fi
 
 	[ -e files ] && mv files openwrt/files
+}
+
+function test_kernel_mediatek_dts_fix() {
+	if [ "$TEST_KERNEL" = "1" ]; then
+		find openwrt/target/linux/mediatek/dts/ -type f -name 'mt7981*.dts' -exec sed -i 's|#include "mt7981.dtsi"|#include "mt7981b.dtsi"|' {} +
+		find openwrt/target/linux/mediatek/dts/ -type f -name 'mt7981*.dtsi' -exec sed -i 's|#include "mt7981.dtsi"|#include "mt7981b.dtsi"|' {} +
+	fi
 }
 
 function patch_openwrt_core_pre() {
@@ -403,6 +407,7 @@ function patch_openwrt_core_pre() {
 	fi
 
 	cd ../
+	test_kernel_mediatek_dts_fix
 }
 
 function add_openwrt_kmods() {
@@ -476,8 +481,8 @@ function fix_openwrt_feeds() {
 
 	[ -d $OpenWrt_PATCH_FILE_DIR/lunatic7-revert ] && mv -f $OpenWrt_PATCH_FILE_DIR/lunatic7-revert openwrt/feeds/lunatic7/lunatic7-revert
 	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-luci-patch ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-luci-patch openwrt/feeds/luci/feeds-luci-patch
-	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-packages-patch ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-package-patch openwrt/feeds/packages/feeds-package-patch
-	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-telephony-patch ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-telephony-patch openwrt/feeds/packages/feeds-telephony-patch
+	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-packages-patch ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-packages-patch openwrt/feeds/packages/feeds-packages-patch
+	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-telephony-patch ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-telephony-patch openwrt/feeds/telephony/feeds-telephony-patch
 
 	cd openwrt
 	"$GITHUB_WORKSPACE/$DIY_SH"  "$Matrix_Target"
@@ -540,6 +545,47 @@ function awk_openwrt_config() {
 	awk '/turboacc/ { print }' .config
 }
 
+function add_machine_package_iptables_config() {
+echo "$(cat machine-configs/$OpenWrt_PATCH_FILE_DIR/$Target_CFG_Machine-iptables.config)" >> openwrt/.config
+echo "$(cat package-configs/$OpenWrt_PATCH_FILE_DIR/$Target_CFG_Machine-iptables.config)" >> openwrt/.config
+}
+
+function add_machine_package_nftables_config() {
+echo "$(cat machine-configs/$OpenWrt_PATCH_FILE_DIR/$Target_CFG_Machine-nftables.config)" >> openwrt/.config
+echo "$(cat package-configs/$OpenWrt_PATCH_FILE_DIR/$Target_CFG_Machine-nftables.config)" >> openwrt/.config
+}
+
+function add_machine_package_config() {
+echo "$(cat machine-configs/$OpenWrt_PATCH_FILE_DIR/$Target_CFG_Machine-$Matrix_Target.config)" >> openwrt/.config
+echo "$(cat package-configs/$OpenWrt_PATCH_FILE_DIR/$Target_CFG_Machine-$Matrix_Target.config)" >> openwrt/.config
+}
+
+function add_nft_config() {
+echo "# ADD TURBOACC
+CONFIG_PACKAGE_luci-app-turboacc=y
+
+# sfe
+CONFIG_PACKAGE_kmod-fast-classifier=y
+CONFIG_PACKAGE_kmod-shortcut-fe=y
+CONFIG_PACKAGE_kmod-shortcut-fe-cm=n
+CONFIG_PACKAGE_kmod-nft-fullcone=y
+" >> "openwrt/.config"
+}
+
+function add_ipt_config() {
+echo "# ADD TURBOACC
+CONFIG_PACKAGE_luci-app-turboacc=y
+
+# iptable legacy in nft
+CONFIG_PACKAGE_ip6tables-zz-legacy=y
+CONFIG_PACKAGE_iptables-zz-legacy=y
+
+# sfe
+CONFIG_PACKAGE_kmod-fast-classifier=m
+CONFIG_PACKAGE_kmod-shortcut-fe=m
+CONFIG_PACKAGE_kmod-shortcut-fe-cm=m
+" >> "openwrt/.config"
+}
 
 
 if [ "$1" == "init-pkg-env" ]; then
