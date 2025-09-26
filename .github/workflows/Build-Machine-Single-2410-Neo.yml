@@ -1,0 +1,423 @@
+name: Build 24.10 Single Machine Neo
+
+# Fix for broken build: https://github.com/softprops/action-gh-release/issues/236
+permissions:
+  contents: write
+  actions: write
+
+on:
+  repository_dispatch:
+  workflow_dispatch:
+    inputs:
+      config_repo:
+        description: 'Use json config repo true(1) or false(0) See ReadME'
+        required: true
+        default: '{"Cache": "1", "UPLOAD_RELEASE": "1", "ALLKMOD": "1"}'
+
+      MACH:
+        description: 'Choose machine'
+        required: true
+        default: 'rax3000m-emmc'
+        type: choice
+        options:
+        - 'rax3000m-emmc'
+        - 'rax3000m-nand'
+        - 'nokia_ea0326gmp_ubootmod'
+        - 'lenovo_newifi-d1'
+        - 'd-team_newifi-d2'
+        - 'lenovo_newifi-y1'
+        - 'domywifi_dw33d'
+        - 'aliyun_ap8220'
+        - 'ath79_generic-2305-multi'
+        - 'lunaticbox'
+
+      SFE_BUILDIN:
+        description: 'Build sfe'
+        default: 'true'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
+
+      patch_repo:
+        description: 'Use json patch repo true(1) or false(0) See ReadME'
+        required: true
+        default: '{"OPENSSL_3_5": "1", "BCM_FULLCONE": "1", "TRY_BBR_V3": "1", "Firewall_Allow_WAN": "1", "MAC80211_616": "0", "TEST_KERNEL": "0", "ADD_IB": "1", "ADD_SDK": "1", "DOCKER_BUILDIN": "0"}'
+
+      SETIP:
+        description: 'Set ip address'
+        default: '192.168.7.1'
+        required: false
+        type: choice
+        options:
+        - '192.168.6.1'
+        - '192.168.7.1'
+        - '192.168.8.1'
+        - '192.168.9.1'
+        - '192.168.10.1'
+        - '192.168.11.1'
+        - '192.168.12.1'
+        - '192.168.16.1'
+        - '192.168.17.1'
+        - '192.168.18.1'
+        - '192.168.19.1'
+        - '192.168.20.1'
+        - '192.168.22.1'
+        - '192.168.33.1'
+        - '192.168.66.1'
+        - '192.168.67.1'
+        - '192.168.77.1'
+        - '192.168.78.1'
+        - '192.168.87.1'
+        - '192.168.88.1'
+        - '192.168.89.1'
+        - '192.168.96.1'
+        - '192.168.99.1'
+        - '192.168.100.1'
+        - '192.168.110.1'
+        - '192.168.120.1'
+        - '192.168.160.1'
+        - '192.168.166.1'
+        - '192.168.167.1'
+        - '192.168.177.1'
+        - '192.168.188.1'
+        - '172.16.0.1'
+        - '172.18.0.1'
+        - '10.0.0.1'
+        - '10.88.0.1'
+
+      packages:
+        description: 'OpenWrt packages（example: luci-app-example,luci-app-helloworld）'
+        required: true
+        default: 'luci-app-example,luci-app-example2'
+      packages_mod:
+        description: 'The Above packages set to which'
+        default: 'm'
+        type: choice
+        options:
+        - 'y'
+        - 'm'
+        - 'n'
+
+env:
+  TZ: Asia/Shanghai
+
+jobs:
+  prepare:
+    runs-on: ubuntu-22.04
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    strategy:
+      matrix:
+        include:
+        - mt798x: rax3000m-emmc
+        - mt798x: rax3000m-nand
+        - mt798x-nousb: nokia_ea0326gmp_ubootmod
+        - ramips: lenovo_newifi-d1
+        - ramips: lenovo_newifi-y1
+        - ramips: d-team_newifi-d2
+        - ath79: domywifi_dw33d
+        - ath79: ath79_generic-2305-multi
+        - ath79: lunaticbox
+        - ipq: aliyun_ap8220
+
+    steps:
+      - name: 检查
+        uses: actions/checkout@main
+      
+      - name: 生成矩阵配置
+        id: set-matrix
+        run: |
+          if [ "${{ github.event.inputs.MACH }}" == "${{ matrix.mt798x }}" ]; then
+            matrix={\"include\":[{\"target\":\"mt798x-iptables\"},{\"target\":\"mt798x-nftables\"}]}
+          elif [ "${{ github.event.inputs.MACH }}" == "${{ matrix.mt798x-nousb }}" ]; then
+            matrix={\"include\":[{\"target\":\"mt798x-nousb-iptables\"},{\"target\":\"mt798x-nousb-nftables\"}]}
+          elif [ "${{ github.event.inputs.MACH }}" == "${{ matrix.ramips }}" ]; then
+            matrix={\"include\":[{\"target\":\"ramips-iptables\"},{\"target\":\"ramips-nftables\"}]}
+          elif [ "${{ github.event.inputs.MACH }}" == "${{ matrix.ath79 }}" ]; then
+            matrix={\"include\":[{\"target\":\"ath79-iptables\"},{\"target\":\"ath79-nftables\"}]}
+          elif [ "${{ github.event.inputs.MACH }}" == "${{ matrix.ipq }}" ]; then
+            matrix={\"include\":[{\"target\":\"ipq-iptables\"},{\"target\":\"ipq-nftables\"}]}
+          fi
+          echo "Generated matrix: "$matrix""
+          echo "matrix=$matrix" >> $GITHUB_OUTPUT
+ 
+  build:
+    runs-on: Ubuntu-22.04
+    needs: prepare
+    strategy:
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    name: Build ${{github.event.inputs.MACH}} openwrt 24.10
+    env:
+      Matrix_Target: ${{ matrix.target }}
+      Target_CFG_Machine: ${{github.event.inputs.MACH}}
+      OpenWrt_PATCH_FILE_DIR: openwrt-2410
+
+    steps:
+    - name: 检查
+      uses: actions/checkout@main
+
+    - name: Print matrix from prepare
+      run: |
+         echo "::notice ::Matrix from prepare: ${{ needs.prepare.outputs.matrix }}"
+
+    - name: 释放Ubuntu磁盘空间
+      uses: endersonmenezes/free-disk-space@v2
+      with:
+        remove_android: true
+        remove_dotnet: true
+        remove_haskell: true
+        remove_tool_cache: true
+        remove_swap: true
+        remove_packages: "azure-cli google-cloud-cli microsoft-edge-stable google-chrome-stable firefox postgresql* temurin-* *llvm* mysql* dotnet-sdk-*"
+        remove_packages_one_command: true
+        remove_folders: "/usr/share/swift /usr/share/miniconda /usr/share/az* /usr/share/glade* /usr/local/lib/node_modules /usr/local/share/chromium /usr/local/share/powershell"
+        testing: false
+
+    - name: 初始化环境
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        chmod +x gen-sha256sum.sh add-test-packages.sh add-sfe-packages.sh core-neo.sh
+        $GITHUB_WORKSPACE/core-neo.sh init-pkg-env
+
+    - name: 设置GITHUB_ENV
+      id: env
+      env:
+        PATCH_JSON_INPUT: ${{ github.event.inputs.patch_repo }}
+        CONFIG_JSON_INPUT: ${{ github.event.inputs.config_repo }}
+      run: |
+        echo ${{matrix.target}}
+        $GITHUB_WORKSPACE/core-neo.sh init-gh-env-2410
+
+    - name: 克隆源代码
+      working-directory: /workdir
+      id: clone
+      run: |
+        df -hT $PWD
+        git clone $REPO_URL -b $REPO_BRANCH openwrt --single-branch
+        ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
+        cd openwrt
+        sed -i \
+          -e 's|https://git.openwrt.org/feed/packages.git;openwrt-24.10|https://github.com/openwrt/packages.git;openwrt-24.10|' \
+          -e 's|https://git.openwrt.org/project/luci.git;openwrt-24.10|https://github.com/openwrt/luci.git;openwrt-24.10|' \
+          -e 's|https://git.openwrt.org/feed/routing.git;openwrt-24.10|https://github.com/openwrt/routing.git;openwrt-24.10|' \
+          -e 's|https://git.openwrt.org/feed/telephony.git;openwrt-24.10|https://github.com/openwrt/telephony.git;openwrt-24.10|' \
+          feeds.conf.default
+        sed -i '$a src-git lunatic7 https://github.com/lunatickochiya/actionbased-openwrt-packages.git' feeds.conf.default
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: 增加磁盘空间
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        $GITHUB_WORKSPACE/core-neo.sh ln-openwrt
+
+    - name: Patch 自定义
+      id: patch
+      run: |
+        $GITHUB_WORKSPACE/core-neo.sh init-openwrt-patch-2410
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: 添加 SFE
+      if: github.event.inputs.SFE_BUILDIN == 'true'
+      id: sfe
+      run: |
+        $GITHUB_WORKSPACE/core-neo.sh add-openwrt-sfe-2410
+        echo "status=success" >> $GITHUB_OUTPUT
+        echo "SFE=_SFE" >> $GITHUB_ENV
+
+    - name: 自定义安装包(优先于feeds)
+      if: steps.clone.outputs.status == 'success'
+      id: files
+      env:
+        SFE_INPUT_STATUS: ${{ github.event.inputs.SFE_BUILDIN }}
+      run: |
+        $GITHUB_WORKSPACE/core-neo.sh add-openwrt-files-2410
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: 设置 IP 地址
+      if: github.event.inputs.SETIP != '192.168.10.1'
+      id: setip
+      run: |
+        IPSET_VALUE="${{ github.event.inputs.SETIP }}"
+        sed -i "s/192\.168\.10\.1/$IPSET_VALUE/g" openwrt/package/kochiya/autoset/files/def_uci/zzz-autoset*
+        grep 'set network.lan.ipaddr=' openwrt/package/kochiya/autoset/files/def_uci/zzz-autoset*
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: 更新 & 安装 feeds
+      if: steps.files.outputs.status == 'success'
+      id: feeds
+      run: |
+        cd openwrt
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+        sed -i 's/--set=llvm\.download-ci-llvm=false/--set=llvm.download-ci-llvm=true/' feeds/packages/lang/rust/Makefile
+        grep -q -- '--ci false \\' feeds/packages/lang/rust/Makefile || sed -i '/x\.py \\/a \        --ci false \\' feeds/packages/lang/rust/Makefile
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: 自定义配置（修复feeds）
+      if: steps.feeds.outputs.status == 'success'
+      id: config
+      env:
+        INPUT_PKGS_CFG_STATUS: ${{ github.event.inputs.packages_mod }}
+        INPUT_PKGS_CFG_FOO: ${{ github.event.inputs.packages }}
+      run: |
+        $GITHUB_WORKSPACE/core-neo.sh fix-openwrt-feeds
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: 添加kmod
+      if: steps.config.outputs.status == 'success' && env.ALLKMOD == '1'
+      id: config2
+      run: |
+        $GITHUB_WORKSPACE/core-neo.sh add-openwrt-kmods
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: Run awk command
+      if: steps.config.outputs.status == 'success'
+      working-directory: ./openwrt
+      run: |
+        $GITHUB_WORKSPACE/core-neo.sh awk-openwrt-config
+
+    - name: 下载包文件
+      if: steps.config.outputs.status == 'success'
+      run: |
+        cd openwrt
+        make download -j$(nproc)
+        find dl -size -1024c -exec rm -f {} \;
+
+    - name: 缓存
+      uses: stupidloud/cachewrtbuild@main
+      if: env.Cache == '1' && !cancelled()
+      with:
+        ccache: 'true'
+        mixkey: ${{ matrix.target }}
+        clean: ${{ contains(github.event.action, 'nocache') }}
+        prefix: ${{ github.workspace }}/openwrt
+
+    - name: 编译固件
+      id: compile
+      working-directory: ./openwrt
+      run: |
+        echo -e "$(($(nproc)+1)) thread compile"
+        make -j$(($(nproc)+1)) || make -j1 V=s
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: 检查空间使用情况
+      if: (!cancelled())
+      run: df -hT
+
+    - name: 上传bin目录
+      uses: actions/upload-artifact@main
+      continue-on-error: true
+      if: steps.compile.outputs.status == 'success' && env.UPLOAD_BIN_DIR == 'true'
+      with:
+        name: ${{ env.date3 }}_${{matrix.target}}
+        path: |
+          openwrt/bin/
+
+    - name: 打包ipk成zip文件
+      id: afb
+      continue-on-error: true
+      if: steps.compile.outputs.status == 'success' && !cancelled()
+      run: |
+        $GITHUB_WORKSPACE/$DIY_SH_AFB
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: 整理文件
+      id: organize
+      if: env.UPLOAD_FIRMWARE == 'true' && steps.afb.outputs.status == 'success' && !cancelled()
+      run: |
+        mkdir firmware ipks
+        [ ${{ env.UPLOAD_RELEASE}} = 1 ] && cp -u -f openwrt/kernelipks.zip firmware
+        [ ${{ env.UPLOAD_RELEASE}} = 1 ] && cp -u -f openwrt/ipks.zip firmware
+        cp -u -f openwrt/kernelipks.zip ipks
+        cp -u -f openwrt/ipks.zip ipks
+        mv -f openwrt/bin/targets/*/*/{*combined*,*ext4*,*sdk*,*imagebuilder*,*buildinfo*,*manifest*,*json*,*sha256sums*} ./firmware/ 2>/dev/null || true
+        [ $UPLOAD_SYSUPGRADE = true ] && mv -f openwrt/bin/targets/*/*/{*combined*,*sysupgrade*,*openwrt*,*initramfs*,*factory*} ./firmware/ 2>/dev/null || true
+        cp openwrt/.config  ./firmware/${{matrix.target}}.config
+        cp openwrt/build_dir/target-*/linux-*/linux-*/.config ./firmware/${{matrix.target}}_kernel.config
+        cd firmware
+        echo "v${{ env.date2 }}" > version.txt
+        echo ${{matrix.target}} >> version.txt
+        rm -rf sha256sums
+        echo "FIRMWARE=$PWD" >> $GITHUB_ENV
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: 上传firmware目录
+      uses: actions/upload-artifact@main
+      continue-on-error: true
+      if: steps.organize.outputs.status == 'success' && env.UPLOAD_FIRMWARE == 'true'
+      with:
+        name: ${{ env.date3 }}_${{matrix.target}}_firmware_24.10-${{github.event.inputs.MACH}}-${{ github.event.inputs.SETIP }}${{ env.Kernel_Test }}${{ env.BCM_FULLCONE_NAME }}${{ env.SFE }}${{ env.TRY_BBR_V3_NAME }}${{ env.OPENSSL_3_5_NAME }}${{ env.DOCKER_NAME }}${{ env.WAN_NAME }}${{ env.MAC80211_616_NAME }}
+        path: |
+          firmware
+
+    - name: 上传ipk目录
+      uses: actions/upload-artifact@main
+      continue-on-error: true
+      if: steps.organize.outputs.status == 'success' && env.UPLOAD_IPK_DIR == 'true' && steps.afb.outputs.status == 'success'
+      with:
+        name: ${{ env.date3 }}_${{matrix.target}}_ipks_24.10-${{github.event.inputs.MACH}}${{ env.Kernel_Test }}${{ env.BCM_FULLCONE_NAME }}${{ env.SFE }}${{ env.TRY_BBR_V3_NAME }}${{ env.OPENSSL_3_5_NAME }}${{ env.DOCKER_NAME }}${{ env.WAN_NAME }}${{ env.MAC80211_616_NAME }}
+        path: |
+          ipks
+
+    - name: 上传固件cowtransfer
+      id: cowtransfer
+      if: steps.organize.outputs.status == 'success' && env.UPLOAD_COWTRANSFER == 'true' && !cancelled()
+      run: |
+        curl -fsSL git.io/file-transfer | sh
+        ./transfer cow --block 2621440 -s -p 64 --no-progress ${FIRMWARE} 2>&1 | tee cowtransfer.log
+        echo "::warning file=cowtransfer.com::$(cat cowtransfer.log | grep https)"
+        echo "url=$(cat cowtransfer.log | grep https | cut -f3 -d" ")" >> $GITHUB_OUTPUT
+
+    - name: 上传固件WeTransfer
+      id: wetransfer
+      if: steps.organize.outputs.status == 'success' && env.UPLOAD_WETRANSFER == 'true' && !cancelled()
+      run: |
+        curl -fsSL git.io/file-transfer | sh
+        ./transfer wet -s -p 16 --no-progress ${FIRMWARE} 2>&1 | tee wetransfer.log
+        echo "::warning file=wetransfer.com::$(cat wetransfer.log | grep https)"
+        echo "url=$(cat wetransfer.log | grep https | cut -f3 -d" ")" >> $GITHUB_OUTPUT
+
+    - name: 生成发布标签
+      id: tag
+      if: steps.organize.outputs.status == 'success' && env.UPLOAD_RELEASE == '1' && !cancelled()
+      run: |
+        touch release.txt
+        $GITHUB_WORKSPACE/gen-sha256sum.sh
+        echo "# 当前固件IP地址："${{ github.event.inputs.SETIP }}" " >> release.txt
+        [ ${{matrix.target}} = mt798x* ] && [ -e openwrt/target/linux/mediatek/filogic/base-files/lib/firmware/mediatek/nx30pro_eeprom.bin ] && echo "- eeprom 使用 H3C NX30 Pro 提取版本" >> release.txt
+        [ ${{github.event.inputs.MACH}} = rax3000m-emmc ] && echo "- 使用闪存频率: ($(grep -oP "max-frequency = <\K[0-9]*" openwrt/target/linux/mediatek/dts/mt7981b-cmcc-rax3000m-emmc-ubootmod.dts)) Hz" >> release.txt
+        [ $UPLOAD_COWTRANSFER = true ] && echo "🔗 [Cowtransfer](${{ steps.cowtransfer.outputs.url }})" >> release.txt
+        [ $UPLOAD_WETRANSFER = true ] && echo "🔗 [WeTransfer](${{ steps.wetransfer.outputs.url }})" >> release.txt
+        echo "🔗 ${{ env.BCM_FULLCONE_NAME }}${{ env.SFE }}${{ env.TRY_BBR_V3_NAME }}${{ env.OPENSSL_3_5_NAME }}" >> release.txt
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: 上传固件发布
+      uses: softprops/action-gh-release@v2
+      if: steps.tag.outputs.status == 'success' && !cancelled()
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        files: "${{ env.FIRMWARE }}/*"
+        name: ${{ env.date }} ${{matrix.target}}-${{github.event.inputs.MACH}}-openwrt-2410
+        tag_name: ${{ env.date }}_${{matrix.target}}-${{github.event.inputs.MACH}}-openwrt-2410
+        body_path: release.txt
+
+    - name: 删除工作流
+      uses: Mattraks/delete-workflow-runs@main
+      continue-on-error: true
+      with:
+        retain_days: 6
+        keep_minimum_runs: 9
+
+    - name: 删除旧版本
+      uses: dev-drprasad/delete-older-releases@master
+      if: env.UPLOAD_RELEASE == '1' && !cancelled()
+      continue-on-error: true
+      with:
+        keep_latest: 64
+        delete_tags: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
