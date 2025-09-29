@@ -1,0 +1,11 @@
+--- a/src/liblcb/src/threadpool/threadpool.c
++++ b/src/liblcb/src/threadpool/threadpool.c	2025-08-17 21:16:38.249150802 +0800
+@@ -26,7 +26,7 @@
+  * Author: Rozhuk Ivan <rozhuk.im@gmail.com>
+  *
+  */
+-
++#define SYS_pidfd_open 434
+
+ #include <sys/param.h>
+ #include <sys/types.h>
