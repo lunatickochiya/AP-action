@@ -1,4 +1,4 @@
-name: Build 24.10 Single Machine
+name: Build 24.10 Single Machine Neo
 
 # Fix for broken build: https://github.com/softprops/action-gh-release/issues/236
 permissions:
@@ -9,31 +9,6 @@ on:
   repository_dispatch:
   workflow_dispatch:
     inputs:
-#      Cache:
-#        description: 'Use Cache'
-#        required: true
-#        default: 'true'
-#        type: choice
-#        options:
-#        - 'true'
-#        - 'false'
-#      ALLKMOD:
-#        description: 'Compile All Kmods'
-#        required: true
-#        default: 'true'
-#        type: choice
-#        options:
-#        - 'true'
-#        - 'false'
-#      UPLOAD_RELEASE:
-#        description: 'UPLOAD To RELEASE'
-#        required: true
-#        default: 'true'
-#        type: choice
-#        options:
-#        - 'true'
-#        - 'false'
-
       config_repo:
         description: 'Use json config repo true(1) or false(0) See ReadME'
         required: true
@@ -48,28 +23,14 @@ on:
         - 'rax3000m-emmc'
         - 'rax3000m-nand'
         - 'nokia_ea0326gmp_ubootmod'
-        - 'nokia_ea0326gmp_stock'
         - 'lenovo_newifi-d1'
         - 'd-team_newifi-d2'
         - 'lenovo_newifi-y1'
-        - 'domywifi_dw33d-ath79'
+        - 'domywifi_dw33d'
         - 'aliyun_ap8220'
         - 'ath79_generic-2305-multi'
-        - 'lunaticbox-ath79-generic'
-#      TRY_BBR_V3:
-#        description: 'Update BBR TO V3'
-#        default: 'true'
-#        type: choice
-#        options:
-#        - 'true'
-#        - 'false'
-#      Firewall_Allow_WAN:
-#        description: 'Allow firewall wan'
-#        default: 'false'
-#        type: choice
-#        options:
-#        - 'true'
-#        - 'false'
+        - 'lunaticbox'
+
       SFE_BUILDIN:
         description: 'Build sfe'
         default: 'true'
@@ -77,32 +38,12 @@ on:
         options:
         - 'true'
         - 'false'
+
       patch_repo:
         description: 'Use json patch repo true(1) or false(0) See ReadME'
         required: true
         default: '{"OPENSSL_3_5": "1", "BCM_FULLCONE": "1", "TRY_BBR_V3": "1", "Firewall_Allow_WAN": "1", "MAC80211_616": "0", "TEST_KERNEL": "0", "ADD_IB": "1", "ADD_SDK": "1", "DOCKER_BUILDIN": "0"}'
 
-#      DOCKER_BUILDIN:
-#        description: 'Build docker'
-#        default: 'false'
-#        type: choice
-#        options:
-#        - 'true'
-#        - 'false'
-#      TEST-KERNEL:
-#        description: 'Use kernel 6.1'
-#        default: 'false'
-#        type: choice
-#        options:
-#        - 'true'
-#        - 'false'
-#      USE_52MHZ:
-#        description: 'Use 52MHz max-frequency'
-#        default: 'false'
-#        type: choice
-#        options:
-#        - 'true'
-#        - 'false'
       SETIP:
         description: 'Set ip address'
         default: '192.168.7.1'
@@ -144,20 +85,7 @@ on:
         - '172.18.0.1'
         - '10.0.0.1'
         - '10.88.0.1'
-#      BCM_FULLCONE:
-#        description: 'bcm fullcone'
-#        default: 'false'
-#        type: choice
-#        options:
-#        - 'true'
-#        - 'false'
-#      OPENSSL_3_5:
-#        description: 'OPENSSL 3.4'
-#        default: 'false'
-#        type: choice
-#        options:
-#        - 'true'
-#        - 'false'
+
       packages:
         description: 'OpenWrt packages（example: luci-app-example,luci-app-helloworld）'
         required: true
@@ -170,6 +98,7 @@ on:
         - 'y'
         - 'm'
         - 'n'
+
 env:
   TZ: Asia/Shanghai
 
@@ -184,13 +113,12 @@ jobs:
         - mt798x: rax3000m-emmc
         - mt798x: rax3000m-nand
         - mt798x-nousb: nokia_ea0326gmp_ubootmod
-        - mt798x-nousb: nokia_ea0326gmp_stock
         - ramips: lenovo_newifi-d1
         - ramips: lenovo_newifi-y1
         - ramips: d-team_newifi-d2
-        - ath79: domywifi_dw33d-ath79
+        - ath79: domywifi_dw33d
         - ath79: ath79_generic-2305-multi
-        - ath79: lunaticbox-ath79-generic
+        - ath79: lunaticbox
         - ipq: aliyun_ap8220
 
     steps:
@@ -245,7 +173,7 @@ jobs:
         remove_packages_one_command: true
         remove_folders: "/usr/share/swift /usr/share/miniconda /usr/share/az* /usr/share/glade* /usr/local/lib/node_modules /usr/local/share/chromium /usr/local/share/powershell"
         testing: false
-  
+
     - name: 初始化环境
       env:
         DEBIAN_FRONTEND: noninteractive
@@ -261,16 +189,6 @@ jobs:
       run: |
         echo ${{matrix.target}}
         $GITHUB_WORKSPACE/core.sh init-gh-env-2410
-
-    - name: 导入机器及安装包config
-      id: cfg
-      run: |
-        if [ ${{ env.TEST_KERNEL }} = 1 ]; then
-        $GITHUB_WORKSPACE/$DIY_SH add-test-config
-        echo "Kernel_Test=_Kernel_Test_Ver" >> $GITHUB_ENV
-        fi
-        $GITHUB_WORKSPACE/core.sh init-math-config
-        $GITHUB_WORKSPACE/core.sh init-openwrt-pkg-config
 
     - name: 克隆源代码
       working-directory: /workdir

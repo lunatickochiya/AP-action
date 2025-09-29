@@ -188,16 +188,6 @@ jobs:
         echo ${{matrix.target}}
         $GITHUB_WORKSPACE/core.sh init-gh-env-2410-ipq
 
-    - name: 导入机器及安装包config
-      run: |
-        if [ ${{ env.Branch }} = 24.10-nss-6.12 ]; then
-        $GITHUB_WORKSPACE/$DIY_SH add-test-config
-        # echo "Kernel_Test=_Kernel_Test_Ver" >> $GITHUB_ENV
-        fi
-        $GITHUB_WORKSPACE/core.sh init-math-config
-        $GITHUB_WORKSPACE/core.sh init-openwrt-pkg-config-nss
-
-
     - name: 克隆源代码
       working-directory: /workdir
       id: clone
