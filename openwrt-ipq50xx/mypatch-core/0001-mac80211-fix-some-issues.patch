@@ -1,0 +1,280 @@
+From f25ab8595a655c46367e072f5f04d66d558f3092 Mon Sep 17 00:00:00 2001
+From: lunatickochiya <125438787@qq.com>
+Date: Wed, 20 Aug 2025 19:10:58 +0800
+Subject: [PATCH 1/2] mac80211:fix some issues
+
+---
+ .../350-301-enable-scan-with-ap.patch         | 12 +++
+ ...50-302-indicate-scanning-state-via-debugfs | 36 ++++++++
+ .../350-303-support-bypass-cac.patch          | 64 ++++++++++++++
+ .../350-304-support-set-dfs-available.patch   | 87 +++++++++++++++++++
+ ...05-allow-scan-on-dfs-channel-for-sta.patch | 30 +++++++
+ 5 files changed, 229 insertions(+)
+ create mode 100644 package/kernel/mac80211/patches/all-ipq50xx/350-301-enable-scan-with-ap.patch
+ create mode 100644 package/kernel/mac80211/patches/all-ipq50xx/350-302-indicate-scanning-state-via-debugfs
+ create mode 100644 package/kernel/mac80211/patches/all-ipq50xx/350-303-support-bypass-cac.patch
+ create mode 100644 package/kernel/mac80211/patches/all-ipq50xx/350-304-support-set-dfs-available.patch
+ create mode 100644 package/kernel/mac80211/patches/all-ipq50xx/350-305-allow-scan-on-dfs-channel-for-sta.patch
+
+diff --git a/package/kernel/mac80211/patches/all-ipq50xx/350-301-enable-scan-with-ap.patch b/package/kernel/mac80211/patches/all-ipq50xx/350-301-enable-scan-with-ap.patch
+new file mode 100644
+index 0000000000..fac25699d3
+--- /dev/null
++++ b/package/kernel/mac80211/patches/all-ipq50xx/350-301-enable-scan-with-ap.patch
+@@ -0,0 +1,12 @@
++Index: backports-20210222_001-4.4.60-b157d2276/net/mac80211/cfg.c
++===================================================================
++--- backports-20210222_001-4.4.60-b157d2276.orig/net/mac80211/cfg.c
+++++ backports-20210222_001-4.4.60-b157d2276/net/mac80211/cfg.c
++@@ -2629,6 +2629,7 @@ static int ieee80211_scan(struct wiphy *
++ 		 */
++ 		fallthrough;
++ 	case NL80211_IFTYPE_AP:
+++		break;
++ 		/*
++ 		 * If the scan has been forced (and the driver supports
++ 		 * forcing), don't care about being beaconing already.
+diff --git a/package/kernel/mac80211/patches/all-ipq50xx/350-302-indicate-scanning-state-via-debugfs b/package/kernel/mac80211/patches/all-ipq50xx/350-302-indicate-scanning-state-via-debugfs
+new file mode 100644
+index 0000000000..54d5cb5adb
+--- /dev/null
++++ b/package/kernel/mac80211/patches/all-ipq50xx/350-302-indicate-scanning-state-via-debugfs
+@@ -0,0 +1,36 @@
++Index: backports-20210222_001-4.4.60-b157d2276/net/mac80211/debugfs.c
++===================================================================
++--- backports-20210222_001-4.4.60-b157d2276.orig/net/mac80211/debugfs.c
+++++ backports-20210222_001-4.4.60-b157d2276/net/mac80211/debugfs.c
++@@ -587,6 +587,24 @@ DEBUGFS_DEVSTATS_FILE(dot11RTSFailureCou
++ DEBUGFS_DEVSTATS_FILE(dot11FCSErrorCount);
++ DEBUGFS_DEVSTATS_FILE(dot11RTSSuccessCount);
++ 
+++static ssize_t scanning_read(struct file *file,
+++							  char __user *user_buf,
+++							  size_t count, loff_t *ppos)
+++{
+++	struct ieee80211_local *local = file->private_data;
+++	char buf[3];
+++	int len;
+++
+++	len = scnprintf(buf, sizeof(buf), "%c\n", local->scanning ? 'Y' : 'N');
+++	return simple_read_from_buffer(user_buf, count, ppos, buf, len);
+++}
+++
+++static const struct file_operations scanning_ops = {
+++	.read = scanning_read,
+++	.open = simple_open,
+++	.llseek = default_llseek,
+++};
+++
++ void debugfs_hw_add(struct ieee80211_local *local)
++ {
++ 	struct dentry *phyd = local->hw.wiphy->debugfsdir;
++@@ -658,4 +676,6 @@ void debugfs_hw_add(struct ieee80211_loc
++ 	DEBUGFS_DEVSTATS_ADD(dot11RTSFailureCount);
++ 	DEBUGFS_DEVSTATS_ADD(dot11FCSErrorCount);
++ 	DEBUGFS_DEVSTATS_ADD(dot11RTSSuccessCount);
+++
+++	DEBUGFS_ADD(scanning);
++ }
+diff --git a/package/kernel/mac80211/patches/all-ipq50xx/350-303-support-bypass-cac.patch b/package/kernel/mac80211/patches/all-ipq50xx/350-303-support-bypass-cac.patch
+new file mode 100644
+index 0000000000..2ac6dbd44f
+--- /dev/null
++++ b/package/kernel/mac80211/patches/all-ipq50xx/350-303-support-bypass-cac.patch
+@@ -0,0 +1,64 @@
++--- a/net/mac80211/debugfs.c
+++++ b/net/mac80211/debugfs.c
++@@ -605,6 +605,42 @@ static const struct file_operations scan
++ 	.llseek = default_llseek,
++ };
++ 
+++static ssize_t bypass_cac_write(struct file *file, const char __user *ptr,
+++			size_t len, loff_t *off)
+++{
+++	struct ieee80211_local *local = file->private_data;
+++	struct ieee80211_sub_if_data *sdata;
+++
+++	rtnl_lock();
+++	wiphy_lock(local->hw.wiphy);
+++	mutex_lock(&local->mtx);
+++
+++	list_for_each_entry(sdata, &local->interfaces, list) {
+++		struct wireless_dev *wdev = &sdata->wdev;
+++
+++		cancel_delayed_work_sync(&sdata->dfs_cac_timer_work);
+++
+++		if (wdev->cac_started) {
+++			pr_info("bypass cac for %s\n", sdata->name);
+++			wdev->cac_time_ms = 0;
+++			ieee80211_queue_delayed_work(&sdata->local->hw,
+++					&sdata->dfs_cac_timer_work, 0);
+++		}
+++	}
+++
+++	mutex_unlock(&local->mtx);
+++	wiphy_unlock(local->hw.wiphy);
+++	rtnl_unlock();
+++
+++	return len;
+++}
+++
+++static const struct file_operations bypass_cac_ops = {
+++	.write = bypass_cac_write,
+++	.open = simple_open,
+++	.llseek = noop_llseek,
+++};
+++
++ void debugfs_hw_add(struct ieee80211_local *local)
++ {
++ 	struct dentry *phyd = local->hw.wiphy->debugfsdir;
++@@ -678,4 +714,5 @@ void debugfs_hw_add(struct ieee80211_loc
++ 	DEBUGFS_DEVSTATS_ADD(dot11RTSSuccessCount);
++ 
++ 	DEBUGFS_ADD(scanning);
+++	DEBUGFS_ADD_MODE(bypass_cac, 0200);
++ }
++--- a/net/wireless/mlme.c
+++++ b/net/wireless/mlme.c
++@@ -952,7 +952,9 @@ void cfg80211_cac_event(struct net_devic
++ 		memcpy(&rdev->cac_done_chandef, chandef,
++ 		       sizeof(struct cfg80211_chan_def));
++ 		queue_work(cfg80211_wq, &rdev->propagate_cac_done_wk);
++-		cfg80211_sched_dfs_chan_update(rdev);
+++		cancel_delayed_work(&rdev->dfs_update_channels_wk);
+++		if (wdev->cac_time_ms > 0)
+++			queue_delayed_work(cfg80211_wq, &rdev->dfs_update_channels_wk, 0);
++ 		fallthrough;
++ 	case NL80211_RADAR_CAC_ABORTED:
++ 		wdev->cac_started = false;
+diff --git a/package/kernel/mac80211/patches/all-ipq50xx/350-304-support-set-dfs-available.patch b/package/kernel/mac80211/patches/all-ipq50xx/350-304-support-set-dfs-available.patch
+new file mode 100644
+index 0000000000..3099c6edce
+--- /dev/null
++++ b/package/kernel/mac80211/patches/all-ipq50xx/350-304-support-set-dfs-available.patch
+@@ -0,0 +1,87 @@
++Index: backports-20210222_001-4.4.60-b157d2276/net/wireless/debugfs.c
++===================================================================
++--- backports-20210222_001-4.4.60-b157d2276.orig/net/wireless/debugfs.c
+++++ backports-20210222_001-4.4.60-b157d2276/net/wireless/debugfs.c
++@@ -95,9 +95,76 @@ static const struct file_operations ht40
++ 	.llseek = default_llseek,
++ };
++ 
+++static ssize_t set_dfs_available_write(struct file *file, const char __user *ptr,
+++			size_t len, loff_t *off)
+++{
+++	struct wiphy *wiphy = file->private_data;
+++	struct cfg80211_chan_def chandef = {};
+++	u32 freq, width, center_freq1;
+++	char buf[256] = "";
+++
+++	if (copy_from_user(buf, ptr, min(len, sizeof(buf) - 1)))
+++		return -EFAULT;
+++
+++    if (sscanf(buf, "%u %u %u", &freq, &center_freq1, &width) != 3)
+++		return -EINVAL;
+++
+++	dev_info(&wiphy->dev, "set dfs available: %u(%u) %d MHz\n", freq, center_freq1, width);
+++
+++	chandef.chan = ieee80211_get_channel(wiphy, freq);
+++	chandef.center_freq1 = center_freq1;
+++
+++	switch (width) {
+++	case 0:
+++		chandef.width = NL80211_CHAN_WIDTH_20_NOHT;
+++		break;
+++	case 20:
+++		chandef.width = NL80211_CHAN_WIDTH_20;
+++		break;
+++	case 40:
+++		chandef.width = NL80211_CHAN_WIDTH_40;
+++		break;
+++	case 80:
+++		chandef.width = NL80211_CHAN_WIDTH_80;
+++		break;
+++	case 160:
+++		chandef.width = NL80211_CHAN_WIDTH_160;
+++		break;
+++	default:
+++		dev_err(&wiphy->dev, "invalid channel width\n");
+++		return -EINVAL;
+++	}
+++
+++	if (!cfg80211_chandef_valid(&chandef)) {
+++		dev_err(&wiphy->dev, "invalid channel definition\n");
+++		return -EINVAL;
+++	}
+++
+++	rtnl_lock();
+++	wiphy_lock(wiphy);
+++	__release(&wiphy->mtx);
+++
+++	cfg80211_set_dfs_state(wiphy, &chandef, NL80211_DFS_AVAILABLE);
+++
+++	__acquire(&wiphy->mtx);
+++	wiphy_unlock(wiphy);
+++	rtnl_unlock();
+++
+++	return len;
+++}
+++
+++static const struct file_operations set_dfs_available_ops = {
+++	.write = set_dfs_available_write,
+++	.open = simple_open,
+++	.llseek = noop_llseek,
+++};
+++
++ #define DEBUGFS_ADD(name)						\
++ 	debugfs_create_file(#name, 0444, phyd, &rdev->wiphy, &name## _ops)
++ 
+++#define DEBUGFS_ADD_MODE(name, mode)					\
+++	debugfs_create_file(#name, mode, phyd, &rdev->wiphy, &name## _ops)
+++
++ void cfg80211_debugfs_rdev_add(struct cfg80211_registered_device *rdev)
++ {
++ 	struct dentry *phyd = rdev->wiphy.debugfsdir;
++@@ -107,4 +174,5 @@ void cfg80211_debugfs_rdev_add(struct cf
++ 	DEBUGFS_ADD(short_retry_limit);
++ 	DEBUGFS_ADD(long_retry_limit);
++ 	DEBUGFS_ADD(ht40allow_map);
+++	DEBUGFS_ADD_MODE(set_dfs_available, 0200);
++ }
+diff --git a/package/kernel/mac80211/patches/all-ipq50xx/350-305-allow-scan-on-dfs-channel-for-sta.patch b/package/kernel/mac80211/patches/all-ipq50xx/350-305-allow-scan-on-dfs-channel-for-sta.patch
+new file mode 100644
+index 0000000000..8443637cc6
+--- /dev/null
++++ b/package/kernel/mac80211/patches/all-ipq50xx/350-305-allow-scan-on-dfs-channel-for-sta.patch
+@@ -0,0 +1,30 @@
++--- a/net/mac80211/scan.c
+++++ b/net/mac80211/scan.c
++@@ -548,11 +548,11 @@ static bool __ieee80211_can_leave_ch(str
++ 	struct ieee80211_local *local = sdata->local;
++ 	struct ieee80211_sub_if_data *sdata_iter;
++ 
++-	if (!ieee80211_is_radar_required(local))
++-		return true;
+++	// if (!ieee80211_is_radar_required(local))
+++	// 	return true;
++ 
++-	if (!regulatory_pre_cac_allowed(local->hw.wiphy))
++-		return false;
+++	// if (!regulatory_pre_cac_allowed(local->hw.wiphy))
+++	// 	return false;
++ 
++ 	mutex_lock(&local->iflist_mtx);
++ 	list_for_each_entry(sdata_iter, &local->interfaces, list) {
++--- a/net/wireless/nl80211.c
+++++ b/net/wireless/nl80211.c
++@@ -8266,6 +8266,9 @@ static bool cfg80211_off_channel_oper_al
++ 	if (!cfg80211_beaconing_iface_active(wdev))
++ 		return true;
++ 
+++	if (wdev->iftype == NL80211_IFTYPE_STATION)
+++		return true;
+++
++ 	if (!(wdev->chandef.chan->flags & IEEE80211_CHAN_RADAR))
++ 		return true;
++ 
+-- 
+2.43.0
+
