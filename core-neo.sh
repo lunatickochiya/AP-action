@@ -602,7 +602,7 @@ if [ "$Branch" = "24.10-nss-6.12" ]; then
 KMOD_Compile_Exclude_List_Route=package-configs/kmod_exclude_list_6_12.config
 echo "The List exclude route is $KMOD_Compile_Exclude_List_Route"
 else
-KMOD_Compile_Exclude_List_Route=package-configs/kmod_exclude_list_ipq_nss.config
+KMOD_Compile_Exclude_List_Route=package-configs/kmod_exclude_list_ipq50xx_nss.config
 echo "The List exclude route is $KMOD_Compile_Exclude_List_Route"
 fi
 all_kmod_config_core
@@ -617,7 +617,7 @@ elif [[ "$Matrix_Target" == ath79-* ]]; then
 KMOD_Compile_Exclude_List_Route=package-configs/kmod_exclude_list_ath79.config
 echo "The exclude List route is $KMOD_Compile_Exclude_List_Route"
 elif [[ "$Matrix_Target" == ipq-* ]]; then
-KMOD_Compile_Exclude_List_Route=package-configs/kmod_exclude_list_ipq.config
+KMOD_Compile_Exclude_List_Route=package-configs/kmod_exclude_list_ipq50xx_nss.config
 echo "The exclude List route is $KMOD_Compile_Exclude_List_Route"
 elif [ "$TEST_KERNEL" = "1" ]; then
 KMOD_Compile_Exclude_List_Route=package-configs/kmod_exclude_list_6_12.config
