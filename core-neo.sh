@@ -342,9 +342,11 @@ function add_openwrt_files() {
 	mkdir -p openwrt/feeds/lunatic7
 
 	[ -d package ] && mv -f package/* openwrt/package
-	[ -d $OpenWrt_PATCH_FILE_DIR/package-for-openwrt-ipq50xx ] && mv -f $OpenWrt_PATCH_FILE_DIR/package-for-openwrt-ipq50xx/* openwrt/package
 	[ -d $OpenWrt_PATCH_FILE_DIR/mypatch-core ] && mv -f $OpenWrt_PATCH_FILE_DIR/mypatch-core openwrt/mypatch-core
 	[ -d $OpenWrt_PATCH_FILE_DIR/mypatch-custom-$Matrix_Target ] && mv -f $OpenWrt_PATCH_FILE_DIR/mypatch-custom-$Matrix_Target openwrt/mypatch-custom
+	if [ "$Target_CFG_Machine" = "cmcc_rax3000q" ]; then
+	[ -d $OpenWrt_PATCH_FILE_DIR/rax3000q ] && mv -f $OpenWrt_PATCH_FILE_DIR/rax3000q openwrt/mypatch-custom
+	fi
 
 # for 2410
 	if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-2410" ]; then
@@ -365,6 +367,11 @@ function add_openwrt_files() {
 # for 2410 ipq
 	if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-ipq" ]; then
 	[ -d $OpenWrt_PATCH_FILE_DIR/package-for-openwrt-ipq ] && cp -r $OpenWrt_PATCH_FILE_DIR/package-for-openwrt-ipq/* openwrt/package
+	fi
+
+	if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-ipq50xx" ]; then
+	[ -d openwrt/package/kochiya ] && rm -rf openwrt/package/kochiya
+	[ -d $OpenWrt_PATCH_FILE_DIR/package-for-openwrt-ipq50xx ] && cp -r $OpenWrt_PATCH_FILE_DIR/package-for-openwrt-ipq50xx/* openwrt/package
 	fi
 
 	[ -e files ] && mv files openwrt/files
