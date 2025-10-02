@@ -1,0 +1,93 @@
+From da5ba563fd57c512a5151eb7f59f5ac37f66234b Mon Sep 17 00:00:00 2001
+From: lunatickochiya <125438787@qq.com>
+Date: Thu, 2 Oct 2025 16:02:45 +0800
+Subject: [PATCH] Revert "ipq50xx:fix rax3000q mac address"
+
+This reverts commit 14f627817afe23fbe30ec71e6e48e91d4ff42718.
+---
+ .../ipq50xx/base-files/etc/board.d/02_network | 24 -------------------
+ .../etc/hotplug.d/firmware/11-ath11k-caldata  | 18 ++++----------
+ 2 files changed, 4 insertions(+), 38 deletions(-)
+
+diff --git a/target/linux/ipq50xx/base-files/etc/board.d/02_network b/target/linux/ipq50xx/base-files/etc/board.d/02_network
+index df713d1d29..953500b6cc 100755
+--- a/target/linux/ipq50xx/base-files/etc/board.d/02_network
++++ b/target/linux/ipq50xx/base-files/etc/board.d/02_network
+@@ -30,33 +30,9 @@ ipq50xx_setup_interfaces()
+ 	esac
+ }
+ 
+-ipq50xx_setup_macs()
+-{
+-	local board="$1"
+-	local lan_mac=""
+-	local wan_mac=""
+-	local label_mac=""
+-
+-	case "$board" in
+-		linksys,mx2000|\
+-		cmcc,rax3000qy|\
+-		linksys,mx5500)
+-			label_mac=$(mtd_get_mac_ascii devinfo hw_mac_addr)
+-			lan_mac=$label_mac
+-			wan_mac=$label_mac
+-			ucidef_set_network_device_mac eth0 $label_mac
+-		;;
+-	esac
+-
+-	[ -n "$lan_mac" ] && ucidef_set_interface_macaddr "lan" $lan_mac
+-	[ -n "$wan_mac" ] && ucidef_set_interface_macaddr "wan" $wan_mac
+-	[ -n "$label_mac" ] && ucidef_set_label_macaddr $label_mac
+-}
+-
+ board_config_update
+ board=$(board_name)
+ ipq50xx_setup_interfaces $board
+-ipq50xx_setup_macs $board
+ board_config_flush
+ 
+ exit 0
+diff --git a/target/linux/ipq50xx/base-files/etc/hotplug.d/firmware/11-ath11k-caldata b/target/linux/ipq50xx/base-files/etc/hotplug.d/firmware/11-ath11k-caldata
+index e77141b0da..893862761c 100644
+--- a/target/linux/ipq50xx/base-files/etc/hotplug.d/firmware/11-ath11k-caldata
++++ b/target/linux/ipq50xx/base-files/etc/hotplug.d/firmware/11-ath11k-caldata
+@@ -9,32 +9,22 @@ board=$(board_name)
+ case "$FIRMWARE" in
+ 	"ath11k/IPQ5018/hw1.0/caldata.bin")
+ 		case "$board" in
++			cmcc,rax3000q|\
++			cmcc,rax3000qy|\
+ 			redmi,ax3000|\
+ 			xiaomi,cr881x)
+ 				caldata_extract "0:ART" 0x1000 0x20000
+ 				;;
+-			cmcc,rax3000q|\
+-			cmcc,rax3000qy)
+-				caldata_extract "0:ART" 0x1000 0x20000
+-				addr=$(mtd_get_mac_binary "0:ART" 0x6)
+-				ath11k_patch_mac $(macaddr_add $addr 3) 0
+-				ath11k_set_macflag
+-				;;
+ 		esac
+ 		;;
+ 	"ath11k/qcn6122/hw1.0/caldata_1.bin")
+ 		case "$board" in
++			cmcc,rax3000q|\
++			cmcc,rax3000qy|\
+ 			redmi,ax3000|\
+ 			xiaomi,cr881x)
+ 				caldata_extract "0:ART" 0x26800 0x20000
+ 				;;
+-			cmcc,rax3000q|\
+-			cmcc,rax3000qy)
+-				caldata_extract "0:ART" 0x26800 0x20000
+-				addr=$(mtd_get_mac_binary "0:ART" 0x6)
+-				ath11k_patch_mac $(macaddr_add $addr 4) 0
+-				ath11k_set_macflag
+-				;;
+ 		esac
+ 		;;
+ 	*)
+-- 
+2.43.0
+

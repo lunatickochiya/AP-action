@@ -21,6 +21,7 @@ on:
         type: choice
         options:
         - 'cmcc_rax3000qy'
+        - 'cmcc_rax3000q'
         - 'aliyun_ap8220'
 
       SFE_BUILDIN:
@@ -104,6 +105,7 @@ jobs:
         include:
         - ipq: aliyun_ap8220
         - ipq: cmcc_rax3000qy
+        - ipq: cmcc_rax3000q
 
     steps:
       - name: 检查
