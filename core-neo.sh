@@ -609,7 +609,7 @@ if [ "$Branch" = "24.10-nss-6.12" ]; then
 KMOD_Compile_Exclude_List_Route=package-configs/kmod_exclude_list_6_12.config
 echo "The List exclude route is $KMOD_Compile_Exclude_List_Route"
 else
-KMOD_Compile_Exclude_List_Route=package-configs/kmod_exclude_list_ipq_nss.config
+KMOD_Compile_Exclude_List_Route=package-configs/kmod_exclude_list_ipq50xx_nss.config
 echo "The List exclude route is $KMOD_Compile_Exclude_List_Route"
 fi
 all_kmod_config_core
@@ -624,8 +624,9 @@ elif [[ "$Matrix_Target" == ath79-* ]]; then
 KMOD_Compile_Exclude_List_Route=package-configs/kmod_exclude_list_ath79.config
 echo "The exclude List route is $KMOD_Compile_Exclude_List_Route"
 elif [[ "$Matrix_Target" == ipq-* ]]; then
-KMOD_Compile_Exclude_List_Route=package-configs/kmod_exclude_list_ipq.config
+KMOD_Compile_Exclude_List_Route=package-configs/kmod_exclude_list_ipq50xx_nss.config
 echo "The exclude List route is $KMOD_Compile_Exclude_List_Route"
+rm -rf openwrt/package/kernel/mt76
 elif [ "$TEST_KERNEL" = "1" ]; then
 KMOD_Compile_Exclude_List_Route=package-configs/kmod_exclude_list_6_12.config
 echo "The exclude List route is $KMOD_Compile_Exclude_List_Route"
@@ -643,10 +644,11 @@ if [ -n "$(sed -n '/^kmod_compile_exclude_list=/p' $KMOD_Compile_Exclude_List_Ro
 else
   echo "::warning ::kmod编译排除列表无法获取或为空，这很有可能导致编译失败。"
 fi
-}
-
 sed -n  '/^# CONFIG_PACKAGE_kmod/p' openwrt/.config | sed '/# CONFIG_PACKAGE_kmod is not set/d'|sed 's/# //g'|sed 's/ is not set/=m/g' | sed "s/\($kmod_compile_exclude_list\)=m/\1=n/g" >> openwrt/.config
 echo "::notice ::当前内核版本$(grep CONFIG_LINUX openwrt/.config | cut -d'=' -f1 | cut -d'_' -f3-)"
+}
+
+
 function fix_openwrt_config_eror() {
 if [[ "$Matrix_Target" == *iptables ]]; then
 sed -i 's/CONFIG_PACKAGE_perl-test-harness=y/# CONFIG_PACKAGE_perl-test-harness is not set/g' openwrt/.config
