@@ -426,7 +426,10 @@ function fix_openwrt_feeds() {
 	patch_openwrt_feeds
 	patch_lunatic7
 	change_qca_start_order
-
+	if [ "$Matrix_Target" == 'ramips-iptables' ] || [ "$Matrix_Target" == 'ramips-nftables' ] || \
+		[ "$Matrix_Target" == 'ath79-iptables' ] || [ "$Matrix_Target" == 'ath79-nftables' ]; then
+		rm -rf feeds/lunatic7/luci-app-cupsd/root/www/cups.pdf
+		fi
 
 	cd ../
 	add_machine_package_config

@@ -28,7 +28,7 @@ on:
         - 'lenovo_newifi-y1'
         - 'domywifi_dw33d'
         - 'aliyun_ap8220'
-        - 'ath79_generic-2305-multi'
+        - 'ath79_generic-multi'
         - 'lunaticbox'
 
       SFE_BUILDIN:
@@ -117,7 +117,7 @@ jobs:
         - ramips: lenovo_newifi-y1
         - ramips: d-team_newifi-d2
         - ath79: domywifi_dw33d
-        - ath79: ath79_generic-2305-multi
+        - ath79: ath79_generic-multi
         - ath79: lunaticbox
         - ipq: aliyun_ap8220
 
