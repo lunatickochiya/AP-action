@@ -7,7 +7,7 @@ index 3c9bb840e3..02160d1597 100644
  	kmod-leds-gpio kmod-gpio-button-hotplug \
  	kmod-qca-nss-dp kmod-ath11k-ahb \
 -	wpad-basic-mbedtls uboot-envtools \
-+	wpad-mesh-openssl uboot-envtools \
++	wpad-openssl uboot-envtools \
  	e2fsprogs kmod-fs-ext4 losetup
  
  $(eval $(call BuildTarget))

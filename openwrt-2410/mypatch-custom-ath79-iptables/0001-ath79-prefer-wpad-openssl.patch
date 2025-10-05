@@ -16,7 +16,7 @@ index 27c3365a29..e5157cb2f2 100644
  BOARDNAME:=Generic
  
 -DEFAULT_PACKAGES += wpad-basic-mbedtls
-+DEFAULT_PACKAGES += wpad-mesh-openssl
++DEFAULT_PACKAGES += wpad-openssl
  
  define Target/Description
  	Build firmware images for generic Atheros AR71xx/AR913x/AR934x based boards.
@@ -29,7 +29,7 @@ index e0900abfe4..cdc5080282 100644
  FEATURES += nand
  
 -DEFAULT_PACKAGES += wpad-basic-mbedtls
-+DEFAULT_PACKAGES += wpad-mesh-openssl
++DEFAULT_PACKAGES += wpad-openssl
  
  define Target/Description
  	Firmware for boards using Qualcomm Atheros, MIPS-based SoCs

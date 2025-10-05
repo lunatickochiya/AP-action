@@ -30,7 +30,7 @@ index d1637e06af..f55785cb11 100644
  BOARDNAME:=Filogic 8x0 (MT798x)
  CPU_TYPE:=cortex-a53
 -DEFAULT_PACKAGES += fitblk kmod-phy-aquantia kmod-crypto-hw-safexcel wpad-basic-mbedtls uboot-envtools
-+DEFAULT_PACKAGES += fitblk kmod-phy-aquantia kmod-crypto-hw-safexcel wpad-mesh-openssl uboot-envtools
++DEFAULT_PACKAGES += fitblk kmod-phy-aquantia kmod-crypto-hw-safexcel wpad-openssl uboot-envtools
  KERNELNAME:=Image dtbs
  
  define Target/Description

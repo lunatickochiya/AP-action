@@ -35,7 +35,7 @@ index 34488f95af..1c5cb1af7e 100644
  CPU_TYPE:=24kc
  
 -DEFAULT_PACKAGES += kmod-rt2800-soc wpad-basic-mbedtls swconfig
-+DEFAULT_PACKAGES += kmod-rt2800-soc wpad-mesh-openssl swconfig
++DEFAULT_PACKAGES += kmod-rt2800-soc wpad-openssl swconfig
  
  define Target/Description
  	Build firmware images for Ralink MT7620 based boards.
@@ -48,7 +48,7 @@ index 2b9a1312af..cf0528efd9 100644
  IMAGES_DIR:=../../..
  
 -DEFAULT_PACKAGES += wpad-basic-mbedtls uboot-envtools kmod-crypto-hw-eip93
-+DEFAULT_PACKAGES += wpad-mesh-openssl uboot-envtools kmod-crypto-hw-eip93
++DEFAULT_PACKAGES += wpad-openssl uboot-envtools kmod-crypto-hw-eip93
  
  define Target/Description
  	Build firmware images for Ralink MT7621 based boards.
