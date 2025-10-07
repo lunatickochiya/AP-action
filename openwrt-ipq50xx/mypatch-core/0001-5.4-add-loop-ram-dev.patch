@@ -1,0 +1,29 @@
+From 07f7daa0e99c64bcfa741ef8f68e7ced83de0d23 Mon Sep 17 00:00:00 2001
+From: lunatickochiya <125438787@qq.com>
+Date: Tue, 7 Oct 2025 17:08:11 +0800
+Subject: [PATCH] 5.4:add loop ram dev
+
+---
+ target/linux/ipq50xx/config-5.4 | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/target/linux/ipq50xx/config-5.4 b/target/linux/ipq50xx/config-5.4
+index de320b65e1..a3e89ed54a 100644
+--- a/target/linux/ipq50xx/config-5.4
++++ b/target/linux/ipq50xx/config-5.4
+@@ -145,10 +145,9 @@ CONFIG_AT803X_PHY=y
+ # CONFIG_ATA is not set
+ # CONFIG_BACKLIGHT_CLASS_DEVICE is not set
+ # CONFIG_BATTERY_RT5033 is not set
+-CONFIG_BASE_SMALL=1
+-# CONFIG_BLK_DEV_LOOP is not set
++CONFIG_BLK_DEV_LOOP=y
+ # CONFIG_BLK_DEV_NVME is not set
+-# CONFIG_BLK_DEV_RAM is not set
++CONFIG_BLK_DEV_RAM=y
+ CONFIG_BLK_DEV_RAM_COUNT=16
+ CONFIG_BLK_DEV_RAM_SIZE=4096
+ # CONFIG_BOOTPARAM_SOFTLOCKUP_PANIC is not set
+-- 
+2.43.0
+
