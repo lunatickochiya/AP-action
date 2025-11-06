@@ -30,6 +30,7 @@ on:
         - 'aliyun_ap8220'
         - 'ath79_generic-multi'
         - 'lunaticbox'
+        - 'raisecom_msg1500'
 
       SFE_BUILDIN:
         description: 'Build sfe'
@@ -116,6 +117,7 @@ jobs:
         - ramips: lenovo_newifi-d1
         - ramips: lenovo_newifi-y1
         - ramips: d-team_newifi-d2
+        - ramips: raisecom_msg1500
         - ath79: domywifi_dw33d
         - ath79: ath79_generic-multi
         - ath79: lunaticbox
