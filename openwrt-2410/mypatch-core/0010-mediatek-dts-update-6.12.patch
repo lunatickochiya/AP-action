@@ -492,10 +492,10 @@ index fd9fdca124..219fd89934 100644
  				label = "BL2";
  				reg = <0x00000 0x0040000>;
  				read-only;
-diff --git a/target/linux/mediatek/dts/mt7981b-glinet-gl-mt2500.dts b/target/linux/mediatek/dts/mt7981b-glinet-gl-mt2500.dts
+diff --git a/target/linux/mediatek/dts/mt7981b-glinet-gl-mt2500.dtsi b/target/linux/mediatek/dts/mt7981b-glinet-gl-mt2500.dtsi
 index 0bd3ac0a29..8b8c2ed597 100644
---- a/target/linux/mediatek/dts/mt7981b-glinet-gl-mt2500.dts
-+++ b/target/linux/mediatek/dts/mt7981b-glinet-gl-mt2500.dts
+--- a/target/linux/mediatek/dts/mt7981b-glinet-gl-mt2500.dtsi
++++ b/target/linux/mediatek/dts/mt7981b-glinet-gl-mt2500.dtsi
 @@ -144,6 +144,8 @@
  &mmc0 {
  	status = "okay";
