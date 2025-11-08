@@ -265,6 +265,7 @@ CONFIG_PACKAGE_kmod-nft-fullcone=y
 		curl -sSL https://raw.githubusercontent.com/chenmozhijin/turboacc/luci/add_turboacc.sh -o add_turboacc.sh && bash add_turboacc.sh
 		echo "----$Matrix_Target-----NFT-acc----"
 		cd ../
+#	patch -p1 < 56.patch
 	fi
 }
 
