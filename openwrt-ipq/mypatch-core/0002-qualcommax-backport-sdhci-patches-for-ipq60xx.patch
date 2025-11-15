@@ -1,0 +1,200 @@
+From 72f548cb60f431355062a98a3eed38ba12bdb2fc Mon Sep 17 00:00:00 2001
+From: lunatickochiya <125438787@qq.com>
+Date: Sat, 15 Nov 2025 19:25:01 +0800
+Subject: [PATCH 2/9] qualcommax: backport sdhci patches for ipq60xx
+
+Refresh device tree, remove the useless sdhc2 aliases.
+
+Signed-off-by: Chukun Pan <amadeus@jmu.edu.cn>
+Link: https://github.com/openwrt/openwrt/pull/14950
+Signed-off-by: Robert Marko <robimarko@gmail.com>
+---
+ .../arm64/boot/dts/qcom/ipq6010-mango-dvk.dts |  4 +-
+ .../arm64/boot/dts/qcom/ipq6010-xe3-4.dts     |  3 +-
+ ...6018-update-sdcc-max-clock-frequency.patch | 26 ++++++++++
+ ...rm64-dts-qcom-ipq6018-add-sdhci-node.patch | 47 +++++++++++++++++++
+ ...rm64-dts-qcom-ipq6018-add-SDHCI-node.patch | 45 ------------------
+ 5 files changed, 76 insertions(+), 49 deletions(-)
+ create mode 100644 target/linux/qualcommax/patches-6.6/0082-v6.11-clk-qcom-gcc-ipq6018-update-sdcc-max-clock-frequency.patch
+ create mode 100644 target/linux/qualcommax/patches-6.6/0083-v6.11-arm64-dts-qcom-ipq6018-add-sdhci-node.patch
+ delete mode 100644 target/linux/qualcommax/patches-6.6/0137-arm64-dts-qcom-ipq6018-add-SDHCI-node.patch
+
+diff --git a/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6010-mango-dvk.dts b/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6010-mango-dvk.dts
+index 940224dd35..bb8723af61 100644
+--- a/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6010-mango-dvk.dts
++++ b/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6010-mango-dvk.dts
+@@ -267,12 +267,12 @@
+ 	};
+ };
+ 
+-&sdhc_1 {
++&sdhc {
+ 	pinctrl-0 = <&sd_pins>;
+ 	pinctrl-names = "default";
+ 	status = "okay";
+ 
+-	vqmmc-supply = <&ipq6018_l2>;
++	bus-width = <4>;
+ 	cd-gpios = <&tlmm 62 GPIO_ACTIVE_LOW>;
+ };
+ 
+diff --git a/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6010-xe3-4.dts b/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6010-xe3-4.dts
+index eba4d116ad..3e1f1200a7 100644
+--- a/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6010-xe3-4.dts
++++ b/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6010-xe3-4.dts
+@@ -16,7 +16,6 @@
+ 
+ 	aliases {
+ 		serial0 = &blsp1_uart3;
+-		sdhc2 = &sdhc_1;
+ 		ethernet0 = &dp5;
+ 		ethernet1 = &dp4;
+ 		label-mac-device = &dp5;
+@@ -172,7 +171,7 @@
+ 	};
+ };
+ 
+-&sdhc_1 {
++&sdhc {
+ 	pinctrl-0 = <&sd_pins>;
+ 	pinctrl-names = "default";
+ 	status = "okay";
+diff --git a/target/linux/qualcommax/patches-6.6/0082-v6.11-clk-qcom-gcc-ipq6018-update-sdcc-max-clock-frequency.patch b/target/linux/qualcommax/patches-6.6/0082-v6.11-clk-qcom-gcc-ipq6018-update-sdcc-max-clock-frequency.patch
+new file mode 100644
+index 0000000000..ddd54079fb
+--- /dev/null
++++ b/target/linux/qualcommax/patches-6.6/0082-v6.11-clk-qcom-gcc-ipq6018-update-sdcc-max-clock-frequency.patch
+@@ -0,0 +1,26 @@
++From f2743ae3ff84579981ac513f512b9df945d109c0 Mon Sep 17 00:00:00 2001
++From: Chukun Pan <amadeus@jmu.edu.cn>
++Date: Thu, 20 Jun 2024 23:01:21 +0800
++Subject: [PATCH] clk: qcom: gcc-ipq6018: update sdcc max clock frequency
++
++The mmc controller of the IPQ6018 does not support HS400 mode.
++So adjust the maximum clock frequency of sdcc to 200 MHz (HS200).
++
++Signed-off-by: Chukun Pan <amadeus@jmu.edu.cn>
++Link: https://lore.kernel.org/r/20240620150122.1406631-2-amadeus@jmu.edu.cn
++Signed-off-by: Bjorn Andersson <andersson@kernel.org>
++---
++ drivers/clk/qcom/gcc-ipq6018.c | 2 +-
++ 1 file changed, 1 insertion(+), 1 deletion(-)
++
++--- a/drivers/clk/qcom/gcc-ipq6018.c
+++++ b/drivers/clk/qcom/gcc-ipq6018.c
++@@ -1617,7 +1617,7 @@ static const struct freq_tbl ftbl_sdcc_a
++ 	F(96000000, P_GPLL2, 12, 0, 0),
++ 	F(177777778, P_GPLL0, 4.5, 0, 0),
++ 	F(192000000, P_GPLL2, 6, 0, 0),
++-	F(384000000, P_GPLL2, 3, 0, 0),
+++	F(200000000, P_GPLL0, 4, 0, 0),
++ 	{ }
++ };
++ 
+diff --git a/target/linux/qualcommax/patches-6.6/0083-v6.11-arm64-dts-qcom-ipq6018-add-sdhci-node.patch b/target/linux/qualcommax/patches-6.6/0083-v6.11-arm64-dts-qcom-ipq6018-add-sdhci-node.patch
+new file mode 100644
+index 0000000000..ed4b6d9e6d
+--- /dev/null
++++ b/target/linux/qualcommax/patches-6.6/0083-v6.11-arm64-dts-qcom-ipq6018-add-sdhci-node.patch
+@@ -0,0 +1,47 @@
++From 5db216f6e1f85394e79dca74ceceb83b2f8566b5 Mon Sep 17 00:00:00 2001
++From: Chukun Pan <amadeus@jmu.edu.cn>
++Date: Thu, 20 Jun 2024 23:01:22 +0800
++Subject: [PATCH] arm64: dts: qcom: ipq6018: add sdhci node
++
++Add node to support mmc controller inside of IPQ6018.
++This controller supports both eMMC and SD cards.
++
++Tested with:
++  eMMC (HS200)
++  SD Card (SDR50/SDR104)
++
++Signed-off-by: Chukun Pan <amadeus@jmu.edu.cn>
++Link: https://lore.kernel.org/r/20240620150122.1406631-3-amadeus@jmu.edu.cn
++Signed-off-by: Bjorn Andersson <andersson@kernel.org>
++---
++ arch/arm64/boot/dts/qcom/ipq6018.dtsi | 19 +++++++++++++++++++
++ 1 file changed, 19 insertions(+)
++
++--- a/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+++++ b/arch/arm64/boot/dts/qcom/ipq6018.dtsi
++@@ -470,6 +470,25 @@
++ 			};
++ 		};
++ 
+++		sdhc: mmc@7804000 {
+++			compatible = "qcom,ipq6018-sdhci", "qcom,sdhci-msm-v5";
+++			reg = <0x0 0x07804000 0x0 0x1000>,
+++			      <0x0 0x07805000 0x0 0x1000>;
+++			reg-names = "hc", "cqhci";
+++
+++			interrupts = <GIC_SPI 123 IRQ_TYPE_LEVEL_HIGH>,
+++				     <GIC_SPI 138 IRQ_TYPE_LEVEL_HIGH>;
+++			interrupt-names = "hc_irq", "pwr_irq";
+++
+++			clocks = <&gcc GCC_SDCC1_AHB_CLK>,
+++				 <&gcc GCC_SDCC1_APPS_CLK>,
+++				 <&xo>;
+++			clock-names = "iface", "core", "xo";
+++			resets = <&gcc GCC_SDCC1_BCR>;
+++			max-frequency = <192000000>;
+++			status = "disabled";
+++		};
+++
++ 		blsp_dma: dma-controller@7884000 {
++ 			compatible = "qcom,bam-v1.7.0";
++ 			reg = <0x0 0x07884000 0x0 0x2b000>;
+diff --git a/target/linux/qualcommax/patches-6.6/0137-arm64-dts-qcom-ipq6018-add-SDHCI-node.patch b/target/linux/qualcommax/patches-6.6/0137-arm64-dts-qcom-ipq6018-add-SDHCI-node.patch
+deleted file mode 100644
+index e1296aa792..0000000000
+--- a/target/linux/qualcommax/patches-6.6/0137-arm64-dts-qcom-ipq6018-add-SDHCI-node.patch
++++ /dev/null
+@@ -1,45 +0,0 @@
+-From e4d7544ce092807e8c5aeb618cec30e2eb9b40c2 Mon Sep 17 00:00:00 2001
+-From: Mantas Pucka <mantas@8devices.com>
+-Date: Mon, 24 Apr 2023 15:13:32 +0300
+-Subject: [PATCH 3/3] arm64: dts: qcom: ipq6018: add SDHCI node
+-
+-IPQ6018 has one SD/eMMC controller, add node for it.
+-
+-Signed-off-by: Mantas Pucka <mantas@8devices.com>
+-Tested-by: Robert Marko <robimarko@gmail.com>
+----
+- arch/arm64/boot/dts/qcom/ipq6018.dtsi | 23 +++++++++++++++++++++++
+- 1 file changed, 23 insertions(+)
+-
+---- a/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+-+++ b/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+-@@ -470,6 +470,29 @@
+- 			};
+- 		};
+- 
+-+		sdhc_1: mmc@7804000 {
+-+			compatible = "qcom,ipq6018-sdhci", "qcom,sdhci-msm-v5";
+-+			reg = <0x0 0x07804000 0x0 0x1000>,
+-+			      <0x0 0x07805000 0x0 0x1000>,
+-+			      <0x0 0x07808000 0x0 0x2000>;
+-+			reg-names = "hc", "cqhci", "ice";
+-+
+-+			interrupts = <GIC_SPI 123 IRQ_TYPE_LEVEL_HIGH>,
+-+				     <GIC_SPI 138 IRQ_TYPE_LEVEL_HIGH>;
+-+			interrupt-names = "hc_irq", "pwr_irq";
+-+
+-+			clocks = <&gcc GCC_SDCC1_AHB_CLK>,
+-+				 <&gcc GCC_SDCC1_APPS_CLK>,
+-+				 <&xo>,
+-+				 <&gcc GCC_SDCC1_ICE_CORE_CLK>;
+-+			clock-names = "iface", "core", "xo", "ice";
+-+
+-+			resets = <&gcc GCC_SDCC1_BCR>;
+-+			supports-cqe;
+-+			bus-width = <8>;
+-+			status = "disabled";
+-+		};
+-+
+- 		blsp_dma: dma-controller@7884000 {
+- 			compatible = "qcom,bam-v1.7.0";
+- 			reg = <0x0 0x07884000 0x0 0x2b000>;
+-- 
+2.43.0
+

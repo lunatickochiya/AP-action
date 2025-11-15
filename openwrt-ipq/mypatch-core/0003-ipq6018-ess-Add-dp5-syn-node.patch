@@ -1,0 +1,37 @@
+From 1029fc0075b7a5629410f68270371a381258a949 Mon Sep 17 00:00:00 2001
+From: Weikai Kong <priv@pppig236.com>
+Date: Sat, 28 Dec 2024 16:41:08 -0500
+Subject: [PATCH 3/9] ipq6018-ess: Add dp5-syn node
+
+Linksys MR7500 features 4x QSGMII QCA8075 and 1x USXGMII (1/2.5/5 GbE)
+
+Signed-off-by: Weikai Kong <priv@pppig236.com>
+Link: https://github.com/openwrt/openwrt/pull/18185
+Signed-off-by: Robert Marko <robimarko@gmail.com>
+---
+ .../files/arch/arm64/boot/dts/qcom/ipq6018-ess.dtsi   | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-ess.dtsi b/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-ess.dtsi
+index 0965003142..b54f53f29c 100644
+--- a/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-ess.dtsi
++++ b/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-ess.dtsi
+@@ -504,4 +504,15 @@
+ 		phy-mode = "psgmii";
+ 		status = "disabled";
+ 	};
++
++	dp5_syn: dp5-syn {
++		device_type = "network";
++		compatible = "qcom,nss-dp";
++		qcom,id = <5>;
++		reg = <0x0 0x3a003000 0x0 0x3fff>;
++		qcom,mactype = <1>;
++		local-mac-address = [000000000000];
++		phy-mode = "usxgmii";
++		status = "disabled";
++	};
+ };
+-- 
+2.43.0
+

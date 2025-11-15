@@ -1,0 +1,590 @@
+From 39a7d1385fabf730f6fe11d35336214b55dd2385 Mon Sep 17 00:00:00 2001
+From: George Moussalem <george.moussalem@outlook.com>
+Date: Mon, 7 Oct 2024 10:28:09 +0400
+Subject: [PATCH 4/9] split-off! qualcommax: add ipq50xx target
+
+Introduce support for the Qualcomm IPQ50xx SoC.
+This series adds support for the following components:
+- minimal boot support: GCC/pinctrl/watchdog/CPUFreq/SDI (upstreamed)
+- USB2 (upstreamed)
+- Thermal/Tsens
+- PCIe gen2 1&2-lane PHY and controller
+- PWM and PWM LED
+- QPIC SPI NAND controller
+- CMN PLL Block (provider of fixed rate clocks to GCC/ethernet/more.)
+- Ethernet: IPQ5018 Internal GE PHY (1 gbps)
+- Remoteproc MPD driver for IPQ5018 (2.4G) & QCN6122 (5/6G) Wifi
+
+Co-developed-by: Ziyang Huang <hzyitc@outlook.com>
+Signed-off-by: Ziyang Huang <hzyitc@outlook.com>
+Signed-off-by: George Moussalem <george.moussalem@outlook.com>
+Link: https://github.com/openwrt/openwrt/pull/17182
+Signed-off-by: Robert Marko <robimarko@gmail.com>
+---
+ ...-dt-bindings-pwm-add-IPQ6018-binding.patch |  60 ++++
+ ...river-for-qualcomm-ipq6018-pwm-block.patch | 330 ++++++++++++++++++
+ ...r-Add-simple-mfd-support-for-IPQ6018.patch | 148 ++++++++
+ 3 files changed, 538 insertions(+)
+ create mode 100644 target/linux/qualcommax/patches-6.6/0140-dt-bindings-pwm-add-IPQ6018-binding.patch
+ create mode 100644 target/linux/qualcommax/patches-6.6/0141-pwm-driver-for-qualcomm-ipq6018-pwm-block.patch
+ create mode 100644 target/linux/qualcommax/patches-6.6/0142-dt-bindings-mfd-qcom-tcsr-Add-simple-mfd-support-for-IPQ6018.patch
+
+diff --git a/target/linux/qualcommax/patches-6.6/0140-dt-bindings-pwm-add-IPQ6018-binding.patch b/target/linux/qualcommax/patches-6.6/0140-dt-bindings-pwm-add-IPQ6018-binding.patch
+new file mode 100644
+index 0000000000..bba8b3457a
+--- /dev/null
++++ b/target/linux/qualcommax/patches-6.6/0140-dt-bindings-pwm-add-IPQ6018-binding.patch
+@@ -0,0 +1,60 @@
++From: Devi Priya <quic_devipriy@quicinc.com>
++Date: Thu, 5 Oct 2023 21:35:48 +0530
++Subject: [PATCH] dt-bindings: pwm: add IPQ6018 binding
++
++DT binding for the PWM block in Qualcomm IPQ6018 SoC.
++
++Reviewed-by: Bjorn Andersson <bjorn.andersson@linaro.org>
++Reviewed-by: Krzysztof Kozlowski <krzysztof.kozlowski@linaro.org>
++Co-developed-by: Baruch Siach <baruch.siach@siklu.com>
++Signed-off-by: Baruch Siach <baruch.siach@siklu.com>
++Signed-off-by: Devi Priya <quic_devipriy@quicinc.com>
++---
++--- /dev/null
+++++ b/Documentation/devicetree/bindings/pwm/qcom,ipq6018-pwm.yaml
++@@ -0,0 +1,45 @@
+++# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+++%YAML 1.2
+++---
+++$id: http://devicetree.org/schemas/pwm/qcom,ipq6018-pwm.yaml#
+++$schema: http://devicetree.org/meta-schemas/core.yaml#
+++
+++title: Qualcomm IPQ6018 PWM controller
+++
+++maintainers:
+++  - Baruch Siach <baruch@tkos.co.il>
+++
+++properties:
+++  compatible:
+++    const: qcom,ipq6018-pwm
+++
+++  reg:
+++    description: Offset of PWM register in the TCSR block.
+++    maxItems: 1
+++
+++  clocks:
+++    maxItems: 1
+++
+++  "#pwm-cells":
+++    const: 2
+++
+++required:
+++  - compatible
+++  - reg
+++  - clocks
+++  - "#pwm-cells"
+++
+++additionalProperties: false
+++
+++examples:
+++  - |
+++    #include <dt-bindings/clock/qcom,gcc-ipq6018.h>
+++
+++    pwm: pwm@a010 {
+++        compatible = "qcom,ipq6018-pwm";
+++        reg = <0xa010 0x20>;
+++        clocks = <&gcc GCC_ADSS_PWM_CLK>;
+++        assigned-clocks = <&gcc GCC_ADSS_PWM_CLK>;
+++        assigned-clock-rates = <100000000>;
+++        #pwm-cells = <2>;
+++    };
+diff --git a/target/linux/qualcommax/patches-6.6/0141-pwm-driver-for-qualcomm-ipq6018-pwm-block.patch b/target/linux/qualcommax/patches-6.6/0141-pwm-driver-for-qualcomm-ipq6018-pwm-block.patch
+new file mode 100644
+index 0000000000..f4f396a2c1
+--- /dev/null
++++ b/target/linux/qualcommax/patches-6.6/0141-pwm-driver-for-qualcomm-ipq6018-pwm-block.patch
+@@ -0,0 +1,330 @@
++From: Devi Priya <quic_devipriy@quicinc.com>
++Date: Thu, 5 Oct 2023 21:35:47 +0530
++Subject: [PATCH] pwm: driver for qualcomm ipq6018 pwm block
++
++Driver for the PWM block in Qualcomm IPQ6018 line of SoCs. Based on
++driver from downstream Codeaurora kernel tree. Removed support for older
++(V1) variants because I have no access to that hardware.
++
++Tested on IPQ6010 based hardware.
++
++Co-developed-by: Baruch Siach <baruch.siach@siklu.com>
++Signed-off-by: Baruch Siach <baruch.siach@siklu.com>
++Signed-off-by: Devi Priya <quic_devipriy@quicinc.com>
++---
++--- a/drivers/pwm/Kconfig
+++++ b/drivers/pwm/Kconfig
++@@ -282,6 +282,18 @@ config PWM_INTEL_LGM
++ 	  To compile this driver as a module, choose M here: the module
++ 	  will be called pwm-intel-lgm.
++ 
+++config PWM_IPQ
+++	tristate "IPQ PWM support"
+++	depends on ARCH_QCOM || COMPILE_TEST
+++	depends on HAVE_CLK && HAS_IOMEM
+++	help
+++	  Generic PWM framework driver for IPQ PWM block which supports
+++	  4 pwm channels. Each of the these channels can be configured
+++	  independent of each other.
+++
+++	  To compile this driver as a module, choose M here: the module
+++	  will be called pwm-ipq.
+++
++ config PWM_IQS620A
++ 	tristate "Azoteq IQS620A PWM support"
++ 	depends on MFD_IQS62X || COMPILE_TEST
++--- a/drivers/pwm/Makefile
+++++ b/drivers/pwm/Makefile
++@@ -24,6 +24,7 @@ obj-$(CONFIG_PWM_IMX1)		+= pwm-imx1.o
++ obj-$(CONFIG_PWM_IMX27)		+= pwm-imx27.o
++ obj-$(CONFIG_PWM_IMX_TPM)	+= pwm-imx-tpm.o
++ obj-$(CONFIG_PWM_INTEL_LGM)	+= pwm-intel-lgm.o
+++obj-$(CONFIG_PWM_IPQ)		+= pwm-ipq.o
++ obj-$(CONFIG_PWM_IQS620A)	+= pwm-iqs620a.o
++ obj-$(CONFIG_PWM_JZ4740)	+= pwm-jz4740.o
++ obj-$(CONFIG_PWM_KEEMBAY)	+= pwm-keembay.o
++--- /dev/null
+++++ b/drivers/pwm/pwm-ipq.c
++@@ -0,0 +1,282 @@
+++// SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0
+++/*
+++ * Copyright (c) 2016-2017, 2020 The Linux Foundation. All rights reserved.
+++ */
+++
+++#include <linux/module.h>
+++#include <linux/platform_device.h>
+++#include <linux/pwm.h>
+++#include <linux/clk.h>
+++#include <linux/io.h>
+++#include <linux/of.h>
+++#include <linux/math64.h>
+++#include <linux/of_device.h>
+++#include <linux/bitfield.h>
+++#include <linux/units.h>
+++
+++/* The frequency range supported is 1 Hz to clock rate */
+++#define IPQ_PWM_MAX_PERIOD_NS	((u64)NSEC_PER_SEC)
+++
+++/*
+++ * The max value specified for each field is based on the number of bits
+++ * in the pwm control register for that field
+++ */
+++#define IPQ_PWM_MAX_DIV		0xFFFF
+++
+++/*
+++ * Two 32-bit registers for each PWM: REG0, and REG1.
+++ * Base offset for PWM #i is at 8 * #i.
+++ */
+++#define IPQ_PWM_REG0			0
+++#define IPQ_PWM_REG0_PWM_DIV		GENMASK(15, 0)
+++#define IPQ_PWM_REG0_HI_DURATION	GENMASK(31, 16)
+++
+++#define IPQ_PWM_REG1			4
+++#define IPQ_PWM_REG1_PRE_DIV		GENMASK(15, 0)
+++/*
+++ * Enable bit is set to enable output toggling in pwm device.
+++ * Update bit is set to reflect the changed divider and high duration
+++ * values in register.
+++ */
+++#define IPQ_PWM_REG1_UPDATE		BIT(30)
+++#define IPQ_PWM_REG1_ENABLE		BIT(31)
+++
+++struct ipq_pwm_chip {
+++	struct pwm_chip chip;
+++	struct clk *clk;
+++	void __iomem *mem;
+++};
+++
+++static struct ipq_pwm_chip *ipq_pwm_from_chip(struct pwm_chip *chip)
+++{
+++	return container_of(chip, struct ipq_pwm_chip, chip);
+++}
+++
+++static unsigned int ipq_pwm_reg_read(struct pwm_device *pwm, unsigned int reg)
+++{
+++	struct ipq_pwm_chip *ipq_chip = ipq_pwm_from_chip(pwm->chip);
+++	unsigned int off = 8 * pwm->hwpwm + reg;
+++
+++	return readl(ipq_chip->mem + off);
+++}
+++
+++static void ipq_pwm_reg_write(struct pwm_device *pwm, unsigned int reg,
+++			      unsigned int val)
+++{
+++	struct ipq_pwm_chip *ipq_chip = ipq_pwm_from_chip(pwm->chip);
+++	unsigned int off = 8 * pwm->hwpwm + reg;
+++
+++	writel(val, ipq_chip->mem + off);
+++}
+++
+++static void config_div_and_duty(struct pwm_device *pwm, unsigned int pre_div,
+++				unsigned int pwm_div, unsigned long rate, u64 duty_ns,
+++				bool enable)
+++{
+++	unsigned long hi_dur;
+++	unsigned long val = 0;
+++
+++	/*
+++	 * high duration = pwm duty * (pwm div + 1)
+++	 * pwm duty = duty_ns / period_ns
+++	 */
+++	hi_dur = div64_u64(duty_ns * rate, (pre_div + 1) * NSEC_PER_SEC);
+++
+++	val = FIELD_PREP(IPQ_PWM_REG0_HI_DURATION, hi_dur) |
+++		FIELD_PREP(IPQ_PWM_REG0_PWM_DIV, pwm_div);
+++	ipq_pwm_reg_write(pwm, IPQ_PWM_REG0, val);
+++
+++	val = FIELD_PREP(IPQ_PWM_REG1_PRE_DIV, pre_div);
+++	ipq_pwm_reg_write(pwm, IPQ_PWM_REG1, val);
+++
+++	/* PWM enable toggle needs a separate write to REG1 */
+++	val |= IPQ_PWM_REG1_UPDATE;
+++	if (enable)
+++		val |= IPQ_PWM_REG1_ENABLE;
+++	ipq_pwm_reg_write(pwm, IPQ_PWM_REG1, val);
+++}
+++
+++static int ipq_pwm_apply(struct pwm_chip *chip, struct pwm_device *pwm,
+++			 const struct pwm_state *state)
+++{
+++	struct ipq_pwm_chip *ipq_chip = ipq_pwm_from_chip(chip);
+++	unsigned int pre_div, pwm_div, best_pre_div, best_pwm_div;
+++	unsigned long rate = clk_get_rate(ipq_chip->clk);
+++	u64 period_ns, duty_ns, period_rate;
+++	u64 min_diff;
+++
+++	if (state->polarity != PWM_POLARITY_NORMAL)
+++		return -EINVAL;
+++
+++	if (state->period < DIV64_U64_ROUND_UP(NSEC_PER_SEC, rate))
+++		return -ERANGE;
+++
+++	period_ns = min(state->period, IPQ_PWM_MAX_PERIOD_NS);
+++	duty_ns = min(state->duty_cycle, period_ns);
+++
+++	/*
+++	 * period_ns is 1G or less. As long as rate is less than 16 GHz,
+++	 * period_rate does not overflow. Make that explicit.
+++	 */
+++	if ((unsigned long long)rate > 16ULL * GIGA)
+++		return -EINVAL;
+++	period_rate = period_ns * rate;
+++	best_pre_div = IPQ_PWM_MAX_DIV;
+++	best_pwm_div = IPQ_PWM_MAX_DIV;
+++	/*
+++	 * We don't need to consider pre_div values smaller than
+++	 *
+++	 *                              period_rate
+++	 *  pre_div_min := ------------------------------------
+++	 *                 NSEC_PER_SEC * (IPQ_PWM_MAX_DIV + 1)
+++	 *
+++	 * because pre_div = pre_div_min results in a better
+++	 * approximation.
+++	 */
+++	pre_div = div64_u64(period_rate,
+++			    (u64)NSEC_PER_SEC * (IPQ_PWM_MAX_DIV + 1));
+++	min_diff = period_rate;
+++
+++	for (; pre_div <= IPQ_PWM_MAX_DIV; pre_div++) {
+++		u64 remainder;
+++
+++		pwm_div = div64_u64_rem(period_rate,
+++					(u64)NSEC_PER_SEC * (pre_div + 1), &remainder);
+++		/* pwm_div is unsigned; the check below catches underflow */
+++		pwm_div--;
+++
+++		/*
+++		 * Swapping values for pre_div and pwm_div produces the same
+++		 * period length. So we can skip all settings with pre_div >
+++		 * pwm_div which results in bigger constraints for selecting
+++		 * the duty_cycle than with the two values swapped.
+++		 */
+++		if (pre_div > pwm_div)
+++			break;
+++
+++		/*
+++		 * Make sure we can do 100% duty cycle where
+++		 * hi_dur == pwm_div + 1
+++		 */
+++		if (pwm_div > IPQ_PWM_MAX_DIV - 1)
+++			continue;
+++
+++		if (remainder < min_diff) {
+++			best_pre_div = pre_div;
+++			best_pwm_div = pwm_div;
+++			min_diff = remainder;
+++
+++			if (min_diff == 0) /* bingo */
+++				break;
+++		}
+++	}
+++
+++	/* config divider values for the closest possible frequency */
+++	config_div_and_duty(pwm, best_pre_div, best_pwm_div,
+++			    rate, duty_ns, state->enabled);
+++
+++	return 0;
+++}
+++
+++static int ipq_pwm_get_state(struct pwm_chip *chip, struct pwm_device *pwm,
+++			     struct pwm_state *state)
+++{
+++	struct ipq_pwm_chip *ipq_chip = ipq_pwm_from_chip(chip);
+++	unsigned long rate = clk_get_rate(ipq_chip->clk);
+++	unsigned int pre_div, pwm_div, hi_dur;
+++	u64 effective_div, hi_div;
+++	u32 reg0, reg1;
+++
+++	reg0 = ipq_pwm_reg_read(pwm, IPQ_PWM_REG0);
+++	reg1 = ipq_pwm_reg_read(pwm, IPQ_PWM_REG1);
+++
+++	state->polarity = PWM_POLARITY_NORMAL;
+++	state->enabled = reg1 & IPQ_PWM_REG1_ENABLE;
+++
+++	pwm_div = FIELD_GET(IPQ_PWM_REG0_PWM_DIV, reg0);
+++	hi_dur = FIELD_GET(IPQ_PWM_REG0_HI_DURATION, reg0);
+++	pre_div = FIELD_GET(IPQ_PWM_REG1_PRE_DIV, reg1);
+++
+++	/* No overflow here, both pre_div and pwm_div <= 0xffff */
+++	effective_div = (u64)(pre_div + 1) * (pwm_div + 1);
+++	state->period = DIV64_U64_ROUND_UP(effective_div * NSEC_PER_SEC, rate);
+++
+++	hi_div = hi_dur * (pre_div + 1);
+++	state->duty_cycle = DIV64_U64_ROUND_UP(hi_div * NSEC_PER_SEC, rate);
+++
+++	return 0;
+++}
+++
+++static const struct pwm_ops ipq_pwm_ops = {
+++	.apply = ipq_pwm_apply,
+++	.get_state = ipq_pwm_get_state,
+++	.owner = THIS_MODULE,
+++};
+++
+++static int ipq_pwm_probe(struct platform_device *pdev)
+++{
+++	struct ipq_pwm_chip *pwm;
+++	struct device *dev = &pdev->dev;
+++	int ret;
+++
+++	pwm = devm_kzalloc(dev, sizeof(*pwm), GFP_KERNEL);
+++	if (!pwm)
+++		return -ENOMEM;
+++
+++	platform_set_drvdata(pdev, pwm);
+++
+++	pwm->mem = devm_platform_ioremap_resource(pdev, 0);
+++	if (IS_ERR(pwm->mem))
+++		return dev_err_probe(dev, PTR_ERR(pwm->mem),
+++				"regs map failed");
+++
+++	pwm->clk = devm_clk_get(dev, NULL);
+++	if (IS_ERR(pwm->clk))
+++		return dev_err_probe(dev, PTR_ERR(pwm->clk),
+++				"failed to get clock");
+++
+++	ret = clk_prepare_enable(pwm->clk);
+++	if (ret)
+++		return dev_err_probe(dev, ret, "clock enable failed");
+++
+++	pwm->chip.dev = dev;
+++	pwm->chip.ops = &ipq_pwm_ops;
+++	pwm->chip.npwm = 4;
+++
+++	ret = pwmchip_add(&pwm->chip);
+++	if (ret < 0) {
+++		dev_err_probe(dev, ret, "pwmchip_add() failed\n");
+++		clk_disable_unprepare(pwm->clk);
+++	}
+++
+++	return ret;
+++}
+++
+++static int ipq_pwm_remove(struct platform_device *pdev)
+++{
+++	struct ipq_pwm_chip *pwm = platform_get_drvdata(pdev);
+++
+++	pwmchip_remove(&pwm->chip);
+++	clk_disable_unprepare(pwm->clk);
+++
+++	return 0;
+++}
+++
+++static const struct of_device_id pwm_ipq_dt_match[] = {
+++	{ .compatible = "qcom,ipq6018-pwm", },
+++	{}
+++};
+++MODULE_DEVICE_TABLE(of, pwm_ipq_dt_match);
+++
+++static struct platform_driver ipq_pwm_driver = {
+++	.driver = {
+++		.name = "ipq-pwm",
+++		.of_match_table = pwm_ipq_dt_match,
+++	},
+++	.probe = ipq_pwm_probe,
+++	.remove = ipq_pwm_remove,
+++};
+++
+++module_platform_driver(ipq_pwm_driver);
+++
+++MODULE_LICENSE("Dual BSD/GPL");
+diff --git a/target/linux/qualcommax/patches-6.6/0142-dt-bindings-mfd-qcom-tcsr-Add-simple-mfd-support-for-IPQ6018.patch b/target/linux/qualcommax/patches-6.6/0142-dt-bindings-mfd-qcom-tcsr-Add-simple-mfd-support-for-IPQ6018.patch
+new file mode 100644
+index 0000000000..1714fc4e6f
+--- /dev/null
++++ b/target/linux/qualcommax/patches-6.6/0142-dt-bindings-mfd-qcom-tcsr-Add-simple-mfd-support-for-IPQ6018.patch
+@@ -0,0 +1,148 @@
++From: Devi Priya <quic_devipriy@quicinc.com>
++Subject: [PATCH] dt-bindings: mfd: qcom,tcsr: Add simple-mfd support for IPQ6018
++Date: Thu, 5 Oct 2023 21:35:49 +0530
++
++Update the binding to include pwm as the child node to TCSR block and
++add simple-mfd support for IPQ6018.
++
++Reviewed-by: Krzysztof Kozlowski <krzysztof.kozlowski@linaro.org>
++Signed-off-by: Devi Priya <quic_devipriy@quicinc.com>
++---
++ .../devicetree/bindings/mfd/qcom,tcsr.yaml    | 112 +++++++++++++-----
++ 1 file changed, 81 insertions(+), 31 deletions(-)
++
++--- a/Documentation/devicetree/bindings/mfd/qcom,tcsr.yaml
+++++ b/Documentation/devicetree/bindings/mfd/qcom,tcsr.yaml
++@@ -15,49 +15,101 @@ description:
++ 
++ properties:
++   compatible:
++-    items:
++-      - enum:
++-          - qcom,msm8976-tcsr
++-          - qcom,msm8998-tcsr
++-          - qcom,qcs404-tcsr
++-          - qcom,sc7180-tcsr
++-          - qcom,sc7280-tcsr
++-          - qcom,sc8280xp-tcsr
++-          - qcom,sdm630-tcsr
++-          - qcom,sdm845-tcsr
++-          - qcom,sdx55-tcsr
++-          - qcom,sdx65-tcsr
++-          - qcom,sm8150-tcsr
++-          - qcom,sm8450-tcsr
++-          - qcom,tcsr-apq8064
++-          - qcom,tcsr-apq8084
++-          - qcom,tcsr-ipq5332
++-          - qcom,tcsr-ipq6018
++-          - qcom,tcsr-ipq8064
++-          - qcom,tcsr-ipq8074
++-          - qcom,tcsr-ipq9574
++-          - qcom,tcsr-mdm9615
++-          - qcom,tcsr-msm8226
++-          - qcom,tcsr-msm8660
++-          - qcom,tcsr-msm8916
++-          - qcom,tcsr-msm8953
++-          - qcom,tcsr-msm8960
++-          - qcom,tcsr-msm8974
++-          - qcom,tcsr-msm8996
++-      - const: syscon
+++    oneOf:
+++      - items:
+++          - enum:
+++              - qcom,msm8976-tcsr
+++              - qcom,msm8998-tcsr
+++              - qcom,qcs404-tcsr
+++              - qcom,sc7180-tcsr
+++              - qcom,sc7280-tcsr
+++              - qcom,sc8280xp-tcsr
+++              - qcom,sdm630-tcsr
+++              - qcom,sdm845-tcsr
+++              - qcom,sdx55-tcsr
+++              - qcom,sdx65-tcsr
+++              - qcom,sm4450-tcsr
+++              - qcom,sm8150-tcsr
+++              - qcom,sm8450-tcsr
+++              - qcom,tcsr-apq8064
+++              - qcom,tcsr-apq8084
+++              - qcom,tcsr-ipq5332
+++              - qcom,tcsr-ipq8064
+++              - qcom,tcsr-ipq8074
+++              - qcom,tcsr-ipq9574
+++              - qcom,tcsr-mdm9615
+++              - qcom,tcsr-msm8226
+++              - qcom,tcsr-msm8660
+++              - qcom,tcsr-msm8916
+++              - qcom,tcsr-msm8953
+++              - qcom,tcsr-msm8960
+++              - qcom,tcsr-msm8974
+++              - qcom,tcsr-msm8996
+++          - const: syscon
+++      - items:
+++          - const: qcom,tcsr-ipq6018
+++          - const: syscon
+++          - const: simple-mfd
++ 
++   reg:
++     maxItems: 1
++ 
+++  ranges: true
+++
+++  "#address-cells":
+++    const: 1
+++
+++  "#size-cells":
+++    const: 1
+++
+++patternProperties:
+++  "pwm@[a-f0-9]+$":
+++    type: object
+++    $ref: /schemas/pwm/qcom,ipq6018-pwm.yaml
+++
+++
++ required:
++   - compatible
++   - reg
++ 
+++allOf:
+++  - if:
+++      not:
+++        properties:
+++          compatible:
+++            contains:
+++              enum:
+++                - qcom,tcsr-ipq6018
+++    then:
+++      patternProperties:
+++        "pwm@[a-f0-9]+$": false
+++
++ additionalProperties: false
++ 
++ examples:
+++  # Example 1 - Syscon node found on MSM8960
++   - |
++     syscon@1a400000 {
++         compatible = "qcom,tcsr-msm8960", "syscon";
++         reg = <0x1a400000 0x100>;
++     };
+++  # Example 2 - Syscon node found on IPQ6018
+++  - |
+++    #include <dt-bindings/clock/qcom,gcc-ipq6018.h>
+++
+++    syscon@1937000 {
+++        compatible = "qcom,tcsr-ipq6018", "syscon", "simple-mfd";
+++        reg = <0x01937000 0x21000>;
+++        ranges = <0 0x1937000 0x21000>;
+++        #address-cells = <1>;
+++        #size-cells = <1>;
+++
+++        pwm: pwm@a010 {
+++            compatible = "qcom,ipq6018-pwm";
+++            reg = <0xa010 0x20>;
+++            clocks = <&gcc GCC_ADSS_PWM_CLK>;
+++            assigned-clocks = <&gcc GCC_ADSS_PWM_CLK>;
+++            assigned-clock-rates = <100000000>;
+++            #pwm-cells = <2>;
+++        };
+++    };
++\ No newline at end of file
+-- 
+2.43.0
+

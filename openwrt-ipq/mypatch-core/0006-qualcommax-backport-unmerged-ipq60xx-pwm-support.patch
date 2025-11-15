@@ -1,0 +1,163 @@
+From 533930908b5314201c72b23bf8d3aad284355f66 Mon Sep 17 00:00:00 2001
+From: lunatickochiya <125438787@qq.com>
+Date: Sat, 15 Nov 2025 19:51:53 +0800
+Subject: [PATCH 6/9] qualcommax: backport unmerged ipq60xx pwm support
+
+Because of the dt-bindings error, these patches have not
+been merged yet, and the driver part is fine.
+
+Signed-off-by: Chukun Pan <amadeus@jmu.edu.cn>
+Link: https://github.com/openwrt/openwrt/pull/14950
+Signed-off-by: Robert Marko <robimarko@gmail.com>
+---
+ .../linux/qualcommax/ipq60xx/config-default   |  3 ++
+ ...com-ipq6018-add-NSS-reserved-memory.patch} |  2 +-
+ ...-arm64-dts-qcom-ipq6018-add-pwm-node.patch | 45 +++++++++++++++++++
+ ...river-for-qualcomm-ipq6018-pwm-block.patch |  6 +++
+ ...arm64-dts-qcom-ipq6018-add-wifi-node.patch |  2 +-
+ ...07-soc-qcom-fix-smp2p-ack-on-ipq6018.patch |  2 +-
+ ...pq6018-assign-QDSS_AT-clock-to-wifi-.patch |  2 +-
+ 7 files changed, 58 insertions(+), 4 deletions(-)
+ rename target/linux/qualcommax/patches-6.6/{0140-arm64-dts-qcom-ipq6018-add-NSS-reserved-memory.patch => 0135-arm64-dts-qcom-ipq6018-add-NSS-reserved-memory.patch} (97%)
+ create mode 100644 target/linux/qualcommax/patches-6.6/0138-arm64-dts-qcom-ipq6018-add-pwm-node.patch
+
+diff --git a/target/linux/qualcommax/ipq60xx/config-default b/target/linux/qualcommax/ipq60xx/config-default
+index 9ce4b04293..ac9743eb2c 100644
+--- a/target/linux/qualcommax/ipq60xx/config-default
++++ b/target/linux/qualcommax/ipq60xx/config-default
+@@ -1,6 +1,9 @@
+ CONFIG_IPQ_GCC_6018=y
+ CONFIG_MTD_SPLIT_FIT_FW=y
+ CONFIG_PINCTRL_IPQ6018=y
++CONFIG_PWM=y
++CONFIG_PWM_IPQ=y
++CONFIG_PWM_SYSFS=y
+ CONFIG_QCOM_APM=y
+ # CONFIG_QCOM_CLK_SMD_RPM is not set
+ # CONFIG_QCOM_RPMPD is not set
+diff --git a/target/linux/qualcommax/patches-6.6/0140-arm64-dts-qcom-ipq6018-add-NSS-reserved-memory.patch b/target/linux/qualcommax/patches-6.6/0135-arm64-dts-qcom-ipq6018-add-NSS-reserved-memory.patch
+similarity index 97%
+rename from target/linux/qualcommax/patches-6.6/0140-arm64-dts-qcom-ipq6018-add-NSS-reserved-memory.patch
+rename to target/linux/qualcommax/patches-6.6/0135-arm64-dts-qcom-ipq6018-add-NSS-reserved-memory.patch
+index 84591c845d..0d53531bc9 100644
+--- a/target/linux/qualcommax/patches-6.6/0140-arm64-dts-qcom-ipq6018-add-NSS-reserved-memory.patch
++++ b/target/linux/qualcommax/patches-6.6/0135-arm64-dts-qcom-ipq6018-add-NSS-reserved-memory.patch
+@@ -13,7 +13,7 @@ Signed-off-by: Robert Marko <robimarko@gmail.com>
+ 
+ --- a/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+ +++ b/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+-@@ -199,6 +199,11 @@
++@@ -194,6 +194,11 @@
+  			no-map;
+  		};
+  
+diff --git a/target/linux/qualcommax/patches-6.6/0138-arm64-dts-qcom-ipq6018-add-pwm-node.patch b/target/linux/qualcommax/patches-6.6/0138-arm64-dts-qcom-ipq6018-add-pwm-node.patch
+new file mode 100644
+index 0000000000..71061ba4f9
+--- /dev/null
++++ b/target/linux/qualcommax/patches-6.6/0138-arm64-dts-qcom-ipq6018-add-pwm-node.patch
+@@ -0,0 +1,45 @@
++From b4a32d218d424b81a58fbd419e1114b1c1f76168 Mon Sep 17 00:00:00 2001
++From: Devi Priya <quic_devipriy@quicinc.com>
++Date: Thu, 5 Oct 2023 21:35:50 +0530
++Subject: [PATCH] arm64: dts: qcom: ipq6018: add pwm node
++
++Describe the PWM block on IPQ6018.
++
++The PWM is in the TCSR area. Make &tcsr "simple-mfd" compatible, and add
++&pwm as child of &tcsr.
++
++Add also ipq6018 specific compatible string.
++
++Reviewed-by: Krzysztof Kozlowski <krzysztof.kozlowski@linaro.org>
++Co-developed-by: Baruch Siach <baruch.siach@siklu.com>
++Signed-off-by: Baruch Siach <baruch.siach@siklu.com>
++Signed-off-by: Devi Priya <quic_devipriy@quicinc.com>
++---
++ arch/arm64/boot/dts/qcom/ipq6018.dtsi | 15 ++++++++++++++-
++ 1 file changed, 14 insertions(+), 1 deletion(-)
++
++--- a/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+++++ b/arch/arm64/boot/dts/qcom/ipq6018.dtsi
++@@ -430,8 +430,21 @@
++ 		};
++ 
++ 		tcsr: syscon@1937000 {
++-			compatible = "qcom,tcsr-ipq6018", "syscon";
+++			compatible = "qcom,tcsr-ipq6018", "syscon", "simple-mfd";
++ 			reg = <0x0 0x01937000 0x0 0x21000>;
+++			ranges = <0x0 0x0 0x01937000 0x21000>;
+++			#address-cells = <1>;
+++			#size-cells = <1>;
+++
+++			pwm: pwm@a010 {
+++				compatible = "qcom,ipq6018-pwm";
+++				reg = <0xa010 0x20>;
+++				clocks = <&gcc GCC_ADSS_PWM_CLK>;
+++				assigned-clocks = <&gcc GCC_ADSS_PWM_CLK>;
+++				assigned-clock-rates = <100000000>;
+++				#pwm-cells = <2>;
+++				status = "disabled";
+++			};
++ 		};
++ 
++ 		usb2: usb@70f8800 {
+diff --git a/target/linux/qualcommax/patches-6.6/0141-pwm-driver-for-qualcomm-ipq6018-pwm-block.patch b/target/linux/qualcommax/patches-6.6/0141-pwm-driver-for-qualcomm-ipq6018-pwm-block.patch
+index 437b6c56b6..bf373c5748 100644
+--- a/target/linux/qualcommax/patches-6.6/0141-pwm-driver-for-qualcomm-ipq6018-pwm-block.patch
++++ b/target/linux/qualcommax/patches-6.6/0141-pwm-driver-for-qualcomm-ipq6018-pwm-block.patch
+@@ -12,6 +12,12 @@ Co-developed-by: Baruch Siach <baruch.siach@siklu.com>
+ Signed-off-by: Baruch Siach <baruch.siach@siklu.com>
+ Signed-off-by: Devi Priya <quic_devipriy@quicinc.com>
+ ---
++ drivers/pwm/Kconfig   |  12 ++
++ drivers/pwm/Makefile  |   1 +
++ drivers/pwm/pwm-ipq.c | 282 ++++++++++++++++++++++++++++++++++++++++++
++ 3 files changed, 295 insertions(+)
++ create mode 100644 drivers/pwm/pwm-ipq.c
++
+ --- a/drivers/pwm/Kconfig
+ +++ b/drivers/pwm/Kconfig
+ @@ -282,6 +282,18 @@ config PWM_INTEL_LGM
+diff --git a/target/linux/qualcommax/patches-6.6/0906-arm64-dts-qcom-ipq6018-add-wifi-node.patch b/target/linux/qualcommax/patches-6.6/0906-arm64-dts-qcom-ipq6018-add-wifi-node.patch
+index d41244d65a..25e5d2f62d 100644
+--- a/target/linux/qualcommax/patches-6.6/0906-arm64-dts-qcom-ipq6018-add-wifi-node.patch
++++ b/target/linux/qualcommax/patches-6.6/0906-arm64-dts-qcom-ipq6018-add-wifi-node.patch
+@@ -15,7 +15,7 @@ Signed-off-by: Mantas Pucka <mantas@8devices.com>
+ 
+ --- a/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+ +++ b/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+-@@ -814,6 +814,102 @@
++@@ -827,6 +827,102 @@
+  			};
+  		};
+  
+diff --git a/target/linux/qualcommax/patches-6.6/0907-soc-qcom-fix-smp2p-ack-on-ipq6018.patch b/target/linux/qualcommax/patches-6.6/0907-soc-qcom-fix-smp2p-ack-on-ipq6018.patch
+index 5154aad531..981ee03105 100644
+--- a/target/linux/qualcommax/patches-6.6/0907-soc-qcom-fix-smp2p-ack-on-ipq6018.patch
++++ b/target/linux/qualcommax/patches-6.6/0907-soc-qcom-fix-smp2p-ack-on-ipq6018.patch
+@@ -15,7 +15,7 @@ Signed-off-by: Mantas Pucka <mantas@8devices.com>
+ 
+ --- a/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+ +++ b/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+-@@ -1162,6 +1162,7 @@
++@@ -1175,6 +1175,7 @@
+  
+  		wcss_smp2p_out: master-kernel {
+  			qcom,entry-name = "master-kernel";
+diff --git a/target/linux/qualcommax/patches-6.6/0909-arm64-dts-qcom-ipq6018-assign-QDSS_AT-clock-to-wifi-.patch b/target/linux/qualcommax/patches-6.6/0909-arm64-dts-qcom-ipq6018-assign-QDSS_AT-clock-to-wifi-.patch
+index 993d60870b..150e06f301 100644
+--- a/target/linux/qualcommax/patches-6.6/0909-arm64-dts-qcom-ipq6018-assign-QDSS_AT-clock-to-wifi-.patch
++++ b/target/linux/qualcommax/patches-6.6/0909-arm64-dts-qcom-ipq6018-assign-QDSS_AT-clock-to-wifi-.patch
+@@ -13,7 +13,7 @@ Signed-off-by: Mantas Pucka <mantas@8devices.com>
+ 
+ --- a/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+ +++ b/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+-@@ -935,8 +935,8 @@
++@@ -948,8 +948,8 @@
+  				      "wcss_reset",
+  				      "wcss_q6_reset";
+  
+-- 
+2.43.0
+

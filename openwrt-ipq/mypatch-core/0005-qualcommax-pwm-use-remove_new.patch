@@ -1,0 +1,55 @@
+From ecb422d991a06b160fa55acab71c7b3e3bd6bc16 Mon Sep 17 00:00:00 2001
+From: Rosen Penev <rosenp@gmail.com>
+Date: Sat, 26 Apr 2025 15:46:00 -0700
+Subject: [PATCH 5/9] qualcommax: pwm: use remove_new
+
+Easy compability fix for kernel 6.12.
+
+Signed-off-by: Rosen Penev <rosenp@gmail.com>
+Link: https://github.com/openwrt/openwrt/pull/18660
+Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
+---
+ .../0141-pwm-driver-for-qualcomm-ipq6018-pwm-block.patch  | 8 +++-----
+ 1 file changed, 3 insertions(+), 5 deletions(-)
+
+diff --git a/target/linux/qualcommax/patches-6.6/0141-pwm-driver-for-qualcomm-ipq6018-pwm-block.patch b/target/linux/qualcommax/patches-6.6/0141-pwm-driver-for-qualcomm-ipq6018-pwm-block.patch
+index f4f396a2c1..437b6c56b6 100644
+--- a/target/linux/qualcommax/patches-6.6/0141-pwm-driver-for-qualcomm-ipq6018-pwm-block.patch
++++ b/target/linux/qualcommax/patches-6.6/0141-pwm-driver-for-qualcomm-ipq6018-pwm-block.patch
+@@ -45,7 +45,7 @@ Signed-off-by: Devi Priya <quic_devipriy@quicinc.com>
+  obj-$(CONFIG_PWM_KEEMBAY)	+= pwm-keembay.o
+ --- /dev/null
+ +++ b/drivers/pwm/pwm-ipq.c
+-@@ -0,0 +1,282 @@
++@@ -0,0 +1,280 @@
+ +// SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0
+ +/*
+ + * Copyright (c) 2016-2017, 2020 The Linux Foundation. All rights reserved.
+@@ -300,14 +300,12 @@ Signed-off-by: Devi Priya <quic_devipriy@quicinc.com>
+ +	return ret;
+ +}
+ +
+-+static int ipq_pwm_remove(struct platform_device *pdev)
+++static void ipq_pwm_remove(struct platform_device *pdev)
+ +{
+ +	struct ipq_pwm_chip *pwm = platform_get_drvdata(pdev);
+ +
+ +	pwmchip_remove(&pwm->chip);
+ +	clk_disable_unprepare(pwm->clk);
+-+
+-+	return 0;
+ +}
+ +
+ +static const struct of_device_id pwm_ipq_dt_match[] = {
+@@ -322,7 +320,7 @@ Signed-off-by: Devi Priya <quic_devipriy@quicinc.com>
+ +		.of_match_table = pwm_ipq_dt_match,
+ +	},
+ +	.probe = ipq_pwm_probe,
+-+	.remove = ipq_pwm_remove,
+++	.remove_new = ipq_pwm_remove,
+ +};
+ +
+ +module_platform_driver(ipq_pwm_driver);
+-- 
+2.43.0
+

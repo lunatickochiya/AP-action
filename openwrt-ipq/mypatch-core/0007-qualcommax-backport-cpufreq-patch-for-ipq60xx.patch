@@ -1,0 +1,583 @@
+From 937ebfc26a9fbdec6b453fb9bbb76f12bd1be4ad Mon Sep 17 00:00:00 2001
+From: Chukun Pan <amadeus@jmu.edu.cn>
+Date: Tue, 5 Mar 2024 22:30:20 +0800
+Subject: [PATCH 7/9] qualcommax: backport cpufreq patch for ipq60xx
+
+Make cpufreq work on different IPQ60xx SoC.
+Also rebase ipq6018-cp-cpu.dtsi for mp5496.
+
+Signed-off-by: Chukun Pan <amadeus@jmu.edu.cn>
+Link: https://github.com/openwrt/openwrt/pull/14950
+Signed-off-by: Robert Marko <robimarko@gmail.com>
+---
+ .../arm64/boot/dts/qcom/ipq6010-xe3-4.dts     |   5 +-
+ .../arm64/boot/dts/qcom/ipq6018-cp-cpu.dtsi   |  35 +++++
+ .../boot/dts/qcom/ipq6018-cpr-regulator.dtsi  |   2 +-
+ .../boot/dts/qcom/ipq6018-fixed-smps.dtsi     |  52 --------
+ ...com-ipq6018-add-1.2GHz-CPU-Frequency.patch |  33 +++++
+ ...com-ipq6018-add-1.5GHz-CPU-Frequency.patch |  33 +++++
+ ...pq6018-move-mp5496-regulator-out-of-.patch | 120 ++++++++++++++++++
+ ...pq6018-rename-labels-of-mp5496-regul.patch |  50 ++++++++
+ ...dts-qcom-ipq6018-add-LDOA2-regulator.patch |  33 +++++
+ ...dts-qcom-ipq6018-add-LDOA2-regulator.patch |  27 ----
+ ...pq6018-change-voltage-to-perf-levels.patch |  65 ----------
+ 11 files changed, 309 insertions(+), 146 deletions(-)
+ delete mode 100644 target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-fixed-smps.dtsi
+ create mode 100644 target/linux/qualcommax/patches-6.6/0085-v6.15-arm64-dts-qcom-ipq6018-add-1.2GHz-CPU-Frequency.patch
+ create mode 100644 target/linux/qualcommax/patches-6.6/0086-v6.15-arm64-dts-qcom-ipq6018-add-1.5GHz-CPU-Frequency.patch
+ create mode 100644 target/linux/qualcommax/patches-6.6/0087-v6.15-arm64-dts-qcom-ipq6018-move-mp5496-regulator-out-of-.patch
+ create mode 100644 target/linux/qualcommax/patches-6.6/0088-v6.15-arm64-dts-qcom-ipq6018-rename-labels-of-mp5496-regul.patch
+ create mode 100644 target/linux/qualcommax/patches-6.6/0089-v6.15-arm64-dts-qcom-ipq6018-add-LDOA2-regulator.patch
+ delete mode 100644 target/linux/qualcommax/patches-6.6/0139-arm64-dts-qcom-ipq6018-add-LDOA2-regulator.patch
+ delete mode 100644 target/linux/qualcommax/patches-6.6/0910-arm64-dts-qcom-ipq6018-change-voltage-to-perf-levels.patch
+
+diff --git a/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6010-xe3-4.dts b/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6010-xe3-4.dts
+index 3e1f1200a7..ed2f549785 100644
+--- a/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6010-xe3-4.dts
++++ b/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6010-xe3-4.dts
+@@ -3,7 +3,6 @@
+ /dts-v1/;
+ 
+ #include "ipq6018.dtsi"
+-#include "ipq6018-fixed-smps.dtsi"
+ #include "ipq6018-ess.dtsi"
+ #include <dt-bindings/gpio/gpio.h>
+ #include <dt-bindings/input/input.h>
+@@ -87,6 +86,10 @@
+ 	status = "okay";
+ };
+ 
++&rpm {
++	status = "disabled";
++};
++
+ &tlmm {
+ 	/* TZ has exclusive control over GPIO20 */
+ 	gpio-reserved-ranges = <20 1>;
+diff --git a/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-cp-cpu.dtsi b/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-cp-cpu.dtsi
+index 2dee366e1e..a6df44a9af 100644
+--- a/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-cp-cpu.dtsi
++++ b/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-cp-cpu.dtsi
+@@ -1,6 +1,7 @@
+ // SPDX-License-Identifier: GPL-2.0-only
+ 
+ #include "ipq6018-cpr-regulator.dtsi"
++#include "ipq6018-mp5496.dtsi"
+ 
+ &CPU0 {
+ 	cpu-supply = <&apc_vreg>;
+@@ -17,3 +18,37 @@
+ &CPU3 {
+ 	cpu-supply = <&apc_vreg>;
+ };
++
++&cpu_opp_table {
++	opp-864000000 {
++		opp-microvolt = <1>;
++	};
++
++	opp-1056000000 {
++		opp-microvolt = <2>;
++	};
++
++	opp-1200000000 {
++		opp-microvolt = <3>;
++	};
++
++	opp-1320000000 {
++		opp-microvolt = <3>;
++	};
++
++	opp-1440000000 {
++		opp-microvolt = <4>;
++	};
++
++	opp-1512000000 {
++		opp-microvolt = <5>;
++	};
++
++	opp-1608000000 {
++		opp-microvolt = <5>;
++	};
++
++	opp-1800000000 {
++		opp-microvolt = <6>;
++	};
++};
+diff --git a/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-cpr-regulator.dtsi b/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-cpr-regulator.dtsi
+index 738123296f..5781bd6892 100644
+--- a/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-cpr-regulator.dtsi
++++ b/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-cpr-regulator.dtsi
+@@ -43,7 +43,7 @@
+ 		qcom,cpr-up-error-step-limit = <1>;
+ 		qcom,apm-ctrl = <&apc_apm>;
+ 		qcom,apm-threshold-voltage = <850000>;
+-		vdd-supply = <&ipq6018_s2>;
++		vdd-supply = <&mp5496_s2>;
+ 		qcom,voltage-step = <12500>;
+ 
+ 		thread@0 {
+diff --git a/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-fixed-smps.dtsi b/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-fixed-smps.dtsi
+deleted file mode 100644
+index e867daf866..0000000000
+--- a/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-fixed-smps.dtsi
++++ /dev/null
+@@ -1,52 +0,0 @@
+-// SPDX-License-Identifier: GPL-2.0-only
+-
+-/*
+- * Board does not use companion MP5496 PMIC,
+- * but rather uses fixed external SMPS.
+- */
+-
+-&rpm {
+-	status = "disabled";
+-};
+-
+-&CPU0 {
+-	/delete-property/ cpu-supply;
+-};
+-
+-&CPU1 {
+-	/delete-property/ cpu-supply;
+-};
+-
+-&CPU2 {
+-	/delete-property/ cpu-supply;
+-};
+-
+-&CPU3 {
+-	/delete-property/ cpu-supply;
+-};
+-
+-&cpu_opp_table {
+-	opp-864000000 {
+-		opp-microvolt = <1100000>;
+-	};
+-
+-	opp-1056000000 {
+-		opp-microvolt = <1100000>;
+-	};
+-
+-	opp-1320000000 {
+-		opp-microvolt = <1100000>;
+-	};
+-
+-	opp-1440000000 {
+-		opp-microvolt = <1100000>;
+-	};
+-
+-	opp-1608000000 {
+-		opp-microvolt = <1100000>;
+-	};
+-
+-	opp-1800000000 {
+-		opp-microvolt = <1100000>;
+-	};
+-};
+diff --git a/target/linux/qualcommax/patches-6.6/0085-v6.15-arm64-dts-qcom-ipq6018-add-1.2GHz-CPU-Frequency.patch b/target/linux/qualcommax/patches-6.6/0085-v6.15-arm64-dts-qcom-ipq6018-add-1.2GHz-CPU-Frequency.patch
+new file mode 100644
+index 0000000000..5a5a7019ab
+--- /dev/null
++++ b/target/linux/qualcommax/patches-6.6/0085-v6.15-arm64-dts-qcom-ipq6018-add-1.2GHz-CPU-Frequency.patch
+@@ -0,0 +1,33 @@
++From 144230e5840c09984ad743c3df9de5fb443159a9 Mon Sep 17 00:00:00 2001
++From: Chukun Pan <amadeus@jmu.edu.cn>
++Date: Mon, 10 Feb 2025 15:01:18 +0800
++Subject: [PATCH] arm64: dts: qcom: ipq6018: add 1.2GHz CPU Frequency
++
++The final version of IPQ6000 (SoC id: IPQ6000, SBL version:
++BOOT.XF.0.3-00086-IPQ60xxLZB-1) has a max design frequency
++of 1.2GHz, so add this CPU frequency.
++
++Signed-off-by: Chukun Pan <amadeus@jmu.edu.cn>
++Reviewed-by: Konrad Dybcio <konrad.dybcio@oss.qualcomm.com>
++Link: https://lore.kernel.org/r/20250210070122.208842-2-amadeus@jmu.edu.cn
++Signed-off-by: Bjorn Andersson <andersson@kernel.org>
++---
++ arch/arm64/boot/dts/qcom/ipq6018.dtsi | 7 +++++++
++ 1 file changed, 7 insertions(+)
++
++--- a/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+++++ b/arch/arm64/boot/dts/qcom/ipq6018.dtsi
++@@ -119,6 +119,13 @@
++ 			clock-latency-ns = <200000>;
++ 		};
++ 
+++		opp-1200000000 {
+++			opp-hz = /bits/ 64 <1200000000>;
+++			opp-microvolt = <850000>;
+++			opp-supported-hw = <0x4>;
+++			clock-latency-ns = <200000>;
+++		};
+++
++ 		opp-1320000000 {
++ 			opp-hz = /bits/ 64 <1320000000>;
++ 			opp-microvolt = <862500>;
+diff --git a/target/linux/qualcommax/patches-6.6/0086-v6.15-arm64-dts-qcom-ipq6018-add-1.5GHz-CPU-Frequency.patch b/target/linux/qualcommax/patches-6.6/0086-v6.15-arm64-dts-qcom-ipq6018-add-1.5GHz-CPU-Frequency.patch
+new file mode 100644
+index 0000000000..f87356c35b
+--- /dev/null
++++ b/target/linux/qualcommax/patches-6.6/0086-v6.15-arm64-dts-qcom-ipq6018-add-1.5GHz-CPU-Frequency.patch
+@@ -0,0 +1,33 @@
++From a96e765a7b3f64429f7eec3471a2093355ab041e Mon Sep 17 00:00:00 2001
++From: Chukun Pan <amadeus@jmu.edu.cn>
++Date: Mon, 10 Feb 2025 15:01:19 +0800
++Subject: [PATCH] arm64: dts: qcom: ipq6018: add 1.5GHz CPU Frequency
++
++The early version of IPQ6000 (SoC id: IPQ6018, SBL version:
++BOOT.XF.0.3-00077-IPQ60xxLZB-2) and IPQ6005 SoCs can reach
++a max frequency of 1.5GHz, so add this CPU frequency.
++
++Signed-off-by: Chukun Pan <amadeus@jmu.edu.cn>
++Reviewed-by: Konrad Dybcio <konrad.dybcio@linaro.org>
++Link: https://lore.kernel.org/r/20250210070122.208842-3-amadeus@jmu.edu.cn
++Signed-off-by: Bjorn Andersson <andersson@kernel.org>
++---
++ arch/arm64/boot/dts/qcom/ipq6018.dtsi | 7 +++++++
++ 1 file changed, 7 insertions(+)
++
++--- a/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+++++ b/arch/arm64/boot/dts/qcom/ipq6018.dtsi
++@@ -140,6 +140,13 @@
++ 			clock-latency-ns = <200000>;
++ 		};
++ 
+++		opp-1512000000 {
+++			opp-hz = /bits/ 64 <1512000000>;
+++			opp-microvolt = <937500>;
+++			opp-supported-hw = <0x2>;
+++			clock-latency-ns = <200000>;
+++		};
+++
++ 		opp-1608000000 {
++ 			opp-hz = /bits/ 64 <1608000000>;
++ 			opp-microvolt = <987500>;
+diff --git a/target/linux/qualcommax/patches-6.6/0087-v6.15-arm64-dts-qcom-ipq6018-move-mp5496-regulator-out-of-.patch b/target/linux/qualcommax/patches-6.6/0087-v6.15-arm64-dts-qcom-ipq6018-move-mp5496-regulator-out-of-.patch
+new file mode 100644
+index 0000000000..505a027c2e
+--- /dev/null
++++ b/target/linux/qualcommax/patches-6.6/0087-v6.15-arm64-dts-qcom-ipq6018-move-mp5496-regulator-out-of-.patch
+@@ -0,0 +1,120 @@
++From 0c4c0f14b7d704bcb728d018a74788771dc9286b Mon Sep 17 00:00:00 2001
++From: Chukun Pan <amadeus@jmu.edu.cn>
++Date: Mon, 10 Feb 2025 15:01:20 +0800
++Subject: [PATCH] arm64: dts: qcom: ipq6018: move mp5496 regulator out of soc dtsi
++
++Some IPQ60xx SoCs don't come with the mp5496 pmic chip. The mp5496
++pmic was never part of the IPQ60xx SoC, it's optional, so we moved
++it out of the soc dtsi.
++
++Signed-off-by: Chukun Pan <amadeus@jmu.edu.cn>
++Reviewed-by: Dmitry Baryshkov <dmitry.baryshkov@linaro.org>
++Link: https://lore.kernel.org/r/20250210070122.208842-4-amadeus@jmu.edu.cn
++Signed-off-by: Bjorn Andersson <andersson@kernel.org>
++---
++ arch/arm64/boot/dts/qcom/ipq6018-cp01-c1.dts |  2 +-
++ arch/arm64/boot/dts/qcom/ipq6018-mp5496.dtsi | 35 ++++++++++++++++++++++++++++
++ arch/arm64/boot/dts/qcom/ipq6018.dtsi        | 14 -----------
++ 3 files changed, 36 insertions(+), 15 deletions(-)
++ create mode 100644 arch/arm64/boot/dts/qcom/ipq6018-mp5496.dtsi
++
++--- a/arch/arm64/boot/dts/qcom/ipq6018-cp01-c1.dts
+++++ b/arch/arm64/boot/dts/qcom/ipq6018-cp01-c1.dts
++@@ -7,7 +7,7 @@
++ 
++ /dts-v1/;
++ 
++-#include "ipq6018.dtsi"
+++#include "ipq6018-mp5496.dtsi"
++ 
++ / {
++ 	model = "Qualcomm Technologies, Inc. IPQ6018/AP-CP01-C1";
++--- /dev/null
+++++ b/arch/arm64/boot/dts/qcom/ipq6018-mp5496.dtsi
++@@ -0,0 +1,35 @@
+++// SPDX-License-Identifier: (GPL-2.0+ OR BSD-3-Clause)
+++/*
+++ * ipq6018-mp5496.dtsi describes common properties (e.g. regulators) that
+++ * apply to most devices that make use of the IPQ6018 SoC and MP5496 PMIC.
+++ */
+++
+++#include "ipq6018.dtsi"
+++
+++&cpu0 {
+++	cpu-supply = <&ipq6018_s2>;
+++};
+++
+++&cpu1 {
+++	cpu-supply = <&ipq6018_s2>;
+++};
+++
+++&cpu2 {
+++	cpu-supply = <&ipq6018_s2>;
+++};
+++
+++&cpu3 {
+++	cpu-supply = <&ipq6018_s2>;
+++};
+++
+++&rpm_requests {
+++	regulators {
+++		compatible = "qcom,rpm-mp5496-regulators";
+++
+++		ipq6018_s2: s2 {
+++			regulator-min-microvolt = <725000>;
+++			regulator-max-microvolt = <1062500>;
+++			regulator-always-on;
+++		};
+++	};
+++};
++--- a/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+++++ b/arch/arm64/boot/dts/qcom/ipq6018.dtsi
++@@ -43,7 +43,6 @@
++ 			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
++ 			clock-names = "cpu";
++ 			operating-points-v2 = <&cpu_opp_table>;
++-			cpu-supply = <&ipq6018_s2>;
++ 			#cooling-cells = <2>;
++ 		};
++ 
++@@ -56,7 +55,6 @@
++ 			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
++ 			clock-names = "cpu";
++ 			operating-points-v2 = <&cpu_opp_table>;
++-			cpu-supply = <&ipq6018_s2>;
++ 			#cooling-cells = <2>;
++ 		};
++ 
++@@ -69,7 +67,6 @@
++ 			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
++ 			clock-names = "cpu";
++ 			operating-points-v2 = <&cpu_opp_table>;
++-			cpu-supply = <&ipq6018_s2>;
++ 			#cooling-cells = <2>;
++ 		};
++ 
++@@ -82,7 +79,6 @@
++ 			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
++ 			clock-names = "cpu";
++ 			operating-points-v2 = <&cpu_opp_table>;
++-			cpu-supply = <&ipq6018_s2>;
++ 			#cooling-cells = <2>;
++ 		};
++ 
++@@ -184,16 +180,6 @@
++ 			rpm_requests: rpm-requests {
++ 				compatible = "qcom,rpm-ipq6018";
++ 				qcom,glink-channels = "rpm_requests";
++-
++-				regulators {
++-					compatible = "qcom,rpm-mp5496-regulators";
++-
++-					ipq6018_s2: s2 {
++-						regulator-min-microvolt = <725000>;
++-						regulator-max-microvolt = <1062500>;
++-						regulator-always-on;
++-					};
++-				};
++ 			};
++ 		};
++ 	};
+diff --git a/target/linux/qualcommax/patches-6.6/0088-v6.15-arm64-dts-qcom-ipq6018-rename-labels-of-mp5496-regul.patch b/target/linux/qualcommax/patches-6.6/0088-v6.15-arm64-dts-qcom-ipq6018-rename-labels-of-mp5496-regul.patch
+new file mode 100644
+index 0000000000..120ce53f8c
+--- /dev/null
++++ b/target/linux/qualcommax/patches-6.6/0088-v6.15-arm64-dts-qcom-ipq6018-rename-labels-of-mp5496-regul.patch
+@@ -0,0 +1,50 @@
++From e60f872c2dc4c1d9227977c8714373fe6328699c Mon Sep 17 00:00:00 2001
++From: Chukun Pan <amadeus@jmu.edu.cn>
++Date: Mon, 10 Feb 2025 15:01:21 +0800
++Subject: [PATCH] arm64: dts: qcom: ipq6018: rename labels of mp5496 regulator
++
++Change the labels of mp5496 regulator from ipq6018 to mp5496.
++
++Suggested-by: Konrad Dybcio <konrad.dybcio@oss.qualcomm.com>
++Suggested-by: Dmitry Baryshkov <dmitry.baryshkov@linaro.org>
++Signed-off-by: Chukun Pan <amadeus@jmu.edu.cn>
++Link: https://lore.kernel.org/r/20250210070122.208842-5-amadeus@jmu.edu.cn
++Signed-off-by: Bjorn Andersson <andersson@kernel.org>
++---
++ arch/arm64/boot/dts/qcom/ipq6018-mp5496.dtsi | 10 +++++-----
++ 1 file changed, 5 insertions(+), 5 deletions(-)
++
++--- a/arch/arm64/boot/dts/qcom/ipq6018-mp5496.dtsi
+++++ b/arch/arm64/boot/dts/qcom/ipq6018-mp5496.dtsi
++@@ -7,26 +7,26 @@
++ #include "ipq6018.dtsi"
++ 
++ &cpu0 {
++-	cpu-supply = <&ipq6018_s2>;
+++	cpu-supply = <&mp5496_s2>;
++ };
++ 
++ &cpu1 {
++-	cpu-supply = <&ipq6018_s2>;
+++	cpu-supply = <&mp5496_s2>;
++ };
++ 
++ &cpu2 {
++-	cpu-supply = <&ipq6018_s2>;
+++	cpu-supply = <&mp5496_s2>;
++ };
++ 
++ &cpu3 {
++-	cpu-supply = <&ipq6018_s2>;
+++	cpu-supply = <&mp5496_s2>;
++ };
++ 
++ &rpm_requests {
++ 	regulators {
++ 		compatible = "qcom,rpm-mp5496-regulators";
++ 
++-		ipq6018_s2: s2 {
+++		mp5496_s2: s2 {
++ 			regulator-min-microvolt = <725000>;
++ 			regulator-max-microvolt = <1062500>;
++ 			regulator-always-on;
+diff --git a/target/linux/qualcommax/patches-6.6/0089-v6.15-arm64-dts-qcom-ipq6018-add-LDOA2-regulator.patch b/target/linux/qualcommax/patches-6.6/0089-v6.15-arm64-dts-qcom-ipq6018-add-LDOA2-regulator.patch
+new file mode 100644
+index 0000000000..ce98c62f83
+--- /dev/null
++++ b/target/linux/qualcommax/patches-6.6/0089-v6.15-arm64-dts-qcom-ipq6018-add-LDOA2-regulator.patch
+@@ -0,0 +1,33 @@
++From a566fb9ba8ffecb56c50729390a9ea076f5c9532 Mon Sep 17 00:00:00 2001
++From: Chukun Pan <amadeus@jmu.edu.cn>
++Date: Mon, 10 Feb 2025 15:01:22 +0800
++Subject: [PATCH] arm64: dts: qcom: ipq6018: add LDOA2 regulator
++
++Add LDOA2 regulator from MP5496 to support SDCC voltage scaling.
++
++Suggested-by: Robert Marko <robimarko@gmail.com>
++Signed-off-by: Chukun Pan <amadeus@jmu.edu.cn>
++Reviewed-by: Konrad Dybcio <konrad.dybcio@oss.qualcomm.com>
++Link: https://lore.kernel.org/r/20250210070122.208842-6-amadeus@jmu.edu.cn
++Signed-off-by: Bjorn Andersson <andersson@kernel.org>
++---
++ arch/arm64/boot/dts/qcom/ipq6018-mp5496.dtsi | 9 +++++++++
++ 1 file changed, 9 insertions(+)
++
++--- a/arch/arm64/boot/dts/qcom/ipq6018-mp5496.dtsi
+++++ b/arch/arm64/boot/dts/qcom/ipq6018-mp5496.dtsi
++@@ -31,5 +31,14 @@
++ 			regulator-max-microvolt = <1062500>;
++ 			regulator-always-on;
++ 		};
+++
+++		mp5496_l2: l2 {
+++			regulator-min-microvolt = <1800000>;
+++			regulator-max-microvolt = <3300000>;
+++		};
++ 	};
++ };
+++
+++&sdhc {
+++	vqmmc-supply = <&mp5496_l2>;
+++};
+diff --git a/target/linux/qualcommax/patches-6.6/0139-arm64-dts-qcom-ipq6018-add-LDOA2-regulator.patch b/target/linux/qualcommax/patches-6.6/0139-arm64-dts-qcom-ipq6018-add-LDOA2-regulator.patch
+deleted file mode 100644
+index 2f7746646a..0000000000
+--- a/target/linux/qualcommax/patches-6.6/0139-arm64-dts-qcom-ipq6018-add-LDOA2-regulator.patch
++++ /dev/null
+@@ -1,27 +0,0 @@
+-From d24bc08bfc66f47d6e0a294a080d62893a7696b5 Mon Sep 17 00:00:00 2001
+-From: Chukun Pan <amadeus@jmu.edu.cn>
+-Date: Thu, 18 Jan 2024 21:30:21 +0800
+-Subject: [PATCH] arm64: dts: qcom: ipq6018: add LDOA2 regulator
+-
+-Add LDOA2 regulator of MP5496 to support SDCC voltage scaling.
+-
+-Suggested-by: Robert Marko <robimarko@gmail.com>
+-Signed-off-by: Chukun Pan <amadeus@jmu.edu.cn>
+----
+- arch/arm64/boot/dts/qcom/ipq6018.dtsi | 5 +++++
+- 1 file changed, 5 insertions(+)
+-
+---- a/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+-+++ b/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+-@@ -179,6 +179,11 @@
+- 						regulator-max-microvolt = <1062500>;
+- 						regulator-always-on;
+- 					};
+-+
+-+					ipq6018_l2: l2 {
+-+						regulator-min-microvolt = <1800000>;
+-+						regulator-max-microvolt = <3300000>;
+-+					};
+- 				};
+- 			};
+- 		};
+diff --git a/target/linux/qualcommax/patches-6.6/0910-arm64-dts-qcom-ipq6018-change-voltage-to-perf-levels.patch b/target/linux/qualcommax/patches-6.6/0910-arm64-dts-qcom-ipq6018-change-voltage-to-perf-levels.patch
+deleted file mode 100644
+index 25fa313670..0000000000
+--- a/target/linux/qualcommax/patches-6.6/0910-arm64-dts-qcom-ipq6018-change-voltage-to-perf-levels.patch
++++ /dev/null
+@@ -1,65 +0,0 @@
+-From c67a1814bb1d0df290cf1e3f9c966f04aa41b9b9 Mon Sep 17 00:00:00 2001
+-From: Mantas Pucka <mantas@8devices.com>
+-Date: Tue, 30 Jan 2024 12:43:56 +0200
+-Subject: [PATCH] arm64: dts: qcom: ipq6018: change voltage to perf levels for
+- CPR4 driver
+-
+-Current CPR4 driver requires opp-microvolt to be an abstract
+-performance level instead of actual voltage level.
+-
+-Signed-off-by: Mantas Pucka <mantas@8devices.com>
+----
+- arch/arm64/boot/dts/qcom/ipq6018.dtsi | 12 ++++++------
+- 1 file changed, 6 insertions(+), 6 deletions(-)
+-
+---- a/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+-+++ b/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+-@@ -107,42 +107,42 @@
+- 
+- 		opp-864000000 {
+- 			opp-hz = /bits/ 64 <864000000>;
+--			opp-microvolt = <725000>;
+-+			opp-microvolt = <1>;
+- 			opp-supported-hw = <0xf>;
+- 			clock-latency-ns = <200000>;
+- 		};
+- 
+- 		opp-1056000000 {
+- 			opp-hz = /bits/ 64 <1056000000>;
+--			opp-microvolt = <787500>;
+-+			opp-microvolt = <2>;
+- 			opp-supported-hw = <0xf>;
+- 			clock-latency-ns = <200000>;
+- 		};
+- 
+- 		opp-1320000000 {
+- 			opp-hz = /bits/ 64 <1320000000>;
+--			opp-microvolt = <862500>;
+-+			opp-microvolt = <3>;
+- 			opp-supported-hw = <0x3>;
+- 			clock-latency-ns = <200000>;
+- 		};
+- 
+- 		opp-1440000000 {
+- 			opp-hz = /bits/ 64 <1440000000>;
+--			opp-microvolt = <925000>;
+-+			opp-microvolt = <4>;
+- 			opp-supported-hw = <0x3>;
+- 			clock-latency-ns = <200000>;
+- 		};
+- 
+- 		opp-1608000000 {
+- 			opp-hz = /bits/ 64 <1608000000>;
+--			opp-microvolt = <987500>;
+-+			opp-microvolt = <5>;
+- 			opp-supported-hw = <0x1>;
+- 			clock-latency-ns = <200000>;
+- 		};
+- 
+- 		opp-1800000000 {
+- 			opp-hz = /bits/ 64 <1800000000>;
+--			opp-microvolt = <1062500>;
+-+			opp-microvolt = <6>;
+- 			opp-supported-hw = <0x1>;
+- 			clock-latency-ns = <200000>;
+- 		};
+-- 
+2.43.0
+
