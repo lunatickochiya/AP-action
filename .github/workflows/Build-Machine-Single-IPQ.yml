@@ -29,6 +29,7 @@ on:
         - 'lenovo_newifi-y1'
         - 'domywifi_dw33d'
         - 'aliyun_ap8220'
+        - 'jdcloud_re-ss-01'
 
       SFE_BUILDIN:
         description: 'Build sfe'
@@ -118,6 +119,7 @@ jobs:
         - ramips: d-team_newifi-d2
         - ath79: domywifi_dw33d
         - ipq: aliyun_ap8220
+        - ipq: jdcloud_re-ss-01
 
     steps:
       - name: 检查
