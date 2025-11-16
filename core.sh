@@ -365,7 +365,7 @@ function add_openwrt_files() {
 	fi
 
 	if [ "$Target_CFG_Machine" = "jdcloud_re-ss-01" ]; then
-	[ -d $OpenWrt_PATCH_FILE_DIR/ipq6000-jd-re-ss-01 ] && cp -r $OpenWrt_PATCH_FILE_DIR/ipq6000-jd-re-ss-01 openwrt/mypatch-core
+	[ -d $OpenWrt_PATCH_FILE_DIR/ipq6000-jd-re-ss-01 ] && cp -r $OpenWrt_PATCH_FILE_DIR/ipq6000-jd-re-ss-01/* openwrt/mypatch-core
 	fi
 
 	[ -e files ] && mv files openwrt/files
