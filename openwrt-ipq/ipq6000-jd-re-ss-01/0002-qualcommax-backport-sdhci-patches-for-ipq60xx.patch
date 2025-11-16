@@ -1,7 +1,7 @@
 From 72f548cb60f431355062a98a3eed38ba12bdb2fc Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
 Date: Sat, 15 Nov 2025 19:25:01 +0800
-Subject: [PATCH 2/9] qualcommax: backport sdhci patches for ipq60xx
+Subject: [PATCH 02/13] qualcommax: backport sdhci patches for ipq60xx
 
 Refresh device tree, remove the useless sdhc2 aliases.
 

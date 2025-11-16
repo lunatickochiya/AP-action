@@ -1,7 +1,7 @@
 From 39a7d1385fabf730f6fe11d35336214b55dd2385 Mon Sep 17 00:00:00 2001
 From: George Moussalem <george.moussalem@outlook.com>
 Date: Mon, 7 Oct 2024 10:28:09 +0400
-Subject: [PATCH 4/9] split-off! qualcommax: add ipq50xx target
+Subject: [PATCH 04/13] split-off! qualcommax: add ipq50xx target
 
 Introduce support for the Qualcomm IPQ50xx SoC.
 This series adds support for the following components:

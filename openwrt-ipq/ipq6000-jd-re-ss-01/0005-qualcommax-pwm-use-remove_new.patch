@@ -1,7 +1,7 @@
 From ecb422d991a06b160fa55acab71c7b3e3bd6bc16 Mon Sep 17 00:00:00 2001
 From: Rosen Penev <rosenp@gmail.com>
 Date: Sat, 26 Apr 2025 15:46:00 -0700
-Subject: [PATCH 5/9] qualcommax: pwm: use remove_new
+Subject: [PATCH 05/13] qualcommax: pwm: use remove_new
 
 Easy compability fix for kernel 6.12.
 

@@ -1,0 +1,837 @@
+From 2c448ace7fa00a37171de53337235c500b6f3aba Mon Sep 17 00:00:00 2001
+From: Chukun Pan <amadeus@jmu.edu.cn>
+Date: Fri, 15 Nov 2024 23:10:39 +0800
+Subject: [PATCH 10/13] qualcommax: backport some upstream dts changes
+
+This is the minimal change for the upcoming patches.
+Refresh the device tree of ipq807x at the same time.
+
+Signed-off-by: Chukun Pan <amadeus@jmu.edu.cn>
+Link: https://github.com/openwrt/openwrt/pull/14950
+Signed-off-by: Robert Marko <robimarko@gmail.com>
+---
+ .../arm64/boot/dts/qcom/ipq6018-cp-cpu.dtsi   |   8 +-
+ .../arm64/boot/dts/qcom/ipq8074-ac-cpu.dtsi   |  48 +--
+ .../arm64/boot/dts/qcom/ipq8074-hk-cpu.dtsi   |  88 ++--
+ ...qcom-ipq-change-labels-to-lower-case.patch | 381 ++++++++++++++++++
+ ...0122-arm64-dts-ipq8074-add-CPU-clock.patch |  16 +-
+ ...q8074-add-cooling-cells-to-CPU-nodes.patch |  14 +-
+ ...4-dts-qcom-ipq8074-add-CPU-OPP-table.patch |   8 +-
+ 7 files changed, 472 insertions(+), 91 deletions(-)
+ create mode 100644 target/linux/qualcommax/patches-6.6/0084-v6.13-arm64-dts-qcom-ipq-change-labels-to-lower-case.patch
+
+diff --git a/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-cp-cpu.dtsi b/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-cp-cpu.dtsi
+index a6df44a9af..c5e2ed7c8f 100644
+--- a/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-cp-cpu.dtsi
++++ b/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-cp-cpu.dtsi
+@@ -3,19 +3,19 @@
+ #include "ipq6018-cpr-regulator.dtsi"
+ #include "ipq6018-mp5496.dtsi"
+ 
+-&CPU0 {
++&cpu0 {
+ 	cpu-supply = <&apc_vreg>;
+ };
+ 
+-&CPU1 {
++&cpu1 {
+ 	cpu-supply = <&apc_vreg>;
+ };
+ 
+-&CPU2 {
++&cpu2 {
+ 	cpu-supply = <&apc_vreg>;
+ };
+ 
+-&CPU3 {
++&cpu3 {
+ 	cpu-supply = <&apc_vreg>;
+ };
+ 
+diff --git a/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq8074-ac-cpu.dtsi b/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq8074-ac-cpu.dtsi
+index 6cf8bad5b1..a17279f139 100644
+--- a/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq8074-ac-cpu.dtsi
++++ b/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq8074-ac-cpu.dtsi
+@@ -3,22 +3,22 @@
+ #include <dt-bindings/thermal/thermal.h>
+ #include "ipq8074-cpr-regulator.dtsi"
+ 
+-&CPU0 {
++&cpu0 {
+ 	cpu-supply = <&apc_vreg>;
+ 	voltage-tolerance = <1>;
+ };
+ 
+-&CPU1 {
++&cpu1 {
+ 	cpu-supply = <&apc_vreg>;
+ 	voltage-tolerance = <1>;
+ };
+ 
+-&CPU2 {
++&cpu2 {
+ 	cpu-supply = <&apc_vreg>;
+ 	voltage-tolerance = <1>;
+ };
+ 
+-&CPU3 {
++&cpu3 {
+ 	cpu-supply = <&apc_vreg>;
+ 	voltage-tolerance = <1>;
+ };
+@@ -35,10 +35,10 @@
+ 	cooling-maps {
+ 		map0 {
+ 			trip = <&cpu0_passive>;
+-			cooling-device = <&CPU0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++			cooling-device = <&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+ 		};
+ 	};
+ };
+@@ -55,10 +55,10 @@
+ 	cooling-maps {
+ 		map0 {
+ 			trip = <&cpu1_passive>;
+-			cooling-device = <&CPU0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++			cooling-device = <&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+ 		};
+ 	};
+ };
+@@ -75,10 +75,10 @@
+ 	cooling-maps {
+ 		map0 {
+ 			trip = <&cpu2_passive>;
+-			cooling-device = <&CPU0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++			cooling-device = <&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+ 		};
+ 	};
+ };
+@@ -95,10 +95,10 @@
+ 	cooling-maps {
+ 		map0 {
+ 			trip = <&cpu3_passive>;
+-			cooling-device = <&CPU0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++			cooling-device = <&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+ 		};
+ 	};
+ };
+@@ -115,10 +115,10 @@
+ 	cooling-maps {
+ 		map0 {
+ 			trip = <&cluster_passive>;
+-			cooling-device = <&CPU0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++			cooling-device = <&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+ 		};
+ 	};
+ };
+diff --git a/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq8074-hk-cpu.dtsi b/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq8074-hk-cpu.dtsi
+index b7d746c44e..ec8f5d0aad 100644
+--- a/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq8074-hk-cpu.dtsi
++++ b/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq8074-hk-cpu.dtsi
+@@ -3,22 +3,22 @@
+ #include <dt-bindings/thermal/thermal.h>
+ #include "ipq8074-cpr-regulator.dtsi"
+ 
+-&CPU0 {
++&cpu0 {
+ 	cpu-supply = <&apc_vreg>;
+ 	voltage-tolerance = <1>;
+ };
+ 
+-&CPU1 {
++&cpu1 {
+ 	cpu-supply = <&apc_vreg>;
+ 	voltage-tolerance = <1>;
+ };
+ 
+-&CPU2 {
++&cpu2 {
+ 	cpu-supply = <&apc_vreg>;
+ 	voltage-tolerance = <1>;
+ };
+ 
+-&CPU3 {
++&cpu3 {
+ 	cpu-supply = <&apc_vreg>;
+ 	voltage-tolerance = <1>;
+ };
+@@ -41,17 +41,17 @@
+ 	cooling-maps {
+ 		map0 {
+ 			trip = <&cpu0_passive_low>;
+-			cooling-device = <&CPU0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++			cooling-device = <&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+ 		};
+ 		map1 {
+ 			trip = <&cpu0_passive_high>;
+-			cooling-device = <&CPU0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++			cooling-device = <&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+ 		};
+ 	};
+ };
+@@ -74,17 +74,17 @@
+ 	cooling-maps {
+ 		map0 {
+ 			trip = <&cpu1_passive_low>;
+-			cooling-device = <&CPU0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++			cooling-device = <&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+ 		};
+ 		map1 {
+ 			trip = <&cpu1_passive_high>;
+-			cooling-device = <&CPU0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++			cooling-device = <&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+ 		};
+ 	};
+ };
+@@ -107,17 +107,17 @@
+ 	cooling-maps {
+ 		map0 {
+ 			trip = <&cpu2_passive_low>;
+-			cooling-device = <&CPU0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++			cooling-device = <&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+ 		};
+ 		map1 {
+ 			trip = <&cpu2_passive_high>;
+-			cooling-device = <&CPU0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++			cooling-device = <&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+ 		};
+ 	};
+ };
+@@ -140,17 +140,17 @@
+ 	cooling-maps {
+ 		map0 {
+ 			trip = <&cpu3_passive_low>;
+-			cooling-device = <&CPU0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++			cooling-device = <&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+ 		};
+ 		map1 {
+ 			trip = <&cpu3_passive_high>;
+-			cooling-device = <&CPU0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++			cooling-device = <&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+ 		};
+ 	};
+ };
+@@ -173,17 +173,17 @@
+ 	cooling-maps {
+ 		map0 {
+ 			trip = <&cluster_passive_low>;
+-			cooling-device = <&CPU0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++			cooling-device = <&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+ 		};
+ 		map1 {
+ 			trip = <&cluster_passive_high>;
+-			cooling-device = <&CPU0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+-					 <&CPU3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++			cooling-device = <&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++					 <&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+ 		};
+ 	};
+ };
+diff --git a/target/linux/qualcommax/patches-6.6/0084-v6.13-arm64-dts-qcom-ipq-change-labels-to-lower-case.patch b/target/linux/qualcommax/patches-6.6/0084-v6.13-arm64-dts-qcom-ipq-change-labels-to-lower-case.patch
+new file mode 100644
+index 0000000000..0ca00ab2d7
+--- /dev/null
++++ b/target/linux/qualcommax/patches-6.6/0084-v6.13-arm64-dts-qcom-ipq-change-labels-to-lower-case.patch
+@@ -0,0 +1,381 @@
++From 6f8c1ed25809181c187a59b1caaa1521756924bf Mon Sep 17 00:00:00 2001
++From: Krzysztof Kozlowski <krzysztof.kozlowski@linaro.org>
++Date: Tue, 22 Oct 2024 17:47:26 +0200
++Subject: [PATCH] arm64: dts: qcom: ipq: change labels to lower-case
++
++DTS coding style expects labels to be lowercase.  No functional impact.
++Verified with comparing decompiled DTB (dtx_diff and fdtdump+diff).
++
++Signed-off-by: Krzysztof Kozlowski <krzysztof.kozlowski@linaro.org>
++Link: https://lore.kernel.org/r/20241022-dts-qcom-label-v3-1-0505bc7d2c56@linaro.org
++Signed-off-by: Bjorn Andersson <andersson@kernel.org>
++---
++ arch/arm64/boot/dts/qcom/ipq5018.dtsi | 10 +++---
++ arch/arm64/boot/dts/qcom/ipq5332.dtsi | 18 +++++-----
++ arch/arm64/boot/dts/qcom/ipq6018.dtsi | 26 +++++++-------
++ arch/arm64/boot/dts/qcom/ipq8074.dtsi | 18 +++++-----
++ arch/arm64/boot/dts/qcom/ipq9574.dtsi | 50 +++++++++++++--------------
++ 5 files changed, 61 insertions(+), 61 deletions(-)
++
++--- a/arch/arm64/boot/dts/qcom/ipq5018.dtsi
+++++ b/arch/arm64/boot/dts/qcom/ipq5018.dtsi
++@@ -31,27 +31,27 @@
++ 		#address-cells = <1>;
++ 		#size-cells = <0>;
++ 
++-		CPU0: cpu@0 {
+++		cpu0: cpu@0 {
++ 			device_type = "cpu";
++ 			compatible = "arm,cortex-a53";
++ 			reg = <0x0>;
++ 			enable-method = "psci";
++-			next-level-cache = <&L2_0>;
+++			next-level-cache = <&l2_0>;
++ 			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
++ 			operating-points-v2 = <&cpu_opp_table>;
++ 		};
++ 
++-		CPU1: cpu@1 {
+++		cpu1: cpu@1 {
++ 			device_type = "cpu";
++ 			compatible = "arm,cortex-a53";
++ 			reg = <0x1>;
++ 			enable-method = "psci";
++-			next-level-cache = <&L2_0>;
+++			next-level-cache = <&l2_0>;
++ 			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
++ 			operating-points-v2 = <&cpu_opp_table>;
++ 		};
++ 
++-		L2_0: l2-cache {
+++		l2_0: l2-cache {
++ 			compatible = "cache";
++ 			cache-level = <2>;
++ 			cache-size = <0x80000>;
++--- a/arch/arm64/boot/dts/qcom/ipq5332.dtsi
+++++ b/arch/arm64/boot/dts/qcom/ipq5332.dtsi
++@@ -30,47 +30,47 @@
++ 		#address-cells = <1>;
++ 		#size-cells = <0>;
++ 
++-		CPU0: cpu@0 {
+++		cpu0: cpu@0 {
++ 			device_type = "cpu";
++ 			compatible = "arm,cortex-a53";
++ 			reg = <0x0>;
++ 			enable-method = "psci";
++-			next-level-cache = <&L2_0>;
+++			next-level-cache = <&l2_0>;
++ 			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
++ 			operating-points-v2 = <&cpu_opp_table>;
++ 		};
++ 
++-		CPU1: cpu@1 {
+++		cpu1: cpu@1 {
++ 			device_type = "cpu";
++ 			compatible = "arm,cortex-a53";
++ 			reg = <0x1>;
++ 			enable-method = "psci";
++-			next-level-cache = <&L2_0>;
+++			next-level-cache = <&l2_0>;
++ 			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
++ 			operating-points-v2 = <&cpu_opp_table>;
++ 		};
++ 
++-		CPU2: cpu@2 {
+++		cpu2: cpu@2 {
++ 			device_type = "cpu";
++ 			compatible = "arm,cortex-a53";
++ 			reg = <0x2>;
++ 			enable-method = "psci";
++-			next-level-cache = <&L2_0>;
+++			next-level-cache = <&l2_0>;
++ 			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
++ 			operating-points-v2 = <&cpu_opp_table>;
++ 		};
++ 
++-		CPU3: cpu@3 {
+++		cpu3: cpu@3 {
++ 			device_type = "cpu";
++ 			compatible = "arm,cortex-a53";
++ 			reg = <0x3>;
++ 			enable-method = "psci";
++-			next-level-cache = <&L2_0>;
+++			next-level-cache = <&l2_0>;
++ 			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
++ 			operating-points-v2 = <&cpu_opp_table>;
++ 		};
++ 
++-		L2_0: l2-cache {
+++		l2_0: l2-cache {
++ 			compatible = "cache";
++ 			cache-level = <2>;
++ 			cache-unified;
++--- a/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+++++ b/arch/arm64/boot/dts/qcom/ipq6018.dtsi
++@@ -34,12 +34,12 @@
++ 		#address-cells = <1>;
++ 		#size-cells = <0>;
++ 
++-		CPU0: cpu@0 {
+++		cpu0: cpu@0 {
++ 			device_type = "cpu";
++ 			compatible = "arm,cortex-a53";
++ 			reg = <0x0>;
++ 			enable-method = "psci";
++-			next-level-cache = <&L2_0>;
+++			next-level-cache = <&l2_0>;
++ 			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
++ 			clock-names = "cpu";
++ 			operating-points-v2 = <&cpu_opp_table>;
++@@ -47,12 +47,12 @@
++ 			#cooling-cells = <2>;
++ 		};
++ 
++-		CPU1: cpu@1 {
+++		cpu1: cpu@1 {
++ 			device_type = "cpu";
++ 			compatible = "arm,cortex-a53";
++ 			enable-method = "psci";
++ 			reg = <0x1>;
++-			next-level-cache = <&L2_0>;
+++			next-level-cache = <&l2_0>;
++ 			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
++ 			clock-names = "cpu";
++ 			operating-points-v2 = <&cpu_opp_table>;
++@@ -60,12 +60,12 @@
++ 			#cooling-cells = <2>;
++ 		};
++ 
++-		CPU2: cpu@2 {
+++		cpu2: cpu@2 {
++ 			device_type = "cpu";
++ 			compatible = "arm,cortex-a53";
++ 			enable-method = "psci";
++ 			reg = <0x2>;
++-			next-level-cache = <&L2_0>;
+++			next-level-cache = <&l2_0>;
++ 			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
++ 			clock-names = "cpu";
++ 			operating-points-v2 = <&cpu_opp_table>;
++@@ -73,12 +73,12 @@
++ 			#cooling-cells = <2>;
++ 		};
++ 
++-		CPU3: cpu@3 {
+++		cpu3: cpu@3 {
++ 			device_type = "cpu";
++ 			compatible = "arm,cortex-a53";
++ 			enable-method = "psci";
++ 			reg = <0x3>;
++-			next-level-cache = <&L2_0>;
+++			next-level-cache = <&l2_0>;
++ 			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
++ 			clock-names = "cpu";
++ 			operating-points-v2 = <&cpu_opp_table>;
++@@ -86,7 +86,7 @@
++ 			#cooling-cells = <2>;
++ 		};
++ 
++-		L2_0: l2-cache {
+++		l2_0: l2-cache {
++ 			compatible = "cache";
++ 			cache-level = <2>;
++ 			cache-unified;
++@@ -974,10 +974,10 @@
++ 			cooling-maps {
++ 				map0 {
++ 					trip = <&cpu_alert>;
++-					cooling-device = <&CPU0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++-							 <&CPU1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++-							 <&CPU2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++-							 <&CPU3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+++					cooling-device = <&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+++							 <&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+++							 <&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+++							 <&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++ 				};
++ 			};
++ 		};
++--- a/arch/arm64/boot/dts/qcom/ipq8074.dtsi
+++++ b/arch/arm64/boot/dts/qcom/ipq8074.dtsi
++@@ -32,39 +32,39 @@
++ 		#address-cells = <1>;
++ 		#size-cells = <0>;
++ 
++-		CPU0: cpu@0 {
+++		cpu0: cpu@0 {
++ 			device_type = "cpu";
++ 			compatible = "arm,cortex-a53";
++ 			reg = <0x0>;
++-			next-level-cache = <&L2_0>;
+++			next-level-cache = <&l2_0>;
++ 			enable-method = "psci";
++ 		};
++ 
++-		CPU1: cpu@1 {
+++		cpu1: cpu@1 {
++ 			device_type = "cpu";
++ 			compatible = "arm,cortex-a53";
++ 			enable-method = "psci";
++ 			reg = <0x1>;
++-			next-level-cache = <&L2_0>;
+++			next-level-cache = <&l2_0>;
++ 		};
++ 
++-		CPU2: cpu@2 {
+++		cpu2: cpu@2 {
++ 			device_type = "cpu";
++ 			compatible = "arm,cortex-a53";
++ 			enable-method = "psci";
++ 			reg = <0x2>;
++-			next-level-cache = <&L2_0>;
+++			next-level-cache = <&l2_0>;
++ 		};
++ 
++-		CPU3: cpu@3 {
+++		cpu3: cpu@3 {
++ 			device_type = "cpu";
++ 			compatible = "arm,cortex-a53";
++ 			enable-method = "psci";
++ 			reg = <0x3>;
++-			next-level-cache = <&L2_0>;
+++			next-level-cache = <&l2_0>;
++ 		};
++ 
++-		L2_0: l2-cache {
+++		l2_0: l2-cache {
++ 			compatible = "cache";
++ 			cache-level = <2>;
++ 			cache-unified;
++--- a/arch/arm64/boot/dts/qcom/ipq9574.dtsi
+++++ b/arch/arm64/boot/dts/qcom/ipq9574.dtsi
++@@ -33,12 +33,12 @@
++ 		#address-cells = <1>;
++ 		#size-cells = <0>;
++ 
++-		CPU0: cpu@0 {
+++		cpu0: cpu@0 {
++ 			device_type = "cpu";
++ 			compatible = "arm,cortex-a73";
++ 			reg = <0x0>;
++ 			enable-method = "psci";
++-			next-level-cache = <&L2_0>;
+++			next-level-cache = <&l2_0>;
++ 			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
++ 			clock-names = "cpu";
++ 			operating-points-v2 = <&cpu_opp_table>;
++@@ -46,12 +46,12 @@
++ 			#cooling-cells = <2>;
++ 		};
++ 
++-		CPU1: cpu@1 {
+++		cpu1: cpu@1 {
++ 			device_type = "cpu";
++ 			compatible = "arm,cortex-a73";
++ 			reg = <0x1>;
++ 			enable-method = "psci";
++-			next-level-cache = <&L2_0>;
+++			next-level-cache = <&l2_0>;
++ 			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
++ 			clock-names = "cpu";
++ 			operating-points-v2 = <&cpu_opp_table>;
++@@ -59,12 +59,12 @@
++ 			#cooling-cells = <2>;
++ 		};
++ 
++-		CPU2: cpu@2 {
+++		cpu2: cpu@2 {
++ 			device_type = "cpu";
++ 			compatible = "arm,cortex-a73";
++ 			reg = <0x2>;
++ 			enable-method = "psci";
++-			next-level-cache = <&L2_0>;
+++			next-level-cache = <&l2_0>;
++ 			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
++ 			clock-names = "cpu";
++ 			operating-points-v2 = <&cpu_opp_table>;
++@@ -72,12 +72,12 @@
++ 			#cooling-cells = <2>;
++ 		};
++ 
++-		CPU3: cpu@3 {
+++		cpu3: cpu@3 {
++ 			device_type = "cpu";
++ 			compatible = "arm,cortex-a73";
++ 			reg = <0x3>;
++ 			enable-method = "psci";
++-			next-level-cache = <&L2_0>;
+++			next-level-cache = <&l2_0>;
++ 			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
++ 			clock-names = "cpu";
++ 			operating-points-v2 = <&cpu_opp_table>;
++@@ -85,7 +85,7 @@
++ 			#cooling-cells = <2>;
++ 		};
++ 
++-		L2_0: l2-cache {
+++		l2_0: l2-cache {
++ 			compatible = "cache";
++ 			cache-level = <2>;
++ 			cache-unified;
++@@ -845,10 +845,10 @@
++ 			cooling-maps {
++ 				map0 {
++ 					trip = <&cpu0_alert>;
++-					cooling-device = <&CPU0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++-							 <&CPU1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++-							 <&CPU2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++-							 <&CPU3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+++					cooling-device = <&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+++							 <&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+++							 <&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+++							 <&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++ 				};
++ 			};
++ 		};
++@@ -875,10 +875,10 @@
++ 			cooling-maps {
++ 				map0 {
++ 					trip = <&cpu1_alert>;
++-					cooling-device = <&CPU0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++-							 <&CPU1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++-							 <&CPU2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++-							 <&CPU3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+++					cooling-device = <&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+++							 <&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+++							 <&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+++							 <&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++ 				};
++ 			};
++ 		};
++@@ -905,10 +905,10 @@
++ 			cooling-maps {
++ 				map0 {
++ 					trip = <&cpu2_alert>;
++-					cooling-device = <&CPU0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++-							 <&CPU1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++-							 <&CPU2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++-							 <&CPU3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+++					cooling-device = <&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+++							 <&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+++							 <&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+++							 <&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++ 				};
++ 			};
++ 		};
++@@ -935,10 +935,10 @@
++ 			cooling-maps {
++ 				map0 {
++ 					trip = <&cpu3_alert>;
++-					cooling-device = <&CPU0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++-							 <&CPU1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++-							 <&CPU2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++-							 <&CPU3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+++					cooling-device = <&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+++							 <&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+++							 <&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+++							 <&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++ 				};
++ 			};
++ 		};
+diff --git a/target/linux/qualcommax/patches-6.6/0122-arm64-dts-ipq8074-add-CPU-clock.patch b/target/linux/qualcommax/patches-6.6/0122-arm64-dts-ipq8074-add-CPU-clock.patch
+index a3c5f344ab..a6265ff006 100644
+--- a/target/linux/qualcommax/patches-6.6/0122-arm64-dts-ipq8074-add-CPU-clock.patch
++++ b/target/linux/qualcommax/patches-6.6/0122-arm64-dts-ipq8074-add-CPU-clock.patch
+@@ -23,37 +23,37 @@ Signed-off-by: Robert Marko <robimarko@gmail.com>
+  	#address-cells = <2>;
+ @@ -38,6 +39,8 @@
+  			reg = <0x0>;
+- 			next-level-cache = <&L2_0>;
++ 			next-level-cache = <&l2_0>;
+  			enable-method = "psci";
+ +			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
+ +			clock-names = "cpu";
+  		};
+  
+- 		CPU1: cpu@1 {
++ 		cpu1: cpu@1 {
+ @@ -46,6 +49,8 @@
+  			enable-method = "psci";
+  			reg = <0x1>;
+- 			next-level-cache = <&L2_0>;
++ 			next-level-cache = <&l2_0>;
+ +			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
+ +			clock-names = "cpu";
+  		};
+  
+- 		CPU2: cpu@2 {
++ 		cpu2: cpu@2 {
+ @@ -54,6 +59,8 @@
+  			enable-method = "psci";
+  			reg = <0x2>;
+- 			next-level-cache = <&L2_0>;
++ 			next-level-cache = <&l2_0>;
+ +			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
+ +			clock-names = "cpu";
+  		};
+  
+- 		CPU3: cpu@3 {
++ 		cpu3: cpu@3 {
+ @@ -62,6 +69,8 @@
+  			enable-method = "psci";
+  			reg = <0x3>;
+- 			next-level-cache = <&L2_0>;
++ 			next-level-cache = <&l2_0>;
+ +			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
+ +			clock-names = "cpu";
+  		};
+  
+- 		L2_0: l2-cache {
++ 		l2_0: l2-cache {
+diff --git a/target/linux/qualcommax/patches-6.6/0123-arm64-dts-ipq8074-add-cooling-cells-to-CPU-nodes.patch b/target/linux/qualcommax/patches-6.6/0123-arm64-dts-ipq8074-add-cooling-cells-to-CPU-nodes.patch
+index 3520b38134..bea358045f 100644
+--- a/target/linux/qualcommax/patches-6.6/0123-arm64-dts-ipq8074-add-cooling-cells-to-CPU-nodes.patch
++++ b/target/linux/qualcommax/patches-6.6/0123-arm64-dts-ipq8074-add-cooling-cells-to-CPU-nodes.patch
+@@ -21,28 +21,28 @@ Signed-off-by: Robert Marko <robimarko@gmail.com>
+ +			#cooling-cells = <2>;
+  		};
+  
+- 		CPU1: cpu@1 {
++ 		cpu1: cpu@1 {
+ @@ -51,6 +52,7 @@
+- 			next-level-cache = <&L2_0>;
++ 			next-level-cache = <&l2_0>;
+  			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
+  			clock-names = "cpu";
+ +			#cooling-cells = <2>;
+  		};
+  
+- 		CPU2: cpu@2 {
++ 		cpu2: cpu@2 {
+ @@ -61,6 +63,7 @@
+- 			next-level-cache = <&L2_0>;
++ 			next-level-cache = <&l2_0>;
+  			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
+  			clock-names = "cpu";
+ +			#cooling-cells = <2>;
+  		};
+  
+- 		CPU3: cpu@3 {
++ 		cpu3: cpu@3 {
+ @@ -71,6 +74,7 @@
+- 			next-level-cache = <&L2_0>;
++ 			next-level-cache = <&l2_0>;
+  			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
+  			clock-names = "cpu";
+ +			#cooling-cells = <2>;
+  		};
+  
+- 		L2_0: l2-cache {
++ 		l2_0: l2-cache {
+diff --git a/target/linux/qualcommax/patches-6.6/0130-arm64-dts-qcom-ipq8074-add-CPU-OPP-table.patch b/target/linux/qualcommax/patches-6.6/0130-arm64-dts-qcom-ipq8074-add-CPU-OPP-table.patch
+index a89e50f52f..9de502c4c3 100644
+--- a/target/linux/qualcommax/patches-6.6/0130-arm64-dts-qcom-ipq8074-add-CPU-OPP-table.patch
++++ b/target/linux/qualcommax/patches-6.6/0130-arm64-dts-qcom-ipq8074-add-CPU-OPP-table.patch
+@@ -20,7 +20,7 @@ Signed-off-by: Robert Marko <robimarko@gmail.com>
+ +			operating-points-v2 = <&cpu_opp_table>;
+  		};
+  
+- 		CPU1: cpu@1 {
++ 		cpu1: cpu@1 {
+ @@ -53,6 +54,7 @@
+  			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
+  			clock-names = "cpu";
+@@ -28,7 +28,7 @@ Signed-off-by: Robert Marko <robimarko@gmail.com>
+ +			operating-points-v2 = <&cpu_opp_table>;
+  		};
+  
+- 		CPU2: cpu@2 {
++ 		cpu2: cpu@2 {
+ @@ -64,6 +66,7 @@
+  			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
+  			clock-names = "cpu";
+@@ -36,7 +36,7 @@ Signed-off-by: Robert Marko <robimarko@gmail.com>
+ +			operating-points-v2 = <&cpu_opp_table>;
+  		};
+  
+- 		CPU3: cpu@3 {
++ 		cpu3: cpu@3 {
+ @@ -75,6 +78,7 @@
+  			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
+  			clock-names = "cpu";
+@@ -44,7 +44,7 @@ Signed-off-by: Robert Marko <robimarko@gmail.com>
+ +			operating-points-v2 = <&cpu_opp_table>;
+  		};
+  
+- 		L2_0: l2-cache {
++ 		l2_0: l2-cache {
+ @@ -84,6 +88,54 @@
+  		};
+  	};
+-- 
+2.43.0
+

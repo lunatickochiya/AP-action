@@ -1,7 +1,7 @@
 From 88bd27b29db6fa8a959736d1ea682e8e88a215fa Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
 Date: Sat, 15 Nov 2025 19:07:57 +0800
-Subject: [PATCH 1/9] qualcommax/ipq60xx: add JDCloud RE-SS-01 (AX1800 Pro)
+Subject: [PATCH 01/13] qualcommax/ipq60xx: add JDCloud RE-SS-01 (AX1800 Pro)
  support
 
 ---

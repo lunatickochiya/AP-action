@@ -1,7 +1,7 @@
 From 533930908b5314201c72b23bf8d3aad284355f66 Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
 Date: Sat, 15 Nov 2025 19:51:53 +0800
-Subject: [PATCH 6/9] qualcommax: backport unmerged ipq60xx pwm support
+Subject: [PATCH 06/13] qualcommax: backport unmerged ipq60xx pwm support
 
 Because of the dt-bindings error, these patches have not
 been merged yet, and the driver part is fine.

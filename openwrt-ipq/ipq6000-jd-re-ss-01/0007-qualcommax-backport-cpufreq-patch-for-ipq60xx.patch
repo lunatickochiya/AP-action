@@ -1,7 +1,7 @@
 From 937ebfc26a9fbdec6b453fb9bbb76f12bd1be4ad Mon Sep 17 00:00:00 2001
 From: Chukun Pan <amadeus@jmu.edu.cn>
 Date: Tue, 5 Mar 2024 22:30:20 +0800
-Subject: [PATCH 7/9] qualcommax: backport cpufreq patch for ipq60xx
+Subject: [PATCH 07/13] qualcommax: backport cpufreq patch for ipq60xx
 
 Make cpufreq work on different IPQ60xx SoC.
 Also rebase ipq6018-cp-cpu.dtsi for mp5496.

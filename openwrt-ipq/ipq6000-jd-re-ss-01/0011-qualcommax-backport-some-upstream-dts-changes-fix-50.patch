@@ -1,0 +1,53 @@
+From 21015840a4a437338cf3205b0f79a34add99e0c3 Mon Sep 17 00:00:00 2001
+From: lunatickochiya <125438787@qq.com>
+Date: Sun, 16 Nov 2025 13:10:53 +0800
+Subject: [PATCH 11/13] qualcommax: backport some upstream dts changes fix 5018
+
+---
+ ...64-dts-qcom-ipq-change-labels-to-lower-case.patch | 12 ++++--------
+ 1 file changed, 4 insertions(+), 8 deletions(-)
+
+diff --git a/target/linux/qualcommax/patches-6.6/0084-v6.13-arm64-dts-qcom-ipq-change-labels-to-lower-case.patch b/target/linux/qualcommax/patches-6.6/0084-v6.13-arm64-dts-qcom-ipq-change-labels-to-lower-case.patch
+index 0ca00ab2d7..65ceb2b63d 100644
+--- a/target/linux/qualcommax/patches-6.6/0084-v6.13-arm64-dts-qcom-ipq-change-labels-to-lower-case.patch
++++ b/target/linux/qualcommax/patches-6.6/0084-v6.13-arm64-dts-qcom-ipq-change-labels-to-lower-case.patch
+@@ -19,10 +19,10 @@ Signed-off-by: Bjorn Andersson <andersson@kernel.org>
+ 
+ --- a/arch/arm64/boot/dts/qcom/ipq5018.dtsi
+ +++ b/arch/arm64/boot/dts/qcom/ipq5018.dtsi
+-@@ -31,27 +31,27 @@
++@@ -30,23 +30,23 @@
+  		#address-cells = <1>;
+  		#size-cells = <0>;
+- 
++
+ -		CPU0: cpu@0 {
+ +		cpu0: cpu@0 {
+  			device_type = "cpu";
+@@ -31,10 +31,8 @@ Signed-off-by: Bjorn Andersson <andersson@kernel.org>
+  			enable-method = "psci";
+ -			next-level-cache = <&L2_0>;
+ +			next-level-cache = <&l2_0>;
+- 			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
+- 			operating-points-v2 = <&cpu_opp_table>;
+  		};
+- 
++
+ -		CPU1: cpu@1 {
+ +		cpu1: cpu@1 {
+  			device_type = "cpu";
+@@ -43,10 +41,8 @@ Signed-off-by: Bjorn Andersson <andersson@kernel.org>
+  			enable-method = "psci";
+ -			next-level-cache = <&L2_0>;
+ +			next-level-cache = <&l2_0>;
+- 			clocks = <&apcs_glb APCS_ALIAS0_CORE_CLK>;
+- 			operating-points-v2 = <&cpu_opp_table>;
+  		};
+- 
++
+ -		L2_0: l2-cache {
+ +		l2_0: l2-cache {
+  			compatible = "cache";
+-- 
+2.43.0
+

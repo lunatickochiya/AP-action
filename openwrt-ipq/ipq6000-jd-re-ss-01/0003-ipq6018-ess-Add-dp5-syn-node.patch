@@ -1,7 +1,7 @@
 From 1029fc0075b7a5629410f68270371a381258a949 Mon Sep 17 00:00:00 2001
 From: Weikai Kong <priv@pppig236.com>
 Date: Sat, 28 Dec 2024 16:41:08 -0500
-Subject: [PATCH 3/9] ipq6018-ess: Add dp5-syn node
+Subject: [PATCH 03/13] ipq6018-ess: Add dp5-syn node
 
 Linksys MR7500 features 4x QSGMII QCA8075 and 1x USXGMII (1/2.5/5 GbE)
 
