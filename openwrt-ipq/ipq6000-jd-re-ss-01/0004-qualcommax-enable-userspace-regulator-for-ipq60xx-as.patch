@@ -1,0 +1,44 @@
+From 9b8697820fbc49e7efd7bb6f1acfe7a26d120ccd Mon Sep 17 00:00:00 2001
+From: Robert Marko <robimarko@gmail.com>
+Date: Sun, 17 Nov 2024 20:41:11 +0100
+Subject: [PATCH 04/11] qualcommax: enable userspace regulator for ipq60xx as
+ well
+
+Userspace regulator consumer is rather usefull so enable it for ipq60xx
+as well and remove from ipq807x only kernel config.
+
+Link: https://github.com/openwrt/openwrt/pull/14807
+Signed-off-by: Robert Marko <robimarko@gmail.com>
+---
+ target/linux/qualcommax/config-6.6             | 2 +-
+ target/linux/qualcommax/ipq807x/config-default | 1 -
+ 2 files changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/target/linux/qualcommax/config-6.6 b/target/linux/qualcommax/config-6.6
+index ac5059682a..ce5e9447a3 100644
+--- a/target/linux/qualcommax/config-6.6
++++ b/target/linux/qualcommax/config-6.6
+@@ -444,7 +444,7 @@ CONFIG_REGMAP_MMIO=y
+ CONFIG_REGULATOR=y
+ # CONFIG_REGULATOR_CPR3 is not set
+ CONFIG_REGULATOR_FIXED_VOLTAGE=y
+-# CONFIG_REGULATOR_QCOM_REFGEN is not set
++CONFIG_REGULATOR_USERSPACE_CONSUMER=y
+ # CONFIG_REGULATOR_VQMMC_IPQ4019 is not set
+ CONFIG_RELOCATABLE=y
+ CONFIG_REMOTEPROC=y
+diff --git a/target/linux/qualcommax/ipq807x/config-default b/target/linux/qualcommax/ipq807x/config-default
+index f4942c32cc..1fa8d84ad6 100644
+--- a/target/linux/qualcommax/ipq807x/config-default
++++ b/target/linux/qualcommax/ipq807x/config-default
+@@ -32,7 +32,6 @@ CONFIG_REGULATOR_CPR4_APSS=y
+ # CONFIG_REGULATOR_QCOM_LABIBB is not set
+ CONFIG_REGULATOR_QCOM_SPMI=y
+ # CONFIG_REGULATOR_QCOM_USB_VBUS is not set
+-CONFIG_REGULATOR_USERSPACE_CONSUMER=y
+ CONFIG_RTC_DRV_PM8XXX=y
+ CONFIG_SPMI=y
+ # CONFIG_SPMI_HISI3670 is not set
+-- 
+2.43.0
+

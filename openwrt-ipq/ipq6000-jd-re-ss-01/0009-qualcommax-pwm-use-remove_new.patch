@@ -1,7 +1,7 @@
-From ecb422d991a06b160fa55acab71c7b3e3bd6bc16 Mon Sep 17 00:00:00 2001
+From fa3bc9079bf3259170b4c27fd995cc6c97bb1b54 Mon Sep 17 00:00:00 2001
 From: Rosen Penev <rosenp@gmail.com>
 Date: Sat, 26 Apr 2025 15:46:00 -0700
-Subject: [PATCH 05/13] qualcommax: pwm: use remove_new
+Subject: [PATCH 09/11] qualcommax: pwm: use remove_new
 
 Easy compability fix for kernel 6.12.
 
@@ -13,10 +13,10 @@ Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
  1 file changed, 3 insertions(+), 5 deletions(-)
 
 diff --git a/target/linux/qualcommax/patches-6.6/0141-pwm-driver-for-qualcomm-ipq6018-pwm-block.patch b/target/linux/qualcommax/patches-6.6/0141-pwm-driver-for-qualcomm-ipq6018-pwm-block.patch
-index f4f396a2c1..437b6c56b6 100644
+index 2b7a6d6d89..bf373c5748 100644
 --- a/target/linux/qualcommax/patches-6.6/0141-pwm-driver-for-qualcomm-ipq6018-pwm-block.patch
 +++ b/target/linux/qualcommax/patches-6.6/0141-pwm-driver-for-qualcomm-ipq6018-pwm-block.patch
-@@ -45,7 +45,7 @@ Signed-off-by: Devi Priya <quic_devipriy@quicinc.com>
+@@ -51,7 +51,7 @@ Signed-off-by: Devi Priya <quic_devipriy@quicinc.com>
   obj-$(CONFIG_PWM_KEEMBAY)	+= pwm-keembay.o
  --- /dev/null
  +++ b/drivers/pwm/pwm-ipq.c
@@ -25,7 +25,7 @@ index f4f396a2c1..437b6c56b6 100644
  +// SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0
  +/*
  + * Copyright (c) 2016-2017, 2020 The Linux Foundation. All rights reserved.
-@@ -300,14 +300,12 @@ Signed-off-by: Devi Priya <quic_devipriy@quicinc.com>
+@@ -306,14 +306,12 @@ Signed-off-by: Devi Priya <quic_devipriy@quicinc.com>
  +	return ret;
  +}
  +
@@ -41,7 +41,7 @@ index f4f396a2c1..437b6c56b6 100644
  +}
  +
  +static const struct of_device_id pwm_ipq_dt_match[] = {
-@@ -322,7 +320,7 @@ Signed-off-by: Devi Priya <quic_devipriy@quicinc.com>
+@@ -328,7 +326,7 @@ Signed-off-by: Devi Priya <quic_devipriy@quicinc.com>
  +		.of_match_table = pwm_ipq_dt_match,
  +	},
  +	.probe = ipq_pwm_probe,

@@ -1,7 +1,7 @@
-From 72f548cb60f431355062a98a3eed38ba12bdb2fc Mon Sep 17 00:00:00 2001
-From: lunatickochiya <125438787@qq.com>
-Date: Sat, 15 Nov 2025 19:25:01 +0800
-Subject: [PATCH 02/13] qualcommax: backport sdhci patches for ipq60xx
+From 66ad5a914d154b08e99f7fcd7491fc65a24932df Mon Sep 17 00:00:00 2001
+From: Chukun Pan <amadeus@jmu.edu.cn>
+Date: Mon, 4 Mar 2024 23:02:16 +0800
+Subject: [PATCH 07/11] qualcommax: backport sdhci patches for ipq60xx
 
 Refresh device tree, remove the useless sdhc2 aliases.
 
@@ -13,8 +13,12 @@ Signed-off-by: Robert Marko <robimarko@gmail.com>
  .../arm64/boot/dts/qcom/ipq6010-xe3-4.dts     |  3 +-
  ...6018-update-sdcc-max-clock-frequency.patch | 26 ++++++++++
  ...rm64-dts-qcom-ipq6018-add-sdhci-node.patch | 47 +++++++++++++++++++
+ ...qcom-ipq-change-labels-to-lower-case.patch |  2 +-
  ...rm64-dts-qcom-ipq6018-add-SDHCI-node.patch | 45 ------------------
- 5 files changed, 76 insertions(+), 49 deletions(-)
+ ...arm64-dts-qcom-ipq6018-add-wifi-node.patch |  2 +-
+ ...07-soc-qcom-fix-smp2p-ack-on-ipq6018.patch |  2 +-
+ ...pq6018-assign-QDSS_AT-clock-to-wifi-.patch |  2 +-
+ 9 files changed, 80 insertions(+), 53 deletions(-)
  create mode 100644 target/linux/qualcommax/patches-6.6/0082-v6.11-clk-qcom-gcc-ipq6018-update-sdcc-max-clock-frequency.patch
  create mode 100644 target/linux/qualcommax/patches-6.6/0083-v6.11-arm64-dts-qcom-ipq6018-add-sdhci-node.patch
  delete mode 100644 target/linux/qualcommax/patches-6.6/0137-arm64-dts-qcom-ipq6018-add-SDHCI-node.patch
@@ -144,9 +148,22 @@ index 0000000000..ed4b6d9e6d
 + 		blsp_dma: dma-controller@7884000 {
 + 			compatible = "qcom,bam-v1.7.0";
 + 			reg = <0x0 0x07884000 0x0 0x2b000>;
+diff --git a/target/linux/qualcommax/patches-6.6/0084-v6.13-arm64-dts-qcom-ipq-change-labels-to-lower-case.patch b/target/linux/qualcommax/patches-6.6/0084-v6.13-arm64-dts-qcom-ipq-change-labels-to-lower-case.patch
+index 0ca00ab2d7..6a1c93b869 100644
+--- a/target/linux/qualcommax/patches-6.6/0084-v6.13-arm64-dts-qcom-ipq-change-labels-to-lower-case.patch
++++ b/target/linux/qualcommax/patches-6.6/0084-v6.13-arm64-dts-qcom-ipq-change-labels-to-lower-case.patch
+@@ -182,7 +182,7 @@ Signed-off-by: Bjorn Andersson <andersson@kernel.org>
+  			compatible = "cache";
+  			cache-level = <2>;
+  			cache-unified;
+-@@ -974,10 +974,10 @@
++@@ -993,10 +993,10 @@
+  			cooling-maps {
+  				map0 {
+  					trip = <&cpu_alert>;
 diff --git a/target/linux/qualcommax/patches-6.6/0137-arm64-dts-qcom-ipq6018-add-SDHCI-node.patch b/target/linux/qualcommax/patches-6.6/0137-arm64-dts-qcom-ipq6018-add-SDHCI-node.patch
 deleted file mode 100644
-index e1296aa792..0000000000
+index 6052f41209..0000000000
 --- a/target/linux/qualcommax/patches-6.6/0137-arm64-dts-qcom-ipq6018-add-SDHCI-node.patch
 +++ /dev/null
 @@ -1,45 +0,0 @@
@@ -165,7 +182,7 @@ index e1296aa792..0000000000
 -
 ---- a/arch/arm64/boot/dts/qcom/ipq6018.dtsi
 -+++ b/arch/arm64/boot/dts/qcom/ipq6018.dtsi
--@@ -470,6 +470,29 @@
+-@@ -475,6 +475,29 @@
 - 			};
 - 		};
 - 
@@ -195,6 +212,45 @@ index e1296aa792..0000000000
 - 		blsp_dma: dma-controller@7884000 {
 - 			compatible = "qcom,bam-v1.7.0";
 - 			reg = <0x0 0x07884000 0x0 0x2b000>;
+diff --git a/target/linux/qualcommax/patches-6.6/0906-arm64-dts-qcom-ipq6018-add-wifi-node.patch b/target/linux/qualcommax/patches-6.6/0906-arm64-dts-qcom-ipq6018-add-wifi-node.patch
+index 25e5d2f62d..0d8dc8a6f7 100644
+--- a/target/linux/qualcommax/patches-6.6/0906-arm64-dts-qcom-ipq6018-add-wifi-node.patch
++++ b/target/linux/qualcommax/patches-6.6/0906-arm64-dts-qcom-ipq6018-add-wifi-node.patch
+@@ -15,7 +15,7 @@ Signed-off-by: Mantas Pucka <mantas@8devices.com>
+ 
+ --- a/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+ +++ b/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+-@@ -827,6 +827,102 @@
++@@ -823,6 +823,102 @@
+  			};
+  		};
+  
+diff --git a/target/linux/qualcommax/patches-6.6/0907-soc-qcom-fix-smp2p-ack-on-ipq6018.patch b/target/linux/qualcommax/patches-6.6/0907-soc-qcom-fix-smp2p-ack-on-ipq6018.patch
+index 981ee03105..fedbbfc376 100644
+--- a/target/linux/qualcommax/patches-6.6/0907-soc-qcom-fix-smp2p-ack-on-ipq6018.patch
++++ b/target/linux/qualcommax/patches-6.6/0907-soc-qcom-fix-smp2p-ack-on-ipq6018.patch
+@@ -15,7 +15,7 @@ Signed-off-by: Mantas Pucka <mantas@8devices.com>
+ 
+ --- a/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+ +++ b/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+-@@ -1175,6 +1175,7 @@
++@@ -1171,6 +1171,7 @@
+  
+  		wcss_smp2p_out: master-kernel {
+  			qcom,entry-name = "master-kernel";
+diff --git a/target/linux/qualcommax/patches-6.6/0909-arm64-dts-qcom-ipq6018-assign-QDSS_AT-clock-to-wifi-.patch b/target/linux/qualcommax/patches-6.6/0909-arm64-dts-qcom-ipq6018-assign-QDSS_AT-clock-to-wifi-.patch
+index 150e06f301..c10d297033 100644
+--- a/target/linux/qualcommax/patches-6.6/0909-arm64-dts-qcom-ipq6018-assign-QDSS_AT-clock-to-wifi-.patch
++++ b/target/linux/qualcommax/patches-6.6/0909-arm64-dts-qcom-ipq6018-assign-QDSS_AT-clock-to-wifi-.patch
+@@ -13,7 +13,7 @@ Signed-off-by: Mantas Pucka <mantas@8devices.com>
+ 
+ --- a/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+ +++ b/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+-@@ -948,8 +948,8 @@
++@@ -944,8 +944,8 @@
+  				      "wcss_reset",
+  				      "wcss_q6_reset";
+  
 -- 
 2.43.0
 

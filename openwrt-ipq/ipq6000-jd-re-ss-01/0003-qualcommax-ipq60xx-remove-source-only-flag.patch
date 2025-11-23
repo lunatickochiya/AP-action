@@ -1,0 +1,30 @@
+From 4f25e34fe97fd1a86785f087f30c82b4bff49314 Mon Sep 17 00:00:00 2001
+From: Robert Marko <robimarko@gmail.com>
+Date: Sun, 24 Nov 2024 23:50:22 +0100
+Subject: [PATCH 03/11] qualcommax: ipq60xx: remove source-only flag
+
+Its been a while since we added ipq60xx as source-only, it is now
+quite usable so lets remove the source-only flag to start building
+official images.
+
+I also plan to merge additional popular boards rather soon.
+
+Link: https://github.com/openwrt/openwrt/pull/17065
+Signed-off-by: Robert Marko <robimarko@gmail.com>
+---
+ target/linux/qualcommax/ipq60xx/target.mk | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/target/linux/qualcommax/ipq60xx/target.mk b/target/linux/qualcommax/ipq60xx/target.mk
+index dc3a2ceff6..06a85ab5e4 100644
+--- a/target/linux/qualcommax/ipq60xx/target.mk
++++ b/target/linux/qualcommax/ipq60xx/target.mk
+@@ -1,5 +1,4 @@
+ SUBTARGET:=ipq60xx
+-FEATURES += source-only
+ BOARDNAME:=Qualcomm Atheros IPQ60xx
+ DEFAULT_PACKAGES += ath11k-firmware-ipq6018
+ 
+-- 
+2.43.0
+

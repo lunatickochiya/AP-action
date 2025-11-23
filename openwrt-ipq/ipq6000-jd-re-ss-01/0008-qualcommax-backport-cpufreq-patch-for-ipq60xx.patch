@@ -1,7 +1,7 @@
-From 937ebfc26a9fbdec6b453fb9bbb76f12bd1be4ad Mon Sep 17 00:00:00 2001
+From fc3883a63e8bb7ab4bf2632252d6a27e2bd0b8d0 Mon Sep 17 00:00:00 2001
 From: Chukun Pan <amadeus@jmu.edu.cn>
 Date: Tue, 5 Mar 2024 22:30:20 +0800
-Subject: [PATCH 07/13] qualcommax: backport cpufreq patch for ipq60xx
+Subject: [PATCH 08/11] qualcommax: backport cpufreq patch for ipq60xx
 
 Make cpufreq work on different IPQ60xx SoC.
 Also rebase ipq6018-cp-cpu.dtsi for mp5496.
@@ -20,8 +20,11 @@ Signed-off-by: Robert Marko <robimarko@gmail.com>
  ...pq6018-rename-labels-of-mp5496-regul.patch |  50 ++++++++
  ...dts-qcom-ipq6018-add-LDOA2-regulator.patch |  33 +++++
  ...dts-qcom-ipq6018-add-LDOA2-regulator.patch |  27 ----
+ ...arm64-dts-qcom-ipq6018-add-wifi-node.patch |   2 +-
+ ...07-soc-qcom-fix-smp2p-ack-on-ipq6018.patch |   2 +-
+ ...pq6018-assign-QDSS_AT-clock-to-wifi-.patch |   2 +-
  ...pq6018-change-voltage-to-perf-levels.patch |  65 ----------
- 11 files changed, 309 insertions(+), 146 deletions(-)
+ 14 files changed, 312 insertions(+), 149 deletions(-)
  delete mode 100644 target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-fixed-smps.dtsi
  create mode 100644 target/linux/qualcommax/patches-6.6/0085-v6.15-arm64-dts-qcom-ipq6018-add-1.2GHz-CPU-Frequency.patch
  create mode 100644 target/linux/qualcommax/patches-6.6/0086-v6.15-arm64-dts-qcom-ipq6018-add-1.5GHz-CPU-Frequency.patch
@@ -55,7 +58,7 @@ index 3e1f1200a7..ed2f549785 100644
  	/* TZ has exclusive control over GPIO20 */
  	gpio-reserved-ranges = <20 1>;
 diff --git a/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-cp-cpu.dtsi b/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-cp-cpu.dtsi
-index 2dee366e1e..a6df44a9af 100644
+index 8e04e56bc0..c5e2ed7c8f 100644
 --- a/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-cp-cpu.dtsi
 +++ b/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-cp-cpu.dtsi
 @@ -1,6 +1,7 @@
@@ -64,10 +67,10 @@ index 2dee366e1e..a6df44a9af 100644
  #include "ipq6018-cpr-regulator.dtsi"
 +#include "ipq6018-mp5496.dtsi"
  
- &CPU0 {
+ &cpu0 {
  	cpu-supply = <&apc_vreg>;
 @@ -17,3 +18,37 @@
- &CPU3 {
+ &cpu3 {
  	cpu-supply = <&apc_vreg>;
  };
 +
@@ -507,6 +510,45 @@ index 2f7746646a..0000000000
 - 				};
 - 			};
 - 		};
+diff --git a/target/linux/qualcommax/patches-6.6/0906-arm64-dts-qcom-ipq6018-add-wifi-node.patch b/target/linux/qualcommax/patches-6.6/0906-arm64-dts-qcom-ipq6018-add-wifi-node.patch
+index 0d8dc8a6f7..2f086c00b1 100644
+--- a/target/linux/qualcommax/patches-6.6/0906-arm64-dts-qcom-ipq6018-add-wifi-node.patch
++++ b/target/linux/qualcommax/patches-6.6/0906-arm64-dts-qcom-ipq6018-add-wifi-node.patch
+@@ -15,7 +15,7 @@ Signed-off-by: Mantas Pucka <mantas@8devices.com>
+ 
+ --- a/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+ +++ b/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+-@@ -823,6 +823,102 @@
++@@ -818,6 +818,102 @@
+  			};
+  		};
+  
+diff --git a/target/linux/qualcommax/patches-6.6/0907-soc-qcom-fix-smp2p-ack-on-ipq6018.patch b/target/linux/qualcommax/patches-6.6/0907-soc-qcom-fix-smp2p-ack-on-ipq6018.patch
+index fedbbfc376..d29b6826bb 100644
+--- a/target/linux/qualcommax/patches-6.6/0907-soc-qcom-fix-smp2p-ack-on-ipq6018.patch
++++ b/target/linux/qualcommax/patches-6.6/0907-soc-qcom-fix-smp2p-ack-on-ipq6018.patch
+@@ -15,7 +15,7 @@ Signed-off-by: Mantas Pucka <mantas@8devices.com>
+ 
+ --- a/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+ +++ b/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+-@@ -1171,6 +1171,7 @@
++@@ -1166,6 +1166,7 @@
+  
+  		wcss_smp2p_out: master-kernel {
+  			qcom,entry-name = "master-kernel";
+diff --git a/target/linux/qualcommax/patches-6.6/0909-arm64-dts-qcom-ipq6018-assign-QDSS_AT-clock-to-wifi-.patch b/target/linux/qualcommax/patches-6.6/0909-arm64-dts-qcom-ipq6018-assign-QDSS_AT-clock-to-wifi-.patch
+index c10d297033..73b9ef9677 100644
+--- a/target/linux/qualcommax/patches-6.6/0909-arm64-dts-qcom-ipq6018-assign-QDSS_AT-clock-to-wifi-.patch
++++ b/target/linux/qualcommax/patches-6.6/0909-arm64-dts-qcom-ipq6018-assign-QDSS_AT-clock-to-wifi-.patch
+@@ -13,7 +13,7 @@ Signed-off-by: Mantas Pucka <mantas@8devices.com>
+ 
+ --- a/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+ +++ b/arch/arm64/boot/dts/qcom/ipq6018.dtsi
+-@@ -944,8 +944,8 @@
++@@ -939,8 +939,8 @@
+  				      "wcss_reset",
+  				      "wcss_q6_reset";
+  
 diff --git a/target/linux/qualcommax/patches-6.6/0910-arm64-dts-qcom-ipq6018-change-voltage-to-perf-levels.patch b/target/linux/qualcommax/patches-6.6/0910-arm64-dts-qcom-ipq6018-change-voltage-to-perf-levels.patch
 deleted file mode 100644
 index 25fa313670..0000000000

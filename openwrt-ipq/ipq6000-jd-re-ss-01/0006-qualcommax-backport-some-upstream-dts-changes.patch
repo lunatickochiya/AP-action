@@ -1,7 +1,7 @@
-From 2c448ace7fa00a37171de53337235c500b6f3aba Mon Sep 17 00:00:00 2001
+From 94454f7e8683d833689920f9cf49e84424b9f527 Mon Sep 17 00:00:00 2001
 From: Chukun Pan <amadeus@jmu.edu.cn>
 Date: Fri, 15 Nov 2024 23:10:39 +0800
-Subject: [PATCH 10/13] qualcommax: backport some upstream dts changes
+Subject: [PATCH 06/11] qualcommax: backport some upstream dts changes
 
 This is the minimal change for the upcoming patches.
 Refresh the device tree of ipq807x at the same time.
@@ -21,12 +21,12 @@ Signed-off-by: Robert Marko <robimarko@gmail.com>
  create mode 100644 target/linux/qualcommax/patches-6.6/0084-v6.13-arm64-dts-qcom-ipq-change-labels-to-lower-case.patch
 
 diff --git a/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-cp-cpu.dtsi b/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-cp-cpu.dtsi
-index a6df44a9af..c5e2ed7c8f 100644
+index 2dee366e1e..8e04e56bc0 100644
 --- a/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-cp-cpu.dtsi
 +++ b/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-cp-cpu.dtsi
-@@ -3,19 +3,19 @@
+@@ -2,18 +2,18 @@
+ 
  #include "ipq6018-cpr-regulator.dtsi"
- #include "ipq6018-mp5496.dtsi"
  
 -&CPU0 {
 +&cpu0 {
@@ -47,7 +47,6 @@ index a6df44a9af..c5e2ed7c8f 100644
 +&cpu3 {
  	cpu-supply = <&apc_vreg>;
  };
- 
 diff --git a/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq8074-ac-cpu.dtsi b/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq8074-ac-cpu.dtsi
 index 6cf8bad5b1..a17279f139 100644
 --- a/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq8074-ac-cpu.dtsi
