@@ -1,0 +1,54 @@
+From 03466780a80d863075c3d3ff990e6c50032e455b Mon Sep 17 00:00:00 2001
+From: lunatickochiya <125438787@qq.com>
+Date: Sat, 13 Dec 2025 21:16:53 +0800
+Subject: [PATCH] mt76:mt7615: fix exPA TX target power value
+
+---
+ ...t7615-fix-exPA-TX-target-power-value.patch | 35 +++++++++++++++++++
+ 1 file changed, 35 insertions(+)
+ create mode 100644 package/kernel/mt76/patches/101-mt7615-fix-exPA-TX-target-power-value.patch
+
+diff --git a/package/kernel/mt76/patches/101-mt7615-fix-exPA-TX-target-power-value.patch b/package/kernel/mt76/patches/101-mt7615-fix-exPA-TX-target-power-value.patch
+new file mode 100644
+index 0000000000..939c6adbc4
+--- /dev/null
++++ b/package/kernel/mt76/patches/101-mt7615-fix-exPA-TX-target-power-value.patch
+@@ -0,0 +1,35 @@
++Subject: [PATCH] mt7615: fix exPA TX target power value
++---
++ mt7615/eeprom.c | 9 ---------
++ mt7615/init.c   | 2 +-
++ 2 files changed, 1 insertion(+), 10 deletions(-)
++
++--- a/mt7615/eeprom.c
+++++ b/mt7615/eeprom.c
++@@ -204,15 +204,6 @@ int mt7615_eeprom_get_target_power_index
++ 	if (chain_idx > 3)
++ 		return -EINVAL;
++
++-	/* TSSI disabled */
++-	if (mt7615_ext_pa_enabled(dev, chan->band)) {
++-		if (chan->band == NL80211_BAND_2GHZ)
++-			return MT_EE_EXT_PA_2G_TARGET_POWER;
++-		else
++-			return MT_EE_EXT_PA_5G_TARGET_POWER;
++-	}
++-
++-	/* TSSI enabled */
++ 	if (chan->band == NL80211_BAND_2GHZ) {
++ 		index = MT_EE_TX0_2G_TARGET_POWER + chain_idx * 6;
++ 	} else {
++--- a/mt7615/init.c
+++++ b/mt7615/init.c
++@@ -285,7 +285,7 @@ void mt7615_init_txpower(struct mt7615_d
++ 	    (MT_EE_RATE_POWER_EN | MT_EE_RATE_POWER_SIGN))
++ 		delta += rate_val & MT_EE_RATE_POWER_MASK;
++
++-	if (!is_mt7663(&dev->mt76) && mt7615_ext_pa_enabled(dev, band))
+++	if (!is_mt7663(&dev->mt76) && !mt7615_ext_pa_enabled(dev, band))
++ 		target_chains = 1;
++ 	else
++ 		target_chains = n_chains;
+-- 
+2.43.0
+
