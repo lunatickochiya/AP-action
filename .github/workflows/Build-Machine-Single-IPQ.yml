@@ -26,7 +26,7 @@ on:
         - 'nokia_ea0326gmp_stock'
         - 'lenovo_newifi-d1'
         - 'd-team_newifi-d2'
-        - 'lenovo_newifi-y1'
+        - 'link_nn6000-v2-lite'
         - 'link_nn6000-v2'
         - 'aliyun_ap8220'
         - 'jdcloud_re-ss-01'
@@ -124,7 +124,7 @@ jobs:
         - mt798x-nousb: nokia_ea0326gmp_ubootmod
         - mt798x-nousb: nokia_ea0326gmp_stock
         - ramips: lenovo_newifi-d1
-        - ramips: lenovo_newifi-y1
+        - ipq: link_nn6000-v2-lite
         - ramips: d-team_newifi-d2
         - ipq: aliyun_ap8220
         - ipq: jdcloud_re-ss-01
