@@ -302,6 +302,10 @@ function add_openwrt_sfe_kernel_nss_patch() {
 	if [ "$Branch" = "24.10-nss-202502" ] || [ "$Branch" = "24.10-nss-202503" ] || [ "$Branch" = "24.10-nss-202504" ]; then
 		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/202502/0600-1-qca-nss-ecm-support-CORE.patch openwrt/target/linux/qualcommax/patches-6.6/0600-1-qca-nss-ecm-support-CORE.patch
 		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/202502/0603-1-qca-nss-clients-add-qdisc-support.patch openwrt/target/linux/qualcommax/patches-6.6/0603-1-qca-nss-clients-add-qdisc-support.patch
+	elif [ "$Branch" = "24.10-nss-202601" ]; then
+		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/202601/0600-1-qca-nss-ecm-support-CORE.patch openwrt/target/linux/qualcommax/patches-6.6/0600-1-qca-nss-ecm-support-CORE.patch
+		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/202601/0603-1-qca-nss-clients-add-qdisc-support.patch openwrt/target/linux/qualcommax/patches-6.6/0603-1-qca-nss-clients-add-qdisc-support.patch
+		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/202601/0981-0-qca-skbuff-revert.patch openwrt/target/linux/qualcommax/patches-6.6/0981-0-qca-skbuff-revert.patch
 	else
 		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/20250425/0600-1-qca-nss-ecm-support-CORE.patch openwrt/target/linux/qualcommax/patches-6.6/0600-1-qca-nss-ecm-support-CORE.patch
 		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/20250425/0603-1-qca-nss-clients-add-qdisc-support.patch openwrt/target/linux/qualcommax/patches-6.6/0603-1-qca-nss-clients-add-qdisc-support.patch
