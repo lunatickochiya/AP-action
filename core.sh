@@ -20,8 +20,9 @@ function init_pkg_env() {
 		git libncurses5-dev libssl-dev python3-distutils python3-pyelftools python3-setuptools \
 		libpython3-dev rsync unzip zlib1g-dev swig aria2 jq subversion qemu-utils ccache rename \
 		libelf-dev device-tree-compiler libgnutls28-dev coccinelle libgmp3-dev libmpc-dev libfuse-dev \
-		b43-fwcutter cups-ppdc
+		b43-fwcutter cups-ppdc clang-15 llvm-15 npm
 
+	sudo npm install -g pnpm
 	sudo -E apt-get -qq purge azure-cli ghc* zulu* llvm* firefox powershell openjdk* dotnet* google* mysql* php* android*
 	sudo -E apt-get -qq autoremove --purge
 	sudo -E apt-get -qq clean
@@ -42,6 +43,7 @@ function init_gh_env_2410_ipq() {
 	source "${GITHUB_WORKSPACE}/env/$OpenWrt_PATCH_FILE_DIR.repo"
 	echo -e "Branch=$(echo $PATCH_JSON_INPUT | jq -r ".Branch")" >> $GITHUB_ENV
 	echo -e "IPQ_Firmware=$(echo $PATCH_JSON_INPUT | jq -r ".IPQ_Firmware")" >> $GITHUB_ENV
+	echo -e "ADD_eBPF=$(echo $PATCH_JSON_INPUT | jq -r ".ADD_eBPF")" >> "$GITHUB_ENV"
 }
 
 function config_json_input_set() {
@@ -163,6 +165,24 @@ CONFIG_SDK=y
 		" >> "$file1"; done
 		echo "----------sdk-added------"
 		echo "----$Matrix_Target----SDK---"
+	fi
+
+	if [ "$ADD_eBPF" = "1" ]; then
+		for file1 in package-configs/$OpenWrt_PATCH_FILE_DIR/*.config; do     echo "# ADD eBPF
+CONFIG_DEVEL=y
+CONFIG_KERNEL_DEBUG_INFO=y
+CONFIG_KERNEL_DEBUG_INFO_REDUCED=n
+CONFIG_KERNEL_DEBUG_INFO_BTF=y
+CONFIG_KERNEL_CGROUPS=y
+CONFIG_KERNEL_CGROUP_BPF=y
+CONFIG_KERNEL_BPF_EVENTS=y
+CONFIG_BPF_TOOLCHAIN_HOST=y
+CONFIG_KERNEL_XDP_SOCKETS=y
+CONFIG_PACKAGE_kmod-xdp-sockets-diag=y
+		" >> "$file1"; done
+		echo "----------eBPF-added------"
+		echo "eBPF=_eBPF" >> $GITHUB_ENV
+		echo "----$Matrix_Target----eBPF---"
 	fi
 
 	if [ "$ADD_IB" = "1" ]; then
