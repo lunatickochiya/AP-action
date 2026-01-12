@@ -106,7 +106,7 @@ on:
       patch_repo:
         description: 'Use json patch repo true(1) or false(0) See ReadME'
         required: true
-        default: '{"Branch": "24.10-nss-dev","IPQ_Firmware": "ipq-nss-11-4","OPENSSL_3_5": "1", "BCM_FULLCONE": "1", "TRY_BBR_V3": "1", "Firewall_Allow_WAN": "0", "ADD_IB": "1", "ADD_SDK": "1", "ADD_eBPF": "0", "DOCKER_BUILDIN": "0"}'
+        default: '{"Branch": "24.10-nss-dev","IPQ_Firmware": "ipq-nss-11-4","OPENSSL_3_5": "1", "BCM_FULLCONE": "1", "TRY_BBR_V3": "1", "Firewall_Allow_WAN": "0", "ADD_IB": "1", "ADD_SDK": "1", "ADD_eBPF": "0", "ADD_SKB_RECYCLER": "1", "DOCKER_BUILDIN": "0"}'
 
 env:
   TZ: Asia/Shanghai
@@ -363,7 +363,7 @@ jobs:
       continue-on-error: true
       if: steps.organize.outputs.status == 'success' && env.UPLOAD_FIRMWARE == 'true'
       with:
-        name: ${{ env.date3 }}_${{matrix.target}}_firmware_24.10-${{github.event.inputs.MACH}}-${{ github.event.inputs.SETIP }}${{ env.Kernel_Test }}${{ env.BCM_FULLCONE_NAME }}${{ env.SFE }}${{ env.TRY_BBR_V3_NAME }}${{ env.OPENSSL_3_5_NAME }}${{ env.DOCKER_NAME }}${{ env.WAN_NAME }}_${{ env.Branch }}_${{ env.IPQ_Firmware }}
+        name: ${{ env.date3 }}_${{matrix.target}}_firmware_24.10-${{github.event.inputs.MACH}}-${{ github.event.inputs.SETIP }}${{ env.Kernel_Test }}${{ env.BCM_FULLCONE_NAME }}${{ env.SFE }}${{ env.TRY_BBR_V3_NAME }}${{ env.OPENSSL_3_5_NAME }}${{ env.DOCKER_NAME }}${{ env.WAN_NAME }}_${{ env.Branch }}_${{ env.IPQ_Firmware }}${{ env.eBPF }}
         path: |
           firmware
 
@@ -372,7 +372,7 @@ jobs:
       continue-on-error: true
       if: steps.organize.outputs.status == 'success' && env.UPLOAD_IPK_DIR == 'true' && steps.afb.outputs.status == 'success'
       with:
-        name: ${{ env.date3 }}_${{matrix.target}}_ipks_24.10-${{github.event.inputs.MACH}}${{ env.Kernel_Test }}${{ env.BCM_FULLCONE_NAME }}${{ env.SFE }}${{ env.TRY_BBR_V3_NAME }}${{ env.OPENSSL_3_5_NAME }}${{ env.DOCKER_NAME }}${{ env.WAN_NAME }}_${{ env.Branch }}_${{ env.IPQ_Firmware }}
+        name: ${{ env.date3 }}_${{matrix.target}}_ipks_24.10-${{github.event.inputs.MACH}}${{ env.Kernel_Test }}${{ env.BCM_FULLCONE_NAME }}${{ env.SFE }}${{ env.TRY_BBR_V3_NAME }}${{ env.OPENSSL_3_5_NAME }}${{ env.DOCKER_NAME }}${{ env.WAN_NAME }}_${{ env.Branch }}_${{ env.IPQ_Firmware }}${{ env.eBPF }}
         path: |
           ipks
 

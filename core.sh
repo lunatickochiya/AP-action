@@ -44,6 +44,7 @@ function init_gh_env_2410_ipq() {
 	echo -e "Branch=$(echo $PATCH_JSON_INPUT | jq -r ".Branch")" >> $GITHUB_ENV
 	echo -e "IPQ_Firmware=$(echo $PATCH_JSON_INPUT | jq -r ".IPQ_Firmware")" >> $GITHUB_ENV
 	echo -e "ADD_eBPF=$(echo $PATCH_JSON_INPUT | jq -r ".ADD_eBPF")" >> "$GITHUB_ENV"
+	echo -e "ADD_SKB_RECYCLER=$(echo $PATCH_JSON_INPUT | jq -r ".ADD_SKB_RECYCLER")" >> "$GITHUB_ENV"
 }
 
 function config_json_input_set() {
@@ -183,6 +184,14 @@ CONFIG_PACKAGE_kmod-xdp-sockets-diag=y
 		echo "----------eBPF-added------"
 		echo "eBPF=_eBPF" >> $GITHUB_ENV
 		echo "----$Matrix_Target----eBPF---"
+	fi
+
+	if [ "$ADD_SKB_RECYCLER" = "1" ]; then
+		for file2 in package-configs/$OpenWrt_PATCH_FILE_DIR/*.config; do     echo "# ADD SKB_RECYCLER
+CONFIG_KERNEL_SKB_RECYCLER=y
+CONFIG_KERNEL_SKB_RECYCLER_MULTI_CPU=y
+		" >> "$file2"; done
+		echo "----$Matrix_Target----SKB_RECYCLER---"
 	fi
 
 	if [ "$ADD_IB" = "1" ]; then
