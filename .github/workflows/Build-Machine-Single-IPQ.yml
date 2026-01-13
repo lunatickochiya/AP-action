@@ -28,8 +28,10 @@ on:
         - 'd-team_newifi-d2'
         - 'link_nn6000-v2-lite'
         - 'link_nn6000-v2'
+        - 'link_nn6000-v2-12m'
         - 'aliyun_ap8220'
         - 'jdcloud_re-ss-01'
+        - 'jdcloud_re-ss-01-12m'
 
       SFE_BUILDIN:
         description: 'Build sfe'
@@ -128,7 +130,9 @@ jobs:
         - ramips: d-team_newifi-d2
         - ipq: aliyun_ap8220
         - ipq: jdcloud_re-ss-01
+        - ipq: jdcloud_re-ss-01-12m
         - ipq: link_nn6000-v2
+        - ipq: link_nn6000-v2-12m
 
     steps:
       - name: 检查

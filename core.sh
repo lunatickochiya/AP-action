@@ -14,18 +14,12 @@ OpenWrt_PATCH_FILE_DIR="openwrt-ipq"
 }
 
 function init_pkg_env() {
-	sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
-	sudo -E apt-get -qq update
-	sudo -E apt-get -qq install build-essential clang flex g++ gawk gcc-multilib gettext \
-		git libncurses5-dev libssl-dev python3-distutils python3-pyelftools python3-setuptools \
-		libpython3-dev rsync unzip zlib1g-dev swig aria2 jq subversion qemu-utils ccache rename \
-		libelf-dev device-tree-compiler libgnutls28-dev coccinelle libgmp3-dev libmpc-dev libfuse-dev \
-		b43-fwcutter cups-ppdc clang-15 llvm-15 npm
+	sudo bash -c 'bash <(curl -sL https://build-scripts.immortalwrt.org/init_build_environment.sh)'
+	sudo -E apt-get -qq install libgnutls28-dev coccinelle libfuse-dev \
+	b43-fwcutter cups-ppdc
 
 	sudo npm install -g pnpm
-	sudo -E apt-get -qq purge azure-cli ghc* zulu* llvm* firefox powershell openjdk* dotnet* google* mysql* php* android*
-	sudo -E apt-get -qq autoremove --purge
-	sudo -E apt-get -qq clean
+	clang --version
 
 	sudo timedatectl set-timezone "$TZ"
 	sudo mkdir -p /workdir
@@ -331,7 +325,7 @@ function add_openwrt_sfe_kernel_nss_patch() {
 	if [ "$Branch" = "24.10-nss-202502" ] || [ "$Branch" = "24.10-nss-202503" ] || [ "$Branch" = "24.10-nss-202504" ]; then
 		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/202502/0600-1-qca-nss-ecm-support-CORE.patch openwrt/target/linux/qualcommax/patches-6.6/0600-1-qca-nss-ecm-support-CORE.patch
 		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/202502/0603-1-qca-nss-clients-add-qdisc-support.patch openwrt/target/linux/qualcommax/patches-6.6/0603-1-qca-nss-clients-add-qdisc-support.patch
-	elif [ "$Branch" = "24.10-nss-202601" ]; then
+	elif [ "$Branch" = "24.10-nss-202601" ] || [ "$Branch" = "24.10-nss-dev" ]; then
 		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/202601/0600-1-qca-nss-ecm-support-CORE.patch openwrt/target/linux/qualcommax/patches-6.6/0600-1-qca-nss-ecm-support-CORE.patch
 		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/202601/0603-1-qca-nss-clients-add-qdisc-support.patch openwrt/target/linux/qualcommax/patches-6.6/0603-1-qca-nss-clients-add-qdisc-support.patch
 		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/202601/0981-0-qca-skbuff-revert.patch openwrt/target/linux/qualcommax/patches-6.6/0981-0-qca-skbuff-revert.patch
