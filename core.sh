@@ -30,6 +30,7 @@ function init_gh_env_2410() {
 	source "${GITHUB_WORKSPACE}/env/common.txt"
 	source "${GITHUB_WORKSPACE}/env/$OpenWrt_PATCH_FILE_DIR.repo"
 	echo -e "TEST_KERNEL=$(echo $PATCH_JSON_INPUT | jq -r ".TEST_KERNEL")" >> "$GITHUB_ENV"
+	echo -e "ADD_eBPF=$(echo $PATCH_JSON_INPUT | jq -r ".ADD_eBPF")" >> "$GITHUB_ENV"
 }
 
 function init_gh_env_2410_ipq() {
