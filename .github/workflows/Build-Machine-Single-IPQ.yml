@@ -311,7 +311,7 @@ jobs:
       if: env.Cache == '1' && !cancelled()
       with:
         ccache: 'true'
-        mixkey: ${{ matrix.target }}
+        mixkey: ${{ contains(github.event.inputs.MACH, '12m') && format('{} 12m', matrix.target) || matrix.target }}
         clean: ${{ contains(github.event.action, 'nocache') }}
         prefix: ${{ github.workspace }}/openwrt
 
