@@ -114,7 +114,7 @@ env:
 
 jobs:
   prepare:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     strategy:
@@ -154,7 +154,7 @@ jobs:
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
  
   build:
-    runs-on: Ubuntu-22.04
+    runs-on: Ubuntu-24.04
     needs: prepare
     strategy:
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
@@ -302,7 +302,7 @@ jobs:
       if: env.Cache == '1' && !cancelled()
       with:
         ccache: 'true'
-        mixkey: ${{ matrix.target }}
+        mixkey: ${{ matrix.target }}${{ env.eBPF }}${{ env.Branch }}
         clean: ${{ contains(github.event.action, 'nocache') }}
         prefix: ${{ github.workspace }}/openwrt
 
