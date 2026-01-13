@@ -29,6 +29,7 @@ on:
         - 'link_nn6000-v2-lite'
         - 'link_nn6000-v2'
         - 'link_nn6000-v2-12m'
+        - 'link_nn6000-v2-12m-lite'
         - 'aliyun_ap8220'
         - 'jdcloud_re-ss-01'
         - 'jdcloud_re-ss-01-12m'
@@ -115,7 +116,7 @@ env:
 
 jobs:
   prepare:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     strategy:
@@ -133,6 +134,7 @@ jobs:
         - ipq: jdcloud_re-ss-01-12m
         - ipq: link_nn6000-v2
         - ipq: link_nn6000-v2-12m
+        - ipq: link_nn6000-v2-12m-lite
 
     steps:
       - name: 检查
@@ -156,7 +158,7 @@ jobs:
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
  
   build:
-    runs-on: Ubuntu-22.04
+    runs-on: Ubuntu-24.04
     needs: prepare
     env:
       Matrix_Target: ${{ matrix.target }}
