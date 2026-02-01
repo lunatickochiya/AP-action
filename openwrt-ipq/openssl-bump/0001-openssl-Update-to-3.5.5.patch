@@ -162,7 +162,7 @@ index 7ce5cd4383..0596e36202 100644
  
  --- a/Configure
  +++ b/Configure
--@@ -1678,7 +1678,9 @@ $config{CFLAGS} = [ map { $_ eq '--ossl-
+-@@ -1677,7 +1677,9 @@ $config{CFLAGS} = [ map { $_ eq '--ossl-
 +@@ -1811,7 +1811,9 @@ $config{CFLAGS} = [ map { $_ eq '--ossl-
   
   unless ($disabled{afalgeng}) {
