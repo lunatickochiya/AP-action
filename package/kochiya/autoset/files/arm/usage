@@ -2,7 +2,7 @@
 
 NSS_PATH="/sys/kernel/debug/qca-nss-drv/stats"
 
-cpu_usage="$(busybox top -n1 | awk '/^CPU/ {printf("%d%", 100 - $8)}')"
+cpu_usage="$(busybox top -n1 | awk '/^CPU/ {printf("%d", 100 - $8)}')"
 
 combined_output=""
 
@@ -22,11 +22,11 @@ fi
 
 
 if [ -n "$combined_output" ] && [ -n "$connection_count" ]; then
-	echo -n "CPU: ${cpu_usage} NPU: ${combined_output} ECM: ${connection_count} "
+	echo -n "CPU: ${cpu_usage}% NPU: ${combined_output} ECM: ${connection_count} "
 elif [ -n "$combined_output" ]; then
-	echo -n "CPU: ${cpu_usage} NPU: ${combined_output} "
+	echo -n "CPU: ${cpu_usage}% NPU: ${combined_output} "
 elif [ -n "$connection_count" ]; then
-	echo -n "CPU: ${cpu_usage} ECM: ${connection_count} "
+	echo -n "CPU: ${cpu_usage}% ECM: ${connection_count} "
 else
-	echo -n "CPU: ${cpu_usage}"
+	echo -n "CPU: ${cpu_usage}%"
 fi
