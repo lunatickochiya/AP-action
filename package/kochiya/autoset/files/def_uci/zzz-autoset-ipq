@@ -16,6 +16,9 @@ uci -q batch <<-EOF >/dev/null
 	set network.@device[0].flow_offloading=0
 	set network.@device[0].flow_offloading_hw=0
 	set luci.main.mediaurlbase='/luci-static/argon'
+	set turboacc.config.sw_flow='0'
+	set turboacc.config.hw_flow='0'
+	set turboacc.config.sfe_flow='0'
 	commit
 EOF
 
