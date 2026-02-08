@@ -18,6 +18,7 @@ uci -q batch <<-EOF >/dev/null
 	set network.@device[0].packet_steering=0
 	set network.@device[0].flow_offloading=0
 	set network.@device[0].flow_offloading_hw=0
+	set luci.main.mediaurlbase='/luci-static/argon'
 	commit
 EOF
 
