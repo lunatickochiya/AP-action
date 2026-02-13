@@ -241,10 +241,16 @@ function ln_openwrt() {
 	sudo mkdir -p -m 777 /mnt/openwrt/dl /mnt/openwrt/bin /mnt/openwrt/staging_dir /mnt/openwrt/build_dir
 	ln -sf /mnt/openwrt/dl openwrt/dl
 	#ln -sf /mnt/openwrt/bin openwrt/bin
-	ln -sf /mnt/openwrt/staging_dir openwrt/staging_dir
+	#ln -sf /mnt/openwrt/staging_dir openwrt/staging_dir
 	ln -sf /mnt/openwrt/build_dir openwrt/build_dir
 	df -hT
 	ls /mnt/openwrt
+	echo "-------"
+	ls -l openwrt | grep '^l'
+	echo "-------"
+	readlink openwrt
+	echo "-------"
+	ls -l /workdir/openwrt
 }
 
 function add_openwrt_sfe_ipt_k66() {
