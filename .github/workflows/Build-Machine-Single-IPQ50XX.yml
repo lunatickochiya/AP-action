@@ -193,7 +193,7 @@ jobs:
           -e 's|https://git.openwrt.org/feed/routing.git|https://github.com/openwrt/routing.git|' \
           -e 's|https://git.openwrt.org/feed/telephony.git|https://github.com/openwrt/telephony.git|' \
           feeds.conf.default
-        # sed -i '$a src-git lunatic7 https://github.com/lunatickochiya/actionbased-openwrt-packages.git' feeds.conf.default
+        # sed -i '$a src-git lunatic7 https://github.com/lunatickochiya/luna-action-packages.git' feeds.conf.default
         cd ../
         echo "status=success" >> $GITHUB_OUTPUT
 
