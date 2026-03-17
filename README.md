@@ -1,5 +1,5 @@
 # Actions-OpenWrt mod
-
+# 本repo生成的固件仅自用，禁止商用。
 
  特色功能
 
