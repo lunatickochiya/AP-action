@@ -225,7 +225,12 @@ jobs:
       id: clone
       run: |
         df -hT $PWD
+        if [ ${{ env.Branch}} = 24.10-nss-dev-618 ]; then
+        git clone https://${{ secrets.MY_SECRET_TOKEN }}@github.com/lunatickochiya/openwrt-ipq-2410.git -b $Branch openwrt --single-branch
+        mv -f openwrt/nss-setup/batman-fix $GITHUB_WORKSPACE/batman-2410
+        else
         git clone $REPO_URL -b $Branch openwrt --single-branch
+        fi
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
         cd openwrt
         sed -i \
