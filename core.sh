@@ -237,6 +237,7 @@ CONFIG_NSS_FIRMWARE_VERSION_11_4=y' machine-configs/$OpenWrt_PATCH_FILE_DIR/*
 	fi
 
 	if [ "$Branch" = "24.10-nss-dev-618" ]; then
+		ls
 		[ -d batman-2410 ] && cp -r batman-2410/* $OpenWrt_PATCH_FILE_DIR/feeds-routing-patch
 		echo "----$Matrix_Target----mac80211-6-18---"
 	fi

@@ -227,7 +227,6 @@ jobs:
         df -hT $PWD
         if [ ${{ env.Branch}} = 24.10-nss-dev-618 ]; then
         git clone https://${{ secrets.MY_SECRET_TOKEN }}@github.com/lunatickochiya/openwrt-ipq-2410.git -b $Branch openwrt --single-branch
-        mv -f openwrt/nss-setup/batman-fix $GITHUB_WORKSPACE/batman-2410
         else
         git clone $REPO_URL -b $Branch openwrt --single-branch
         fi
@@ -241,6 +240,9 @@ jobs:
           feeds.conf.default
         sed -i '$a src-git lunatic7 https://github.com/lunatickochiya/luna-action-packages.git' feeds.conf.default
         cd ../
+        if [ ${{ env.Branch}} = 24.10-nss-dev-618 ]; then
+        mv -f openwrt/nss-setup/batman-fix $GITHUB_WORKSPACE/batman-2410
+        fi
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 增加磁盘空间
