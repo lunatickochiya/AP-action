@@ -342,6 +342,9 @@ function add_openwrt_sfe_kernel_nss_patch() {
 		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/20250425/0981-0-qca-skbuff-revert.patch openwrt/target/linux/qualcommax/patches-6.6/0981-0-qca-skbuff-revert.patch
 	fi
 
+	if [ "$Branch" = "24.10-nss-dev" ] || [ "$Branch" = "24.10-nss-618" ]; then
+		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/202603/0600-1-qca-nss-ecm-support-CORE.patch openwrt/target/linux/qualcommax/patches-6.6/0600-1-qca-nss-ecm-support-CORE.patch
+	fi
 		mkdir -p openwrt/package/qca
 		echo "SFE=_SFE" >> $GITHUB_ENV
 }

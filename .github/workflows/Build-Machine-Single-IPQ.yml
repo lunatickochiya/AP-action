@@ -164,6 +164,7 @@ jobs:
       Matrix_Target: ${{ matrix.target }}
       Target_CFG_Machine: ${{github.event.inputs.MACH}}
       OpenWrt_PATCH_FILE_DIR: openwrt-ipq
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     strategy:
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     name: Build ${{github.event.inputs.MACH}} openwrt 24.10
