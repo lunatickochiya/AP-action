@@ -1,4 +1,4 @@
-name: Build OpenWrt-IPQ Single Machine
+name: Build Caches
 
 # Fix for broken build: https://github.com/softprops/action-gh-release/issues/236
 permissions:
