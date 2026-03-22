@@ -237,9 +237,9 @@ CONFIG_NSS_FIRMWARE_VERSION_11_4=y' machine-configs/$OpenWrt_PATCH_FILE_DIR/*
 	fi
 
 	if [ "$Branch" = "24.10-nss-dev-618" ]; then
-		ls
-		[ -d batman-2410 ] && cp -r batman-2410/* $OpenWrt_PATCH_FILE_DIR/feeds-routing-patch
-		echo "----$Matrix_Target----mac80211-6-18---"
+	mkdir -p $OpenWrt_PATCH_FILE_DIR/feeds-routing-patch
+	[ -d batman-2410 ] && cp -r batman-2410/* $OpenWrt_PATCH_FILE_DIR/feeds-routing-patch
+	echo "----$Matrix_Target----mac80211-6-18---"
 	fi
 
 }
@@ -472,6 +472,7 @@ function fix_openwrt_feeds() {
 	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-luci-patch ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-luci-patch openwrt/feeds/luci/feeds-luci-patch
 	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-packages-patch ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-packages-patch openwrt/feeds/packages/feeds-packages-patch
 	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-telephony-patch ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-telephony-patch openwrt/feeds/telephony/feeds-telephony-patch
+	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-routing-patch ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-routing-patch openwrt/feeds/routing/feeds-routing-patch
 
 	cd openwrt
 	autosetver
@@ -558,6 +559,13 @@ function patch_openwrt_feeds() {
     cd feeds/telephony/
     echo Applying feeds-telephony-patch $telepatch
         patch -p1 --no-backup-if-mismatch < feeds-telephony-patch/$telepatch
+    cd ../..
+    done
+
+    for routingpatch in $( ls feeds/routing/feeds-routing-patch ); do
+    cd feeds/routing/
+    echo Applying feeds-routing-patch $routingpatch
+        patch -p1 --no-backup-if-mismatch --quiet < feeds-routing-patch/$routingpatch
     cd ../..
     done
 }
