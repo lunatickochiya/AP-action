@@ -1,0 +1,97 @@
+From 2ba0bbf1864e2ff52690bf926bb92113670e64ff Mon Sep 17 00:00:00 2001
+From: lunatickochiya <125438787@qq.com>
+Date: Tue, 31 Mar 2026 15:09:54 +0800
+Subject: [PATCH] golang: Update to 1.26.1
+
+---
+ lang/golang/golang-values.mk |  4 ++--
+ lang/golang/golang/Makefile  | 18 ++++++++----------
+ 2 files changed, 10 insertions(+), 12 deletions(-)
+
+diff --git a/lang/golang/golang-values.mk b/lang/golang/golang-values.mk
+index 06e6cec38f..ebdb40e0e6 100644
+--- a/lang/golang/golang-values.mk
++++ b/lang/golang/golang-values.mk
+@@ -258,7 +258,7 @@ GO_ARCH_DEPENDS:=@(aarch64||arm||i386||i686||loongarch64||mips||mips64||mips64el
+ GO_PIE_SUPPORTED_OS_ARCH:= \
+   android_386  android_amd64  android_arm  android_arm64 \
+   linux_386    linux_amd64    linux_arm    linux_arm64 \
+-  windows_386  windows_amd64  windows_arm  windows_arm64 \
++  windows_386  windows_amd64  windows_arm64 \
+   \
+   darwin_amd64 darwin_arm64 \
+   ios_amd64    ios_arm64 \
+@@ -270,7 +270,7 @@ GO_PIE_SUPPORTED_OS_ARCH:= \
+   linux_loong64 linux_ppc64le linux_riscv64 linux_s390x
+ 
+ # From https://go.dev/src/cmd/go/internal/work/init.go
+-go_pie_install_suffix=$(if $(filter $(1),aix_ppc64 windows_386 windows_amd64 windows_arm windows_arm64),,shared)
++go_pie_install_suffix=$(if $(filter $(1),aix_ppc64 windows_386 windows_amd64 windows_arm64),,shared)
+ 
+ ifneq ($(filter $(GO_HOST_OS_ARCH),$(GO_PIE_SUPPORTED_OS_ARCH)),)
+   GO_HOST_PIE_SUPPORTED:=1
+diff --git a/lang/golang/golang/Makefile b/lang/golang/golang/Makefile
+index f3f130893c..4dedd5a4e7 100644
+--- a/lang/golang/golang/Makefile
++++ b/lang/golang/golang/Makefile
+@@ -7,8 +7,8 @@
+ 
+ include $(TOPDIR)/rules.mk
+ 
+-GO_VERSION_MAJOR_MINOR:=1.25
+-GO_VERSION_PATCH:=7
++GO_VERSION_MAJOR_MINOR:=1.26
++GO_VERSION_PATCH:=1
+ 
+ PKG_NAME:=golang
+ PKG_VERSION:=$(GO_VERSION_MAJOR_MINOR)$(if $(GO_VERSION_PATCH),.$(GO_VERSION_PATCH))
+@@ -21,7 +21,7 @@ GO_SOURCE_URLS:=https://dl.google.com/go/ \
+ 
+ PKG_SOURCE:=go$(PKG_VERSION).src.tar.gz
+ PKG_SOURCE_URL:=$(GO_SOURCE_URLS)
+-PKG_HASH:=178f2832820274b43e177d32f06a3ebb0129e427dd20a5e4c88df2c1763cf10a
++PKG_HASH:=3172293d04b209dc1144698e7ba13f0477f6ba8c5ffd0be66c20fdbc9785dfbb
+ 
+ PKG_MAINTAINER:=Jeffery To <jeffery.to@gmail.com>
+ PKG_LICENSE:=BSD-3-Clause
+@@ -49,7 +49,7 @@ HOST_GO_VALID_OS_ARCH:= \
+   linux_386    linux_amd64    linux_arm    linux_arm64 \
+   openbsd_386  openbsd_amd64  openbsd_arm  openbsd_arm64 \
+   netbsd_386   netbsd_amd64   netbsd_arm   netbsd_arm64 \
+-  windows_386  windows_amd64  windows_arm  windows_arm64 \
++  windows_386  windows_amd64  windows_arm64 \
+   \
+   plan9_386    plan9_amd64    plan9_arm \
+   \
+@@ -64,14 +64,12 @@ HOST_GO_VALID_OS_ARCH:= \
+   js_wasm \
+   wasip1_wasm \
+   \
+-  freebsd_riscv64 \
+-  openbsd_riscv64 \
+-  \
+   linux_ppc64 linux_ppc64le \
+   linux_mips linux_mipsle linux_mips64 linux_mips64le \
+   linux_loong64 linux_riscv64 linux_s390x \
+   \
+-  openbsd_mips64
++  netbsd_ppc64 \
++  openbsd_ppc64 openbsd_riscv64
+ 
+ BOOTSTRAP_SOURCE:=go1.4-bootstrap-20171003.tar.gz
+ BOOTSTRAP_SOURCE_URL:=$(GO_SOURCE_URLS)
+@@ -102,9 +100,9 @@ BOOTSTRAP_1_20_HASH:=1aef321a0e3e38b7e91d2d7eb64040666cabdcc77d383de3c9522d0d69b
+ 
+ BOOTSTRAP_1_20_BUILD_DIR:=$(HOST_BUILD_DIR)/.go_bootstrap_1.20
+ 
+-BOOTSTRAP_1_22_SOURCE:=go1.22.6.src.tar.gz
++BOOTSTRAP_1_22_SOURCE:=go1.24.13.src.tar.gz
+ BOOTSTRAP_1_22_SOURCE_URL:=$(GO_SOURCE_URLS)
+-BOOTSTRAP_1_22_HASH:=9e48d99d519882579917d8189c17e98c373ce25abaebb98772e2927088992a51
++BOOTSTRAP_1_22_HASH:=639a6204c2486b137df1eb6e78ee3ed038f9877d0e4b5a465e796a2153f858d7
+ 
+ BOOTSTRAP_1_22_BUILD_DIR:=$(HOST_BUILD_DIR)/.go_bootstrap_1.22
+ 
+-- 
+2.43.0
+
