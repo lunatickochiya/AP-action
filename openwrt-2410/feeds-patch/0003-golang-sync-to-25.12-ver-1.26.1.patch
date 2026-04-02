@@ -1,12 +1,12 @@
-From 394ba6328953705ee6a43696c20f8506214a12aa Mon Sep 17 00:00:00 2001
+From 7f72a2c49b4f5f2d3d1268a9c24913e10a8ec5f2 Mon Sep 17 00:00:00 2001
 From: lunatickochiya <125438787@qq.com>
-Date: Wed, 1 Apr 2026 20:16:03 +0800
+Date: Thu, 2 Apr 2026 20:40:55 +0800
 Subject: [PATCH] golang:sync to 25.12 ver 1.26.1
 
 ---
  lang/golang/{golang/files => }/go-gcc-helper |   7 +-
  lang/golang/go-strip-helper                  |  16 +
- lang/golang/golang-bootstrap/Config.in       |  47 ++
+ lang/golang/golang-bootstrap/Config.in       |  47 +++
  lang/golang/golang-bootstrap/Makefile        | 341 +++++++++++++++
  lang/golang/golang-build.sh                  |  13 +-
  lang/golang/golang-compiler.mk               | 203 +++++----
@@ -15,11 +15,11 @@ Subject: [PATCH] golang:sync to 25.12 ver 1.26.1
  lang/golang/golang-values.mk                 | 120 +++++-
  lang/golang/golang-version.mk                | 300 +++++++++++++
  lang/golang/golang/Config.in                 |  33 --
- lang/golang/golang/Makefile                  | 424 +------------------
+ lang/golang/golang/Makefile                  | 423 +------------------
  lang/golang/golang/test.sh                   |   5 -
  lang/golang/golang1.26/Makefile              | 104 +++++
  lang/golang/golang1.26/test.sh               |   9 +
- 15 files changed, 1072 insertions(+), 580 deletions(-)
+ 15 files changed, 1072 insertions(+), 579 deletions(-)
  rename lang/golang/{golang/files => }/go-gcc-helper (79%)
  create mode 100755 lang/golang/go-strip-helper
  create mode 100644 lang/golang/golang-bootstrap/Config.in
@@ -34,7 +34,7 @@ diff --git a/lang/golang/golang/files/go-gcc-helper b/lang/golang/go-gcc-helper
 similarity index 79%
 rename from lang/golang/golang/files/go-gcc-helper
 rename to lang/golang/go-gcc-helper
-index b21457b55c..d76e45aecf 100644
+index b21457b55..d76e45aec 100644
 --- a/lang/golang/golang/files/go-gcc-helper
 +++ b/lang/golang/go-gcc-helper
 @@ -1,16 +1,13 @@
@@ -58,7 +58,7 @@ index b21457b55c..d76e45aecf 100644
  }
 diff --git a/lang/golang/go-strip-helper b/lang/golang/go-strip-helper
 new file mode 100755
-index 0000000000..e2351e1a6a
+index 000000000..e2351e1a6
 --- /dev/null
 +++ b/lang/golang/go-strip-helper
 @@ -0,0 +1,16 @@
@@ -80,7 +80,7 @@ index 0000000000..e2351e1a6a
 +"$@"
 diff --git a/lang/golang/golang-bootstrap/Config.in b/lang/golang/golang-bootstrap/Config.in
 new file mode 100644
-index 0000000000..d19fb0a9b0
+index 000000000..d19fb0a9b
 --- /dev/null
 +++ b/lang/golang/golang-bootstrap/Config.in
 @@ -0,0 +1,47 @@
@@ -133,7 +133,7 @@ index 0000000000..d19fb0a9b0
 +endmenu
 diff --git a/lang/golang/golang-bootstrap/Makefile b/lang/golang/golang-bootstrap/Makefile
 new file mode 100644
-index 0000000000..bf581674fe
+index 000000000..bf581674f
 --- /dev/null
 +++ b/lang/golang/golang-bootstrap/Makefile
 @@ -0,0 +1,341 @@
@@ -479,7 +479,7 @@ index 0000000000..bf581674fe
 +
 +$(eval $(call BuildPackage,golang-bootstrap))
 diff --git a/lang/golang/golang-build.sh b/lang/golang/golang-build.sh
-index 01df4aa427..d145b34b5e 100644
+index 01df4aa42..d145b34b5 100644
 --- a/lang/golang/golang-build.sh
 +++ b/lang/golang/golang-build.sh
 @@ -1,28 +1,23 @@
@@ -545,7 +545,7 @@ index 01df4aa427..d145b34b5e 100644
  	install -d -m0755 "$dest/$GO_BUILD_DEPENDS_PATH/src/$dir"
  	cp -fpR "$GO_BUILD_DIR/src/$GO_PKG" "$dest/$GO_BUILD_DEPENDS_PATH/src/$dir/"
 diff --git a/lang/golang/golang-compiler.mk b/lang/golang/golang-compiler.mk
-index 44defed7b4..5032836d87 100644
+index 44defed7b..5032836d8 100644
 --- a/lang/golang/golang-compiler.mk
 +++ b/lang/golang/golang-compiler.mk
 @@ -1,9 +1,8 @@
@@ -857,7 +857,7 @@ index 44defed7b4..5032836d87 100644
  
  endef
 diff --git a/lang/golang/golang-host-build.mk b/lang/golang/golang-host-build.mk
-index 7c7551fd18..f1bb70f273 100644
+index 7c7551fd1..f1bb70f27 100644
 --- a/lang/golang/golang-host-build.mk
 +++ b/lang/golang/golang-host-build.mk
 @@ -1,9 +1,7 @@
@@ -872,7 +872,7 @@ index 7c7551fd18..f1bb70f273 100644
  ifeq ($(origin GO_INCLUDE_DIR),undefined)
    GO_INCLUDE_DIR:=$(dir $(lastword $(MAKEFILE_LIST)))
 diff --git a/lang/golang/golang-package.mk b/lang/golang/golang-package.mk
-index cc00505368..1cbe585927 100644
+index cc0050536..1cbe58592 100644
 --- a/lang/golang/golang-package.mk
 +++ b/lang/golang/golang-package.mk
 @@ -1,9 +1,7 @@
@@ -971,7 +971,7 @@ index cc00505368..1cbe585927 100644
  
  define GoPackage/Package/Install
 diff --git a/lang/golang/golang-values.mk b/lang/golang/golang-values.mk
-index 727739e2d2..4d2c61e64c 100644
+index 727739e2d..4d2c61e64 100644
 --- a/lang/golang/golang-values.mk
 +++ b/lang/golang/golang-values.mk
 @@ -1,9 +1,8 @@
@@ -1146,7 +1146,7 @@ index 727739e2d2..4d2c61e64c 100644
    GO_HOST_PIE_SUPPORTED:=1
 diff --git a/lang/golang/golang-version.mk b/lang/golang/golang-version.mk
 new file mode 100644
-index 0000000000..6eb50293f3
+index 000000000..6eb50293f
 --- /dev/null
 +++ b/lang/golang/golang-version.mk
 @@ -0,0 +1,300 @@
@@ -1452,7 +1452,7 @@ index 0000000000..6eb50293f3
 +endef
 diff --git a/lang/golang/golang/Config.in b/lang/golang/golang/Config.in
 deleted file mode 100644
-index 76fd85c805..0000000000
+index 76fd85c80..000000000
 --- a/lang/golang/golang/Config.in
 +++ /dev/null
 @@ -1,33 +0,0 @@
@@ -1490,10 +1490,10 @@ index 76fd85c805..0000000000
 -
 -endmenu
 diff --git a/lang/golang/golang/Makefile b/lang/golang/golang/Makefile
-index c1eb93fa21..0a3b5c472e 100644
+index fc12f03e5..0a3b5c472 100644
 --- a/lang/golang/golang/Makefile
 +++ b/lang/golang/golang/Makefile
-@@ -1,434 +1,34 @@
+@@ -1,433 +1,34 @@
 +# This is a dummy go package that allows packages to use default go version by
 +# setting PKG_BUILD_DEPENDS:=golang/host, instead of specifying a concrete
 +# version, e.g. PKG_BUILD_DEPENDS:=golang1.25/host
@@ -1517,8 +1517,7 @@ index c1eb93fa21..0a3b5c472e 100644
 -
 -GO_SOURCE_URLS:=https://dl.google.com/go/ \
 -                https://mirrors.ustc.edu.cn/golang/ \
--                https://mirrors.nju.edu.cn/golang/ \
--                https://go.dev/dl/
+-                https://mirrors.nju.edu.cn/golang/
 -
 -PKG_SOURCE:=go$(PKG_VERSION).src.tar.gz
 -PKG_SOURCE_URL:=$(GO_SOURCE_URLS)
@@ -1942,7 +1941,7 @@ index c1eb93fa21..0a3b5c472e 100644
 -$(eval $(call BuildPackage,golang-src))
 diff --git a/lang/golang/golang/test.sh b/lang/golang/golang/test.sh
 deleted file mode 100644
-index 114b427ef1..0000000000
+index 114b427ef..000000000
 --- a/lang/golang/golang/test.sh
 +++ /dev/null
 @@ -1,5 +0,0 @@
@@ -1953,7 +1952,7 @@ index 114b427ef1..0000000000
 -go version | grep -F " go$PKG_VERSION "
 diff --git a/lang/golang/golang1.26/Makefile b/lang/golang/golang1.26/Makefile
 new file mode 100644
-index 0000000000..18ba445e9b
+index 000000000..18ba445e9
 --- /dev/null
 +++ b/lang/golang/golang1.26/Makefile
 @@ -0,0 +1,104 @@
@@ -2063,7 +2062,7 @@ index 0000000000..18ba445e9b
 +$(eval $(call BuildPackage,$(PKG_NAME)-tests))
 diff --git a/lang/golang/golang1.26/test.sh b/lang/golang/golang1.26/test.sh
 new file mode 100755
-index 0000000000..09d3e3fcaf
+index 000000000..09d3e3fca
 --- /dev/null
 +++ b/lang/golang/golang1.26/test.sh
 @@ -0,0 +1,9 @@

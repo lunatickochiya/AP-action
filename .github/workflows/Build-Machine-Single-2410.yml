@@ -279,7 +279,7 @@ jobs:
         (cd feeds/packages && curl -sL https://github.com/openwrt/packages/commit/0bcc41f3617e9041513a779a8a54f7fecae1efcd.patch | patch -p1 && echo "Rust 1.94.0 Patch applied")
         #sed -i 's/--set=llvm\.download-ci-llvm=false/--set=llvm.download-ci-llvm=true/' feeds/packages/lang/rust/Makefile
         grep -q -- '--ci false \\' feeds/packages/lang/rust/Makefile || sed -i '/x\.py \\/a \        --ci false \\' feeds/packages/lang/rust/Makefile
-        (cd feeds/packages && patch -p1 < $GITHUB_WORKSPACE/$OpenWrt_PATCH_FILE_DIR/feeds-patch/0003-golang-sync-to-25.12-ver-1.26.1.patch && echo "Golang Patch applied")
+        (rm -rf feeds/packages/lang/golang && cp -r $GITHUB_WORKSPACE/$OpenWrt_PATCH_FILE_DIR/feeds-packages-replace/* feeds/packages/ && echo "Golang Repalced")
         rm -rf feeds/packages.index
         ./scripts/feeds update packages
         ./scripts/feeds install -a
