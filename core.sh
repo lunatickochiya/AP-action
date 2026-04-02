@@ -653,6 +653,8 @@ for pkg in "${package_array[@]}"; do
     awk -v pkg="$pkg" '\$0 ~ pkg { print }' .config
 done
 
+rm -rf tmp
+make defconfig
 cd ../
 fix_openwrt_config_eror
 }
