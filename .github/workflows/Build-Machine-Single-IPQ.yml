@@ -159,6 +159,7 @@ jobs:
  
   build:
     runs-on: Ubuntu-24.04
+    timeout-minutes: 720
     needs: prepare
     env:
       Matrix_Target: ${{ matrix.target }}
