@@ -333,13 +333,12 @@ jobs:
         make download -j$(nproc)
         find dl -size -1024c -exec rm -f {} \;
 
-    - name: 缓存
-      uses: stupidloud/cachewrtbuild@main
+    - name: 缓存staging
+      uses: HiGarfield/cachewrtbuild@main
       if: env.Cache == '1' && !cancelled()
       with:
         ccache: 'true'
         mixkey: ${{ matrix.target }}${{ env.eBPF }}${{ env.Branch }}
-        clean: ${{ contains(github.event.action, 'nocache') }}
         prefix: ${{ github.workspace }}/openwrt
 
     - name: 编译固件
