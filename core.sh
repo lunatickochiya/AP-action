@@ -847,6 +847,7 @@ add_openwrt_nosfe_nss_pkgs
 elif [ "$1" == "add-openwrt-files-2410" ]; then
 add_openwrt_files
 patch_openwrt_core_pre
+add_openwrt_sfe_patch_fix_66
 elif [ "$1" == "add-openwrt-kmods" ]; then
 add_openwrt_kmods
 elif [ "$1" == "fix-openwrt-feeds" ]; then
