@@ -219,6 +219,7 @@ CONFIG_TESTING_KERNEL=y\nCONFIG_HAS_TESTING_KERNEL=y' machine-configs/$OpenWrt_P
 	sed -i '1i\
 CONFIG_NSS_FIRMWARE_VERSION_12_5=y\nCONFIG_NSS_FIRMWARE_VERSION_11_4=n' machine-configs/$OpenWrt_PATCH_FILE_DIR/*
 	echo "----$Matrix_Target--IPQ--Firmware-125---"
+	sed -i "18i \\\tset wireless.@wifi-iface[0].encryption='psk2'\n\tset wireless.@wifi-iface[0].key='12345678'\n\tset wireless.@wifi-iface[1].encryption='psk2'\n\tset wireless.@wifi-iface[1].key='12345678'" package/kochiya/autoset/files/def_uci/zzz-autoset-ipq
 	fi
 
 	if [ "$IPQ_Firmware" = "ipq-nss-12-2" ]; then
