@@ -1,0 +1,14 @@
+{
+	"admin/network/mwan-switch": {
+		"title": "WAN 端口切换",
+		"order": 75,
+		"action": {
+			"type": "view",
+			"path": "mwan-switch/settings"
+		},
+		"depends": {
+			"acl": [ "luci-app-mwan-switch" ],
+			"uci": { "mwan-switch": true }
+		}
+	}
+}

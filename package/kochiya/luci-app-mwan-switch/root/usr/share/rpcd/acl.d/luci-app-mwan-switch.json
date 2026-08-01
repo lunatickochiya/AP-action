@@ -1,0 +1,24 @@
+{
+	"luci-app-mwan-switch": {
+		"description": "允许查看并配置 WAN 端口切换",
+		"read": {
+			"ubus": {
+				"luci-rpc": [ "getBoardJSON", "getHostHints", "getNetworkDevices", "getWirelessDevices" ],
+				"network": [ "get_proto_handlers" ],
+				"network.device": [ "status" ],
+				"network.interface": [ "dump" ],
+				"service": [ "list" ]
+			},
+			"uci": [
+				"mwan-switch",
+				"network",
+				"dhcp",
+				"firewall",
+				"wireless"
+			]
+		},
+		"write": {
+			"uci": [ "mwan-switch" ]
+		}
+	}
+}
