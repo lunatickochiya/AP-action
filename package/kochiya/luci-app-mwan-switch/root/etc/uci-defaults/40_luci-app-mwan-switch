@@ -3,12 +3,20 @@
 rc_dir="${IPKG_INSTROOT:-}/etc/rc.d"
 mkdir -p "$rc_dir"
 
-# Do not call `/etc/init.d/mwan-switch enable` from firstboot.  Some rc.common
-# versions block while loading a large procd action script.  Creating the two
-# standard links directly is deterministic and does not start the service.
+# Do not call `/etc/init.d/mwan-switch enable` from firstboot. Creating the two
+# standard links directly is deterministic and does not apply the network.
 rm -f "$rc_dir/S95mwan-switch" "$rc_dir/K10mwan-switch"
 ln -s ../init.d/mwan-switch "$rc_dir/S95mwan-switch"
 ln -s ../init.d/mwan-switch "$rc_dir/K10mwan-switch"
+
+# Older firewall3-era LuCI releases use /etc/config/ucitrack instead of (or in
+# addition to) procd UCI reload triggers. Register the same package->init mapping
+# incrementally so Save & Apply invokes `/etc/init.d/mwan-switch reload` there too.
+if [ -z "$IPKG_INSTROOT" ] && [ -e /etc/config/ucitrack ]; then
+	uci -q set ucitrack.mwan_switch='mwan-switch'
+	uci -q set ucitrack.mwan_switch.init='mwan-switch'
+	uci -q commit ucitrack
+fi
 
 # uci-defaults runs synchronously during first boot.  Never apply/reload the
 # network here: doing so can block preinit while netifd and ubus are still
@@ -22,6 +30,18 @@ if [ -x /etc/init.d/mwan-switch-monitor ]; then
 		ln -s ../init.d/mwan-switch-monitor "$rc_dir/S96mwan-switch-monitor"
 		ln -s ../init.d/mwan-switch-monitor "$rc_dir/K09mwan-switch-monitor"
 	fi
+fi
+
+# When installed on a running router, start only the small procd wrapper so it
+# registers the mwan-switch UCI reload trigger. The network implementation is
+# kept in /usr/libexec/mwan-switch and is not loaded or executed here, avoiding
+# the former uci-defaults/rc.common stall. The current WAN-only state remains
+# untouched until the first explicit LuCI save/apply.
+if [ -z "$IPKG_INSTROOT" ] && [ -x /etc/init.d/mwan-switch ]; then
+	# Do not make opkg/firstboot wait on rc.common or procd. The wrapper normally
+	# returns immediately, while the detached call also protects unusual vendor
+	# builds from blocking this uci-defaults script.
+	( /etc/init.d/mwan-switch start >/dev/null 2>&1 ) &
 fi
 
 rm -f /tmp/luci-indexcache

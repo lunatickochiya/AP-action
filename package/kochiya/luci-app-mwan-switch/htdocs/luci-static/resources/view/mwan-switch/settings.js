@@ -75,6 +75,46 @@ function findSectionTwo(config, type, option1, value1, option2, value2) {
 	return result;
 }
 
+function findEnabledForwarding(sourceZone, destinationZone) {
+	let result = null;
+
+	uci.sections('firewall', 'forwarding', function(section) {
+		if (!result && section.enabled !== '0' && section.src === sourceZone &&
+			section.dest === destinationZone)
+			result = section;
+	});
+
+	return result;
+}
+
+function findSharedForwardingZone(firstNetwork, secondNetwork) {
+	let result = null;
+
+	uci.sections('firewall', 'zone', function(section) {
+		const networks = asArray(section.network);
+		if (!result && section.enabled !== '0' &&
+			String(section.forward || '').toUpperCase() === 'ACCEPT' &&
+			networks.includes(firstNetwork) && networks.includes(secondNetwork))
+			result = section;
+	});
+
+	return result;
+}
+
+function wifiBandLabel(section) {
+	const band = String(section.band || '').toLowerCase();
+	const hwmode = String(section.hwmode || '').toLowerCase();
+
+	if (band === '2g' || band === '2.4g' || /11[bg]/.test(hwmode))
+		return '2.4G';
+	if (band === '5g' || /11a/.test(hwmode))
+		return '5G';
+	if (band === '6g')
+		return '6G';
+
+	return '频段未知';
+}
+
 function findWifiByRadio(radio) {
 	return findSection('wireless', 'wifi-iface', 'device', radio);
 }
@@ -100,17 +140,40 @@ return view.extend({
 
 	render: function(data) {
 		let m, s, o;
-		const lanDevices = (data[5] || []).filter(function(device) {
+		const networkDevices = data[5] || [];
+		const wifiDevices = [];
+		uci.sections('wireless', 'wifi-device', function(section) {
+			wifiDevices.push(section);
+		});
+		const wifiDeviceDetails = wifiDevices.map(function(section) {
+			return (section['.name'] || '未命名 Radio') + '（' + wifiBandLabel(section) + '）';
+		});
+		const wirelessCardLabel = wifiDeviceDetails.length ?
+			wifiDeviceDetails.length + ' 个：' + wifiDeviceDetails.join('、') : '未检测到无线网卡';
+		let firewallDefaults = null;
+		uci.sections('firewall', 'defaults', function(section) {
+			if (!firewallDefaults)
+				firewallDefaults = section;
+		});
+		const firewallDefaultForwardAccept = !!firewallDefaults &&
+			String(firewallDefaults.forward || '').toUpperCase() === 'ACCEPT';
+		const lanDevices = networkDevices.filter(function(device) {
 			return /^lan\d+$/.test(device.getName()) &&
 				(typeof(device.getMAC) !== 'function' || device.getMAC() !== null || device.isUp());
 		}).sort(function(a, b) {
 			return lanPortNumber(a.getName()) - lanPortNumber(b.getName());
 		});
+		const vpnDeviceNames = networkDevices.filter(function(device) {
+			return /^tun/.test(device.getName());
+		}).map(function(device) {
+			return device.getName();
+		}).sort();
 		const detectedPorts = lanDevices.map(function(device) { return device.getName(); });
 		const lastDetectedPort = detectedPorts.length ? detectedPorts[detectedPorts.length - 1] : '';
 		const desiredMode = uci.get('mwan-switch', 'main', 'mode') || 'dual';
 		const desiredTarget = uci.get('mwan-switch', 'main', 'target_lan_uplink') ||
 			uci.get('mwan-switch', 'main', 'lan4_uplink') || 'wan2';
+		const desiredLanAccessTarget = uci.get('mwan-switch', 'main', 'lan_access_target') || '1';
 		const desiredWifi24 = uci.get('mwan-switch', 'main', 'wifi24_uplink') || 'wan2';
 		const desiredWifi5 = uci.get('mwan-switch', 'main', 'wifi5_uplink') || 'wan';
 		const legacyVpnWan1Isolation = uci.get('mwan-switch', 'main', 'vpn_wan1_isolation') || '0';
@@ -125,6 +188,21 @@ return view.extend({
 			(desiredVpnIsolation === 'wan2' || desiredVpnIsolation === 'both') ? '1' : '0';
 		const desiredWan2Proto = uci.get('mwan-switch', 'main', 'wan2_proto') || 'dhcp';
 		const desiredWan2Ipv6 = uci.get('mwan-switch', 'main', 'wan2_ipv6') || '1';
+		const desiredWan2LanIp = uci.get('mwan-switch', 'main', 'wan2_lan_ip') || '192.168.77.1';
+		const desiredWan2Table = uci.get('mwan-switch', 'main', 'wan2_table') || '200';
+		const desiredManageLuna = uci.get('mwan-switch', 'main', 'manage_luna') || '1';
+		const desiredLunaMac = uci.get('mwan-switch', 'main', 'luna_mac') || '66:89:48:AE:2D:9E';
+		const desiredLunaIpv4Suffix = uci.get('mwan-switch', 'main', 'luna_ipv4_suffix') || '186';
+		const desiredLunaIpv4PortForward = uci.get('mwan-switch', 'main', 'luna_ipv4_port_forward') || '1';
+		const desiredLunaIpv4Port = uci.get('mwan-switch', 'main', 'luna_ipv4_port') || '51198';
+		const desiredLunaIpv6Firewall = uci.get('mwan-switch', 'main', 'luna_ipv6_firewall') || '1';
+		const desiredLunaIpv6DestSuffix = uci.get('mwan-switch', 'main', 'luna_ipv6_dest_suffix') || '2d9e';
+		const configuredLunaRoutes = asArray(uci.get('mwan-switch', 'main', 'luna_routes'));
+		const desiredLunaRoutes = configuredLunaRoutes.length ? configuredLunaRoutes :
+			[ '172.16.7.0/24', '192.168.8.0/24' ];
+		const configuredLunaIpv6Ports = asArray(uci.get('mwan-switch', 'main', 'luna_ipv6_ports'));
+		const desiredLunaIpv6Ports = configuredLunaIpv6Ports.length ? configuredLunaIpv6Ports :
+			[ '55666', '55667' ];
 		const wan2LinkMonitor = uci.get('mwan-switch', 'main', 'wan2_link_monitor') || '0';
 		const wan2LinkRestore = uci.get('mwan-switch', 'main', 'wan2_link_restore') || '1';
 		const monitorService = (data[6] || {})['mwan-switch-monitor'];
@@ -158,6 +236,30 @@ return view.extend({
 		const vpnWan1Forward = findSectionTwo('firewall', 'forwarding', 'src', 'vpn', 'dest', 'wan');
 		const vpnWan2Block = findSection('firewall', 'rule', 'name', 'Block-OpenVPN-to-WAN2');
 		const vpnWan2Forward = findSectionTwo('firewall', 'forwarding', 'src', 'vpn', 'dest', 'wan2');
+		const targetLanForward = findSectionTwo('firewall', 'forwarding', 'src', 'lan_wan2', 'dest', 'lan');
+		const lanTargetForward = findEnabledForwarding('lan', 'lan_wan2');
+		const lanTargetSharedZone = findSharedForwardingZone('lan', 'lan_wan2');
+		const lanTargetBlockRule = findSection('firewall', 'rule', 'name',
+			'Block-MainLAN-to-WAN2-Clients');
+		const lanTargetBlockActive = !!lanTargetBlockRule &&
+			lanTargetBlockRule.enabled !== '0' && lanTargetBlockRule.src === 'lan' &&
+			lanTargetBlockRule.dest === 'lan_wan2' && lanTargetBlockRule.target === 'REJECT';
+		const mainLanCanAccessWan2 = (!!lanTargetForward || !!lanTargetSharedZone ||
+			firewallDefaultForwardAccept) && !lanTargetBlockActive;
+		const lunaHost = uci.get('dhcp', 'mwan_luna_v4', '.type');
+		const lunaRedirect = uci.get('firewall', 'mwan_luna_51198', '.type');
+		const lunaIpv6FirewallRule = uci.get('firewall', 'mwan_luna_ipv6_access', '.type');
+		const lunaWan1Rule = uci.get('firewall', 'allow_wan1_to_lan4_device', '.type');
+		const lunaManagedRoutes = [];
+		uci.sections('network', 'route', function(section) {
+			const name = section['.name'] || '';
+			if (/^mwan_luna_route_\d+$/.test(name))
+				lunaManagedRoutes.push(section);
+		});
+		lunaManagedRoutes.sort(function(a, b) {
+			return parseInt(a['.name'].replace('mwan_luna_route_', ''), 10) -
+				parseInt(b['.name'].replace('mwan_luna_route_', ''), 10);
+		});
 		const brLanPorts = asArray(brLan ? brLan.ports : null);
 		const brWan2Ports = asArray(brWan2 ? brWan2.ports : null);
 		const wifi24Networks = asArray(wifi24 ? wifi24.network : null);
@@ -188,8 +290,105 @@ return view.extend({
 		const effectiveDesiredTarget = effectiveDesiredMode === 'dual' ? desiredTarget : 'wan';
 		const effectiveDesiredWifi24 = effectiveDesiredMode === 'dual' ? desiredWifi24 : 'wan';
 		const effectiveDesiredWifi5 = effectiveDesiredMode === 'dual' ? desiredWifi5 : 'wan';
+		const actualLanTargetAccess = lanTargetBlockActive &&
+			(lanTargetForward || lanTargetSharedZone) ? 'unknown' :
+			(lanTargetBlockActive ? '0' : (mainLanCanAccessWan2 ? '1' : '0'));
+		const lanAccessPolicyConsistent = effectiveDesiredMode === 'dual' ?
+			(desiredLanAccessTarget === '1' ?
+				!!lanTargetForward && !lanTargetBlockActive && !lanTargetSharedZone :
+				!lanTargetForward && lanTargetBlockActive && !lanTargetSharedZone) && !targetLanForward :
+			!lanTargetForward && !lanTargetBlockRule && !targetLanForward;
+		const internalIpv4PolicyConsistent =
+			uci.get('network', 'lan_wan2_internal_ipv4', '.type') === 'rule' &&
+			uci.get('network', 'lan_wan2_internal_ipv4', 'in') === 'lan_wan2' &&
+			uci.get('network', 'lan_wan2_internal_ipv4', 'lookup') === 'main' &&
+			uci.get('network', 'lan_wan2_internal_ipv4', 'suppress_prefixlength') === '0' &&
+			uci.get('network', 'lan_wan2_internal_ipv4', 'priority') === '10500' &&
+			uci.get('network', 'lan_wan2_ipv4', '.type') === 'rule' &&
+			uci.get('network', 'lan_wan2_ipv4', 'in') === 'lan_wan2' &&
+			uci.get('network', 'lan_wan2_ipv4', 'lookup') === desiredWan2Table &&
+			uci.get('network', 'lan_wan2_ipv4', 'priority') === '11000' &&
+			uci.get('network', 'wan2', 'ip4table') === desiredWan2Table;
+		const internalIpv6PolicyConsistent = desiredWan2Ipv6 !== '1' ?
+			!uci.get('network', 'lan_wan2_internal_ipv6') && !uci.get('network', 'lan_wan2_ipv6') :
+			uci.get('network', 'lan_wan2_internal_ipv6', '.type') === 'rule6' &&
+				uci.get('network', 'lan_wan2_internal_ipv6', 'in') === 'lan_wan2' &&
+				uci.get('network', 'lan_wan2_internal_ipv6', 'lookup') === 'main' &&
+				uci.get('network', 'lan_wan2_internal_ipv6', 'suppress_prefixlength') === '0' &&
+				uci.get('network', 'lan_wan2_internal_ipv6', 'priority') === '10500' &&
+				uci.get('network', 'lan_wan2_ipv6', '.type') === 'rule6' &&
+				uci.get('network', 'lan_wan2_ipv6', 'in') === 'lan_wan2' &&
+				uci.get('network', 'lan_wan2_ipv6', 'lookup') === desiredWan2Table &&
+				uci.get('network', 'lan_wan2_ipv6', 'priority') === '11000' &&
+				(desiredWan2Proto === 'pppoe' ?
+					uci.get('network', 'wan2', 'ip6table') === desiredWan2Table :
+					uci.get('network', 'wan2_6', 'ip6table') === desiredWan2Table);
+		const noLanWan2Policy = !uci.get('network', 'lan_wan2_internal_ipv4') &&
+			!uci.get('network', 'lan_wan2_ipv4') &&
+			!uci.get('network', 'lan_wan2_internal_ipv6') &&
+			!uci.get('network', 'lan_wan2_ipv6');
+		const lanWan2PolicyConsistent = effectiveDesiredMode === 'dual' ?
+			internalIpv4PolicyConsistent && internalIpv6PolicyConsistent : noLanWan2Policy;
+		const mainLanIp = uci.get('network', 'lan', 'ipaddr') || '192.168.7.1';
+		const expectedLunaNetwork = effectiveDesiredMode === 'dual' &&
+			effectiveDesiredTarget === 'wan2' ? 'lan_wan2' : 'lan';
+		const expectedLunaPrefix = (expectedLunaNetwork === 'lan_wan2' ? desiredWan2LanIp : mainLanIp)
+			.split('.').slice(0, 3).join('.');
+		const expectedLunaIp = expectedLunaPrefix + '.' + desiredLunaIpv4Suffix;
+		const expectedLunaSource = expectedLunaNetwork === 'lan_wan2' ? 'wan2' : 'wan';
+		const expectedLunaDest = expectedLunaNetwork;
+		const expectedLunaIpv6DestIp = '::' + desiredLunaIpv6DestSuffix +
+			'/::ffff:ffff:ffff:ffff';
+		const lunaRoutesConsistent = lunaManagedRoutes.length === desiredLunaRoutes.length &&
+			desiredLunaRoutes.every(function(target, index) {
+				const route = lunaManagedRoutes[index];
+				return route && route['.name'] === 'mwan_luna_route_' + (index + 1) &&
+					route.target === target && route.gateway === expectedLunaIp &&
+					route.interface === expectedLunaNetwork;
+			});
+		const fixedDeviceIpv6Absent = !uci.get('dhcp', 'mwan_luna_v6') &&
+			!uci.get('firewall', 'mwan_luna_ipv6');
+		const fixedDeviceLegacyAbsent = !uci.get('dhcp', 'mwan_luna');
+		const lunaIpv4RedirectConsistent = desiredManageLuna === '1' &&
+			desiredLunaIpv4PortForward === '1' ?
+			lunaRedirect === 'redirect' &&
+				uci.get('firewall', 'mwan_luna_51198', 'name') === 'LunaNAS-IPv4-Port-Forward' &&
+				uci.get('firewall', 'mwan_luna_51198', 'target') === 'DNAT' &&
+				uci.get('firewall', 'mwan_luna_51198', 'src') === expectedLunaSource &&
+				uci.get('firewall', 'mwan_luna_51198', 'dest') === expectedLunaDest &&
+				asArray(uci.get('firewall', 'mwan_luna_51198', 'proto')).join(' ') === 'tcp udp' &&
+				uci.get('firewall', 'mwan_luna_51198', 'src_dport') === desiredLunaIpv4Port &&
+				uci.get('firewall', 'mwan_luna_51198', 'dest_port') === desiredLunaIpv4Port &&
+				uci.get('firewall', 'mwan_luna_51198', 'dest_ip') === expectedLunaIp &&
+				uci.get('firewall', 'mwan_luna_51198', 'family') === 'ipv4' : !lunaRedirect;
+		const lunaIpv4Consistent = desiredManageLuna === '1' ?
+			lunaHost === 'host' &&
+				asArray(uci.get('dhcp', 'mwan_luna_v4', 'mac')).join(' ') === desiredLunaMac &&
+				uci.get('dhcp', 'mwan_luna_v4', 'ip') === expectedLunaIp &&
+				!uci.get('dhcp', 'mwan_luna_v4', 'duid') &&
+				!uci.get('dhcp', 'mwan_luna_v4', 'hostid') &&
+				lunaIpv4RedirectConsistent && lunaRoutesConsistent && !lunaWan1Rule && fixedDeviceIpv6Absent &&
+				fixedDeviceLegacyAbsent :
+			!lunaHost && !lunaRedirect && !lunaWan1Rule &&
+				lunaManagedRoutes.length === 0 && fixedDeviceIpv6Absent && fixedDeviceLegacyAbsent;
+		const lunaIpv6FirewallConsistent = desiredLunaIpv6Firewall === '1' ?
+			lunaIpv6FirewallRule === 'rule' &&
+				uci.get('firewall', 'mwan_luna_ipv6_access', 'name') === 'Allow-LunaNAS-IPv6' &&
+				uci.get('firewall', 'mwan_luna_ipv6_access', 'src') === 'wan' &&
+				uci.get('firewall', 'mwan_luna_ipv6_access', 'dest') === 'lan' &&
+				uci.get('firewall', 'mwan_luna_ipv6_access', 'family') === 'ipv6' &&
+				asArray(uci.get('firewall', 'mwan_luna_ipv6_access', 'proto')).join(' ') === 'tcp udp' &&
+				asArray(uci.get('firewall', 'mwan_luna_ipv6_access', 'dest_port')).join(' ') ===
+					desiredLunaIpv6Ports.join(' ') &&
+				uci.get('firewall', 'mwan_luna_ipv6_access', 'target') === 'ACCEPT' &&
+				asArray(uci.get('firewall', 'mwan_luna_ipv6_access', 'dest_ip')).join(' ') ===
+					expectedLunaIpv6DestIp : !lunaIpv6FirewallRule;
 		const consistent = actualMode === effectiveDesiredMode &&
 			actualTarget === effectiveDesiredTarget &&
+			lanAccessPolicyConsistent &&
+			lanWan2PolicyConsistent &&
+			lunaIpv4Consistent &&
+			lunaIpv6FirewallConsistent &&
 			actualWifi24 === effectiveDesiredWifi24 &&
 			(actualWifi5 === 'absent' || actualWifi5 === effectiveDesiredWifi5) &&
 			actualVpnWan1Isolation === desiredVpnWan1Isolation &&
@@ -204,6 +403,40 @@ return view.extend({
 		const vpnLabel = function(value) {
 			return value === '1' ? '已隔离' : (value === '0' ? '允许访问' : '未知');
 		};
+		const lanTargetAccessLabel = effectiveDesiredMode !== 'dual' ? '不适用（仅 WAN1）' :
+			(actualLanTargetAccess === 'unknown' ?
+				'状态异常（同时存在放行路径和 REJECT）' :
+				(actualLanTargetAccess === '1' ?
+					(lanTargetForward ? '允许（lan → lan_wan2 区域转发）' :
+						(lanTargetSharedZone ? '允许（同属 ' +
+							(lanTargetSharedZone.name || lanTargetSharedZone['.name']) +
+							' 区域，存在双向访问风险）' :
+							'允许（防火墙全局转发策略为 ACCEPT）')) :
+					(lanTargetBlockActive ? '不允许（显式 REJECT 规则生效）' :
+						'不允许（未检测到有效放行路径）')));
+		const lunaIpv4Label = desiredManageLuna === '1' ?
+			(lunaIpv4Consistent ? '已管理（' + expectedLunaIp + '）' : '配置不一致') :
+			(lunaIpv4Consistent ? '未管理' : '存在残留规则');
+		const lunaIpv4PortLabel = desiredManageLuna !== '1' || desiredLunaIpv4PortForward !== '1' ?
+			(lunaIpv4RedirectConsistent ? '已关闭' : '存在残留映射') :
+			(lunaIpv4RedirectConsistent ? desiredLunaIpv4Port + ' 已映射' : '配置不一致');
+		const lunaIpv6FirewallLabel = desiredLunaIpv6Firewall === '1' ?
+			(lunaIpv6FirewallConsistent ?
+				'已放行 ::' + desiredLunaIpv6DestSuffix + ' 的 ' + desiredLunaIpv6Ports.join('、') :
+				'配置不一致') : (lunaIpv6FirewallConsistent ? '已关闭' : '存在残留规则');
+		const vpnExitLabel = actualVpnWan1Isolation === 'unknown' ||
+			(effectiveDesiredMode === 'dual' && actualVpnWan2Isolation === 'unknown') ?
+			'防火墙出口规则异常' :
+			(actualVpnWan1Isolation === '0' ?
+				(effectiveDesiredMode === 'dual' && actualVpnWan2Isolation === '0' ?
+					'允许 WAN1、WAN2（实际出口由系统路由/PBR 决定）' : '仅允许 WAN1') :
+				(effectiveDesiredMode === 'dual' && actualVpnWan2Isolation === '0' ?
+					'仅允许 WAN2' : 'WAN1、WAN2 均被阻止'));
+		const vpnRuntimeLabel = (vpnDeviceNames.length ?
+			'检测到 ' + vpnDeviceNames.join('、') : '未检测到 tun 接口') + '；' + vpnExitLabel;
+		const lanWan2PolicyLabel = effectiveDesiredMode === 'dual' ?
+			(lanWan2PolicyConsistent ? '内网优先，WAN2 后备' : '规则不一致') :
+			(lanWan2PolicyConsistent ? '仅主 LAN' : '存在残留规则');
 		const targetLabel = targetPort || '未检测到';
 		const wan2LinkLabel = wan2Carrier === true ? '已连接' :
 			(wan2Carrier === false ? '未连接' : '无法检测');
@@ -239,8 +472,15 @@ return view.extend({
 				'；IPv6：' + wan2Ipv6Label +
 				'；物理链路：' + wan2LinkLabel + '（自动检测：' + monitorLabel + '）' : '') +
 			'；最后 LAN 口（' + targetLabel + '）→ ' + label(actualTarget) +
+			'；主 LAN → WAN2 客户端：' + lanTargetAccessLabel +
+			'；最后端口回程：' + lanWan2PolicyLabel +
+			'；固定设备 IPv4：' + lunaIpv4Label +
+			'；IPv4 映射：' + lunaIpv4PortLabel +
+			'；LunaNAS IPv6：' + lunaIpv6FirewallLabel +
+			'；无线网卡：' + wirelessCardLabel +
 			'；2.4G → ' + label(actualWifi24) +
 			'；5G → ' + label(actualWifi5) +
+			'；VPN 当前出口：' + vpnRuntimeLabel +
 			'；VPN/WAN1：' + vpnLabel(actualVpnWan1Isolation) +
 			(effectiveDesiredMode === 'dual' ? '；VPN/WAN2：' + vpnLabel(actualVpnWan2Isolation) : '') +
 			'；与页面配置' + (consistent ? '一致' : '不一致，保存并应用后将自动修正');
@@ -253,6 +493,8 @@ return view.extend({
 		s.tab('basic', '基本设置');
 		s.tab('wan2', 'WAN2 上网');
 		s.tab('dns', 'DNS 设置');
+		s.tab('device', '固定设备 IPv4');
+		s.tab('firewall', '防火墙规则');
 		s.tab('advanced', '高级设置');
 
 		o = s.taboption('basic', form.DummyValue, '_current_status', '实际运行状态');
@@ -299,6 +541,10 @@ return view.extend({
 			]);
 		};
 
+		o = s.taboption('basic', form.DummyValue, '_wireless_card_status', '当前无线网卡数量');
+		o.cfgvalue = function() { return wirelessCardLabel; };
+		o.description = '按 /etc/config/wireless 中实际存在的 wifi-device（Radio）检测，并显示 Radio 名称和可识别的频段；可据此确认设备当前配置了 1 个还是 2 个无线网卡。';
+
 		o = s.taboption('basic', form.ListValue, 'mode', 'WAN 工作模式');
 		o.value('dual', '启用 WAN2：LAN1 改为 WAN2');
 		o.value('wan_only', '仅使用 WAN1：所有 LAN 口和无线恢复为 WAN1');
@@ -331,6 +577,19 @@ return view.extend({
 		o.rmempty = false;
 		o.depends('mode', 'dual');
 		o.cfgvalue = function() { return desiredTarget; };
+
+		o = s.taboption('firewall', form.ListValue, 'lan_access_target', '主 LAN 访问 WAN2 口下设备');
+		o.value('1', '允许');
+		o.value('0', '不允许');
+		o.default = '1';
+		o.rmempty = false;
+		o.depends('mode', 'dual');
+		o.description = '选择“允许”时创建 lan → lan_wan2 转发；选择“不允许”时删除同方向转发并创建显式 REJECT。允许模式只放行主 LAN 主动发起的连接。';
+
+		o = s.taboption('firewall', form.DummyValue, '_lan_access_detection', '当前主 LAN 访问情况');
+		o.cfgvalue = function() { return lanTargetAccessLabel; };
+		o.depends('mode', 'dual');
+		o.description = '保存并应用后，检查 lan → lan_wan2 转发、重复防火墙区域归属、全局 forward ACCEPT 和 Block-MainLAN-to-WAN2-Clients 拒绝规则；关闭时必须检测到显式 REJECT 才判定已阻止。';
 
 		o = s.taboption('basic', form.ListValue, 'wifi24_uplink', '2.4G 无线上网出口');
 		o.value('wan', 'WAN1');
@@ -415,6 +674,81 @@ return view.extend({
 		addDnsChoices(o, DNS6_CHOICES);
 		o.depends({ mode: 'dual', wan2_dns_mode: 'custom', wan2_ipv6: '1' });
 
+		o = s.taboption('device', form.Flag, 'manage_luna', '管理最后 LAN 口固定设备 IPv4');
+		o.default = '1';
+		o.rmempty = false;
+		o.description = '使用 UCI 管理 LunaNAS 的 DHCPv4 固定地址和后方 IPv4 路由。IPv4 端口映射可在下方单独启用并自定义端口；IPv6 放行规则位于“防火墙规则”页面。';
+
+		o = s.taboption('device', form.DummyValue, '_luna_ipv4_address', '应用后的固定 IPv4');
+		o.cfgvalue = function() { return expectedLunaIp; };
+		o.depends('manage_luna', '1');
+
+		o = s.taboption('device', form.Value, 'luna_mac', '固定设备 MAC');
+		o.datatype = 'macaddr';
+		o.default = '66:89:48:AE:2D:9E';
+		o.rmempty = false;
+		o.depends('manage_luna', '1');
+
+		o = s.taboption('device', form.Value, 'luna_ipv4_suffix', '固定 IPv4 末段');
+		o.datatype = 'range(2,254)';
+		o.default = '186';
+		o.rmempty = false;
+		o.depends('manage_luna', '1');
+
+		o = s.taboption('device', form.DynamicList, 'luna_routes', '固定设备后方 IPv4 路由');
+		o.datatype = 'cidr4';
+		o.default = [ '172.16.7.0/24', '192.168.8.0/24' ];
+		o.placeholder = '例如 172.16.7.0/24';
+		o.depends('manage_luna', '1');
+
+		o = s.taboption('device', form.Flag, 'luna_ipv4_port_forward', '启用 IPv4 端口映射');
+		o.default = '1';
+		o.rmempty = false;
+		o.depends('manage_luna', '1');
+
+		o = s.taboption('device', form.Value, 'luna_ipv4_port', 'IPv4 映射端口');
+		o.datatype = 'port';
+		o.default = '51198';
+		o.rmempty = false;
+		o.depends({ manage_luna: '1', luna_ipv4_port_forward: '1' });
+		o.description = '外部端口和固定设备内部端口使用同一个值，同时允许 TCP 和 UDP。';
+
+		o = s.taboption('device', form.DummyValue, '_luna_ipv4_redirect', 'IPv4 映射预览');
+		o.cfgvalue = function() {
+			return (expectedLunaSource === 'wan2' ? 'WAN2' : 'WAN1') +
+				' ' + desiredLunaIpv4Port + ' → ' + expectedLunaIp + ':' + desiredLunaIpv4Port +
+				'（TCP/UDP）';
+		};
+		o.depends({ manage_luna: '1', luna_ipv4_port_forward: '1' });
+
+		o = s.taboption('firewall', form.Flag, 'luna_ipv6_firewall', '启用 IPv6 放行规则');
+		o.default = '1';
+		o.rmempty = false;
+		o.description = '使用 firewall3/firewall4 共用 UCI 规则，从 WAN1 的 wan 区域向主 LAN 放行指定 IPv6 后缀和 TCP/UDP 端口。';
+
+		o = s.taboption('firewall', form.Value, 'luna_ipv6_dest_suffix', '目标 IPv6 后缀');
+		o.default = '2d9e';
+		o.rmempty = false;
+		o.validate = function(sectionId, value) {
+			return /^[0-9A-Fa-f]{1,4}$/.test(value || '') || '请输入 1 到 4 位十六进制字符，例如 2d9e';
+		};
+		o.depends('luna_ipv6_firewall', '1');
+		o.description = '生成 list dest_ip “::后缀/::ffff:ffff:ffff:ffff”，默认是 ::2d9e/::ffff:ffff:ffff:ffff。';
+
+		o = s.taboption('firewall', form.DynamicList, 'luna_ipv6_ports', '允许的 IPv6 端口');
+		o.datatype = 'port';
+		o.default = [ '55666', '55667' ];
+		o.rmempty = false;
+		o.placeholder = '例如 55666';
+		o.depends('luna_ipv6_firewall', '1');
+
+		o = s.taboption('firewall', form.DummyValue, '_luna_ipv6_rule_preview', 'IPv6 规则预览');
+		o.cfgvalue = function() {
+			return 'Allow-LunaNAS-IPv6：wan → lan；TCP/UDP ' +
+				desiredLunaIpv6Ports.join('、') + '；目标 ' + expectedLunaIpv6DestIp;
+		};
+		o.depends('luna_ipv6_firewall', '1');
+
 		o = s.taboption('advanced', form.Value, 'wan2_lan_ip', 'WAN2 内网网关');
 		o.datatype = 'ip4addr';
 		o.default = '192.168.77.1';
@@ -449,7 +783,7 @@ return view.extend({
 		o.default = 'radio1';
 		o.rmempty = false;
 
-		o = s.taboption('advanced', form.ListValue, 'vpn_isolation', 'VPN 出口隔离');
+		o = s.taboption('firewall', form.ListValue, 'vpn_isolation', 'VPN 出口隔离');
 		o.value('none', '不隔离（允许使用 WAN1 和 WAN2）');
 		o.value('wan1', '隔离 WAN1（VPN 仅允许使用 WAN2）');
 		o.value('wan2', '隔离 WAN2（VPN 仅允许使用 WAN1）');
@@ -460,6 +794,10 @@ return view.extend({
 			return uci.get('mwan-switch', sectionId, 'vpn_isolation') || desiredVpnIsolation;
 		};
 		o.description = '选择 VPN 不能访问的出口；默认隔离 WAN2，使 tun+ 等 VPN 接口只通过 WAN1 上网。';
+
+		o = s.taboption('firewall', form.DummyValue, '_vpn_exit_status', '当前 VPN 出口检测');
+		o.cfgvalue = function() { return vpnRuntimeLabel; };
+		o.description = '根据当前 tun 接口和实际启用的 VPN 防火墙转发/隔离规则判断。两边都允许时，最终出口可能由系统默认路由、mwan3 或其他 PBR 插件决定。';
 
 		return m.render();
 	}
