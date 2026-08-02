@@ -13,6 +13,7 @@ EXTRA_HELP="
 
 APP="mwan-switch"
 LOCK_DIR="/var/lock/mwan-switch.lock"
+WAN1_RECOVERY_FILE="/var/run/mwan-switch-wan1-recovery"
 
 # Avoid rc.common's generic enable path on firmware variants where loading a
 # large procd action script can block.  These helpers only manage boot links;
@@ -263,6 +264,8 @@ read_settings() {
 	[ -n "$LAN4_UPLINK" ] || LAN4_UPLINK="$(uci -q get mwan-switch.main.lan4_uplink)"
 	WIFI24_UPLINK="$(uci -q get mwan-switch.main.wifi24_uplink)"
 	WIFI5_UPLINK="$(uci -q get mwan-switch.main.wifi5_uplink)"
+	VPN_ISOLATION="$(uci -q get mwan-switch.main.vpn_isolation)"
+	VPN_WAN1_ISOLATION="$(uci -q get mwan-switch.main.vpn_wan1_isolation)"
 	VPN_WAN2_ISOLATION="$(uci -q get mwan-switch.main.vpn_wan2_isolation)"
 	WAN2_LINK_MONITOR="$(uci -q get mwan-switch.main.wan2_link_monitor)"
 	WAN2_LINK_RESTORE="$(uci -q get mwan-switch.main.wan2_link_restore)"
@@ -275,6 +278,7 @@ read_settings() {
 	WAN2_PPPOE_USERNAME="$(uci -q get mwan-switch.main.wan2_pppoe_username)"
 	WAN2_PPPOE_PASSWORD="$(uci -q get mwan-switch.main.wan2_pppoe_password)"
 	WAN2_IPV6="$(uci -q get mwan-switch.main.wan2_ipv6)"
+	LAN_DNS_MODE="$(uci -q get mwan-switch.main.lan_dns_mode)"
 	WAN2_DNS_MODE="$(uci -q get mwan-switch.main.wan2_dns_mode)"
 	LAN4_PORT_SETTING="$(uci -q get mwan-switch.main.target_lan_port)"
 	if [ -z "$LAN4_PORT_SETTING" ]; then
@@ -285,8 +289,8 @@ read_settings() {
 	fi
 	WIFI24_RADIO="$(uci -q get mwan-switch.main.wifi24_radio)"
 	WIFI5_RADIO="$(uci -q get mwan-switch.main.wifi5_radio)"
-	IPV6_PREFERRED_LIFETIME="$(uci -q get mwan-switch.main.ipv6_preferred_lifetime)"
-	IPV6_VALID_LIFETIME="$(uci -q get mwan-switch.main.ipv6_valid_lifetime)"
+	LAN_DNS4="$(uci -q get mwan-switch.main.lan_dns4)"
+	LAN_DNS6="$(uci -q get mwan-switch.main.lan_dns6)"
 	WAN2_DNS4="$(uci -q get mwan-switch.main.wan2_dns4)"
 	WAN2_DNS6="$(uci -q get mwan-switch.main.wan2_dns6)"
 
@@ -294,7 +298,22 @@ read_settings() {
 	LAN4_UPLINK="${LAN4_UPLINK:-wan2}"
 	WIFI24_UPLINK="${WIFI24_UPLINK:-wan2}"
 	WIFI5_UPLINK="${WIFI5_UPLINK:-wan}"
+	VPN_WAN1_ISOLATION="${VPN_WAN1_ISOLATION:-0}"
 	VPN_WAN2_ISOLATION="${VPN_WAN2_ISOLATION:-1}"
+	if [ -z "$VPN_ISOLATION" ]; then
+		case "$VPN_WAN1_ISOLATION:$VPN_WAN2_ISOLATION" in
+			0:0) VPN_ISOLATION=none ;;
+			1:0) VPN_ISOLATION=wan1 ;;
+			0:1) VPN_ISOLATION=wan2 ;;
+			1:1) VPN_ISOLATION=both ;;
+		esac
+	fi
+	case "$VPN_ISOLATION" in
+		none) VPN_WAN1_ISOLATION=0; VPN_WAN2_ISOLATION=0 ;;
+		wan1) VPN_WAN1_ISOLATION=1; VPN_WAN2_ISOLATION=0 ;;
+		wan2) VPN_WAN1_ISOLATION=0; VPN_WAN2_ISOLATION=1 ;;
+		both) VPN_WAN1_ISOLATION=1; VPN_WAN2_ISOLATION=1 ;;
+	esac
 	WAN2_LINK_MONITOR="${WAN2_LINK_MONITOR:-0}"
 	WAN2_LINK_RESTORE="${WAN2_LINK_RESTORE:-1}"
 	WAN2_LINK_DELAY="${WAN2_LINK_DELAY:-10}"
@@ -304,6 +323,7 @@ read_settings() {
 	WAN2_PORT="${WAN2_PORT:-lan1}"
 	WAN2_PROTO="${WAN2_PROTO:-dhcp}"
 	WAN2_IPV6="${WAN2_IPV6:-1}"
+	LAN_DNS_MODE="${LAN_DNS_MODE:-custom}"
 	WAN2_DNS_MODE="${WAN2_DNS_MODE:-keep}"
 	LAN4_PORT_SETTING="${LAN4_PORT_SETTING:-auto}"
 	detect_lan_ports
@@ -314,10 +334,10 @@ read_settings() {
 	fi
 	WIFI24_RADIO="${WIFI24_RADIO:-radio0}"
 	WIFI5_RADIO="${WIFI5_RADIO:-radio1}"
-	IPV6_PREFERRED_LIFETIME="${IPV6_PREFERRED_LIFETIME:-24h}"
-	IPV6_VALID_LIFETIME="${IPV6_VALID_LIFETIME:-24h}"
-	WAN2_DNS4="${WAN2_DNS4:-223.5.5.5 223.6.6.6}"
-	WAN2_DNS6="${WAN2_DNS6:-2400:3200::1 2400:3200:baba::1}"
+	LAN_DNS4="${LAN_DNS4:-1.1.1.1 8.8.8.8 223.5.5.5 9.9.9.9}"
+	LAN_DNS6="${LAN_DNS6:-2606:4700:4700::1111 2001:4860:4860::8888 2400:3200::1 2620:fe::fe}"
+	WAN2_DNS4="${WAN2_DNS4:-1.1.1.1 8.8.8.8 223.5.5.5 9.9.9.9}"
+	WAN2_DNS6="${WAN2_DNS6:-2606:4700:4700::1111 2001:4860:4860::8888 2400:3200::1 2620:fe::fe}"
 
 	LAN_IP="$(uci -q get network.lan.ipaddr)"
 	LAN_IP="${LAN_IP:-192.168.7.1}"
@@ -347,19 +367,8 @@ valid_ipv4() {
 	return 0
 }
 
-lifetime_minutes() {
-	case "$1" in
-		1h) echo 60 ;;
-		2h) echo 120 ;;
-		6h) echo 360 ;;
-		12h) echo 720 ;;
-		24h) echo 1440 ;;
-		*) return 1 ;;
-	esac
-}
-
 validate_settings() {
-	local br_lan preferred_minutes valid_minutes pppoe_plugin plugin
+	local br_lan pppoe_plugin plugin
 	case "$CONFIG_MODE" in
 		dual|wan_only) ;;
 		*) log "无效 mode=$CONFIG_MODE"; return 1 ;;
@@ -376,9 +385,9 @@ validate_settings() {
 		wan|wan2) ;;
 		*) log "无效 wifi5_uplink=$WIFI5_UPLINK"; return 1 ;;
 	esac
-	case "$VPN_WAN2_ISOLATION" in
-		0|1) ;;
-		*) log "无效 vpn_wan2_isolation=$VPN_WAN2_ISOLATION"; return 1 ;;
+	case "$VPN_ISOLATION" in
+		none|wan1|wan2|both) ;;
+		*) log "无效 vpn_isolation=$VPN_ISOLATION"; return 1 ;;
 	esac
 	case "$WAN2_LINK_MONITOR" in
 		0|1) ;;
@@ -399,6 +408,10 @@ validate_settings() {
 	case "$WAN2_DNS_MODE" in
 		keep|custom) ;;
 		*) log "无效 wan2_dns_mode=$WAN2_DNS_MODE"; return 1 ;;
+	esac
+	case "$LAN_DNS_MODE" in
+		keep|custom) ;;
+		*) log "无效 lan_dns_mode=$LAN_DNS_MODE"; return 1 ;;
 	esac
 	case "$WAN2_IPV6" in
 		0|1) ;;
@@ -473,18 +486,6 @@ validate_settings() {
 		fi
 	fi
 
-	preferred_minutes="$(lifetime_minutes "$IPV6_PREFERRED_LIFETIME")" || {
-		log "无效 ipv6_preferred_lifetime=$IPV6_PREFERRED_LIFETIME"
-		return 1
-	}
-	valid_minutes="$(lifetime_minutes "$IPV6_VALID_LIFETIME")" || {
-		log "无效 ipv6_valid_lifetime=$IPV6_VALID_LIFETIME"
-		return 1
-	}
-	[ "$preferred_minutes" -le "$valid_minutes" ] || {
-		log "IPv6 valid lifetime 不能小于 preferred lifetime"
-		return 1
-	}
 	return 0
 }
 
@@ -497,6 +498,25 @@ normalize_failover_state() {
 	WAN2_FAILOVER_ACTIVE=0
 	MODE="$CONFIG_MODE"
 	log "已清除不再适用的 WAN2 自动故障状态"
+}
+
+normalize_vpn_isolation_setting() {
+	local changed=0
+	if [ "$(uci -q get mwan-switch.main.vpn_isolation)" != "$VPN_ISOLATION" ]; then
+		uci set "mwan-switch.main.vpn_isolation=$VPN_ISOLATION" || return 1
+		changed=1
+	fi
+	if uci -q get mwan-switch.main.vpn_wan1_isolation >/dev/null; then
+		uci -q delete mwan-switch.main.vpn_wan1_isolation
+		changed=1
+	fi
+	if uci -q get mwan-switch.main.vpn_wan2_isolation >/dev/null; then
+		uci -q delete mwan-switch.main.vpn_wan2_isolation
+		changed=1
+	fi
+	[ "$changed" = "1" ] || return 0
+	uci commit mwan-switch || return 1
+	log "已将旧版 VPN 双开关迁移为 vpn_isolation=$VPN_ISOLATION"
 }
 
 find_wifi_sections() {
@@ -631,6 +651,7 @@ adopt_managed_sections() {
 	adopt_section_one firewall rule mwan_allow_mld_wan2 name Allow-MLD-WAN2
 	adopt_section_one firewall rule mwan_allow_icmpv6_input_wan2 name Allow-ICMPv6-Input-WAN2
 	adopt_section_one firewall rule mwan_allow_icmpv6_forward_wan2 name Allow-ICMPv6-Forward-WAN2
+	adopt_section_one firewall rule blockvpntowan1 name Block-OpenVPN-to-WAN1
 	adopt_section_one firewall rule blockvpntowan2 name Block-OpenVPN-to-WAN2
 }
 
@@ -833,7 +854,10 @@ apply_wireless() {
 
 apply_common_dhcp() {
 	uci_set_type dhcp lan dhcp
-	[ "$WAN2_DNS_MODE" = "custom" ] && uci_replace_list_prefix dhcp lan dhcp_option 6, "6,$LAN_IP"
+	if [ "$LAN_DNS_MODE" = "custom" ]; then
+		uci_replace_list_prefix dhcp lan dhcp_option 6, "6,$(printf '%s' "$LAN_DNS4" | tr ' ' ',')"
+		uci_set_list dhcp lan dns $LAN_DNS6
+	fi
 	uci_set_value dhcp lan dhcpv6 server
 	uci_set_value dhcp lan dhcpv6_na 1
 	uci_set_value dhcp lan ra server
@@ -842,8 +866,8 @@ apply_common_dhcp() {
 	# Keeping both makes the M/A flags explicit across both generations.
 	uci_set_value dhcp lan ra_management 1
 	uci_set_list dhcp lan ra_flags managed-config other-config
-	uci_set_value dhcp lan max_preferred_lifetime "$IPV6_PREFERRED_LIFETIME"
-	uci_set_value dhcp lan max_valid_lifetime "$IPV6_VALID_LIFETIME"
+	uci_delete_option dhcp lan max_preferred_lifetime
+	uci_delete_option dhcp lan max_valid_lifetime
 }
 
 apply_dual_dhcp() {
@@ -853,14 +877,14 @@ apply_dual_dhcp() {
 	uci_set_value dhcp lan_wan2 limit 150
 	uci_set_value dhcp lan_wan2 leasetime 12h
 	uci_set_value dhcp lan_wan2 dhcpv4 server
+	uci_delete_option dhcp lan_wan2 max_preferred_lifetime
+	uci_delete_option dhcp lan_wan2 max_valid_lifetime
 	if [ "$WAN2_IPV6" = "1" ]; then
 		uci_set_value dhcp lan_wan2 dhcpv6 server
 		uci_set_value dhcp lan_wan2 dhcpv6_na 1
 		uci_set_value dhcp lan_wan2 ra server
 		uci_set_value dhcp lan_wan2 ra_slaac 1
 		uci_set_value dhcp lan_wan2 ra_management 1
-		uci_set_value dhcp lan_wan2 max_preferred_lifetime "$IPV6_PREFERRED_LIFETIME"
-		uci_set_value dhcp lan_wan2 max_valid_lifetime "$IPV6_VALID_LIFETIME"
 		uci_set_list dhcp lan_wan2 ra_flags managed-config other-config
 	else
 		uci_set_value dhcp lan_wan2 dhcpv6 disabled
@@ -869,8 +893,6 @@ apply_dual_dhcp() {
 		uci_delete_option dhcp lan_wan2 ra_slaac
 		uci_delete_option dhcp lan_wan2 ra_management
 		uci_delete_option dhcp lan_wan2 ra_flags
-		uci_delete_option dhcp lan_wan2 max_preferred_lifetime
-		uci_delete_option dhcp lan_wan2 max_valid_lifetime
 	fi
 	if [ "$WAN2_DNS_MODE" = "custom" ]; then
 		uci_replace_list_prefix dhcp lan_wan2 dhcp_option 6, "6,$(printf '%s' "$WAN2_DNS4" | tr ' ' ',')"
@@ -974,7 +996,17 @@ apply_common_firewall() {
 		uci_set_value firewall "$vpn_zone" masq 1
 	fi
 	uci_add_list_once firewall "$vpn_zone" device 'tun+'
-	ensure_forwarding vpntowan vpn wan
+	if [ "$VPN_WAN1_ISOLATION" = "1" ]; then
+		delete_forwardings vpn wan
+		uci_set_type firewall blockvpntowan1 rule
+		uci_set_value firewall blockvpntowan1 name Block-OpenVPN-to-WAN1
+		uci_set_value firewall blockvpntowan1 src vpn
+		uci_set_value firewall blockvpntowan1 dest wan
+		uci_set_value firewall blockvpntowan1 target REJECT
+	else
+		uci_delete_section firewall blockvpntowan1
+		ensure_forwarding vpntowan vpn wan
+	fi
 }
 
 apply_dual_firewall() {
@@ -1069,7 +1101,7 @@ commit_and_reload() {
 }
 
 check_state() {
-	local errors=0 br_lan br_wan2 br_wan2_ports ports wifi_network vpn_zone vpn_block vpn_forward port option section
+	local errors=0 br_lan br_wan2 br_wan2_ports ports wifi_network vpn_zone vpn1_block vpn1_forward vpn2_block vpn2_forward port option section
 	read_settings || return 1
 	validate_settings || return 1
 
@@ -1179,18 +1211,28 @@ check_state() {
 	vpn_zone="$FOUND_SECTION"
 	case " $(uci -q get firewall.$vpn_zone.device) " in *" tun+ "*) ;; *) errors=$((errors + 1));; esac
 
+	find_section_one firewall rule name Block-OpenVPN-to-WAN1
+	vpn1_block="$FOUND_SECTION"
+	find_section_two firewall forwarding src vpn dest wan
+	vpn1_forward="$FOUND_SECTION"
+	if [ "$VPN_WAN1_ISOLATION" = "1" ]; then
+		[ -n "$vpn1_block" ] && [ -z "$vpn1_forward" ] || errors=$((errors + 1))
+	else
+		[ -z "$vpn1_block" ] && [ -n "$vpn1_forward" ] || errors=$((errors + 1))
+	fi
+
 	find_section_one firewall rule name Block-OpenVPN-to-WAN2
-	vpn_block="$FOUND_SECTION"
+	vpn2_block="$FOUND_SECTION"
 	find_section_two firewall forwarding src vpn dest wan2
-	vpn_forward="$FOUND_SECTION"
+	vpn2_forward="$FOUND_SECTION"
 	if [ "$MODE" = "dual" ]; then
 		if [ "$VPN_WAN2_ISOLATION" = "1" ]; then
-			[ -n "$vpn_block" ] && [ -z "$vpn_forward" ] || errors=$((errors + 1))
+			[ -n "$vpn2_block" ] && [ -z "$vpn2_forward" ] || errors=$((errors + 1))
 		else
-			[ -z "$vpn_block" ] && [ -n "$vpn_forward" ] || errors=$((errors + 1))
+			[ -z "$vpn2_block" ] && [ -n "$vpn2_forward" ] || errors=$((errors + 1))
 		fi
 	else
-		[ -z "$vpn_block" ] && [ -z "$vpn_forward" ] || errors=$((errors + 1))
+		[ -z "$vpn2_block" ] && [ -z "$vpn2_forward" ] || errors=$((errors + 1))
 	fi
 
 	if [ "$errors" -eq 0 ]; then
@@ -1220,6 +1262,7 @@ apply_config() {
 	read_settings || return 1
 	normalize_failover_state || return 1
 	validate_settings || return 1
+	normalize_vpn_isolation_setting || return 1
 	find_wifi_sections || return 1
 	adopt_managed_sections
 	cleanup_legacy_fixed_device
@@ -1270,6 +1313,7 @@ enable_monitor_service() {
 disable_monitor_service() {
 	/etc/init.d/mwan-switch-monitor stop 2>/dev/null
 	/etc/init.d/mwan-switch-monitor disable
+	rm -f "$WAN1_RECOVERY_FILE"
 }
 
 sync_monitor_service() {
@@ -1287,11 +1331,49 @@ apply_monitor_state() {
 	/etc/init.d/mwan-switch apply_state
 }
 
+interface_is_up() {
+	local interface="$1"
+	ubus call "network.interface.$interface" status 2>/dev/null |
+		grep -q '"up"[[:space:]]*:[[:space:]]*true'
+}
+
+queue_primary_wan_recovery() {
+	touch "$WAN1_RECOVERY_FILE" || {
+		log "无法创建 WAN1 自动恢复标记"
+		return 1
+	}
+	log "已等待 WAN2 PPPoE 拨号；拨号成功后将自动重新激活 WAN1 路由和 DNS"
+}
+
+recover_primary_wan_if_ready() {
+	[ -e "$WAN1_RECOVERY_FILE" ] || return 0
+	interface_is_up wan2 || return 0
+
+	# A network reload which recreates a PPPoE WAN2 can leave an older netifd
+	# generation with WAN1 still marked up but without a usable default route or
+	# resolver registration.  Reconnect WAN1 only after WAN2 has finished adding
+	# its routes, otherwise the later PPP up event can reproduce the same race.
+	log "WAN2 PPPoE 已连接，正在自动重新激活 WAN1"
+	if ifup wan >/dev/null 2>&1; then
+		sleep 2
+		if [ "$(uci -q get network.wan6)" = "interface" ] &&
+			[ "$(uci -q get network.wan6.disabled)" != "1" ]; then
+			ifup wan6 >/dev/null 2>&1 || log "WAN1 IPv6 接口 wan6 重新激活失败"
+		fi
+		log "WAN1 已重新激活，默认路由和 DNS 将由 netifd 重新注册"
+	else
+		log "WAN1 自动重新激活失败，请检查 network.wan 配置"
+	fi
+	rm -f "$WAN1_RECOVERY_FILE"
+}
+
 set_failover_state() {
-	local desired="$1" previous message
+	local desired="$1" previous message wan2_proto
 	previous="$(uci -q get mwan-switch.main.wan2_failover_active)"
 	previous="${previous:-0}"
 	[ "$previous" = "$desired" ] && return 0
+	wan2_proto="$(uci -q get mwan-switch.main.wan2_proto)"
+	wan2_proto="${wan2_proto:-dhcp}"
 
 	if [ "$desired" = "1" ]; then
 		message="WAN2 链路断开，自动临时切换为仅 WAN1；原双 WAN 配置已保留"
@@ -1305,6 +1387,11 @@ set_failover_state() {
 
 	if apply_monitor_state >/tmp/mwan-switch-monitor-apply 2>&1; then
 		rm -f /tmp/mwan-switch-monitor-apply
+		if [ "$desired" = "0" ] && [ "$wan2_proto" = "pppoe" ]; then
+			queue_primary_wan_recovery
+		else
+			rm -f "$WAN1_RECOVERY_FILE"
+		fi
 		return 0
 	fi
 
@@ -1343,6 +1430,7 @@ monitor() {
 		esac
 
 		if [ "$configured_mode" != "dual" ] || [ "$enabled" != "1" ]; then
+			rm -f "$WAN1_RECOVERY_FILE"
 			down_for=0
 			up_for=0
 			sleep 5
@@ -1350,6 +1438,7 @@ monitor() {
 		fi
 
 		carrier="$(get_wan2_carrier "$port")"
+		[ "$active" = "0" ] && recover_primary_wan_if_ready
 
 		if [ "$active" = "1" ]; then
 			down_for=0

@@ -1,6 +1,6 @@
 {
 	"luci-app-mwan-switch": {
-		"description": "允许查看并配置 WAN 端口切换",
+		"description": "允许查看并配置 LAN端口切换",
 		"read": {
 			"ubus": {
 				"luci-rpc": [ "getBoardJSON", "getHostHints", "getNetworkDevices", "getWirelessDevices" ],

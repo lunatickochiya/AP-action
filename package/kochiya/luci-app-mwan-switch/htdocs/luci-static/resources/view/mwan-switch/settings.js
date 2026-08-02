@@ -18,6 +18,34 @@ const callInterfaceDump = rpc.declare({
 	expect: { interface: [] }
 });
 
+const DNS4_CHOICES = [
+	[ '1.1.1.1', 'Cloudflare 主 DNS（1.1.1.1）' ],
+	[ '1.0.0.1', 'Cloudflare 备用 DNS（1.0.0.1）' ],
+	[ '8.8.8.8', 'Google 主 DNS（8.8.8.8）' ],
+	[ '8.8.4.4', 'Google 备用 DNS（8.8.4.4）' ],
+	[ '223.5.5.5', '阿里主 DNS（223.5.5.5）' ],
+	[ '223.6.6.6', '阿里备用 DNS（223.6.6.6）' ],
+	[ '9.9.9.9', 'Quad9 主 DNS（9.9.9.9）' ],
+	[ '149.112.112.112', 'Quad9 备用 DNS（149.112.112.112）' ]
+];
+
+const DNS6_CHOICES = [
+	[ '2606:4700:4700::1111', 'Cloudflare 主 IPv6 DNS（2606:4700:4700::1111）' ],
+	[ '2606:4700:4700::1001', 'Cloudflare 备用 IPv6 DNS（2606:4700:4700::1001）' ],
+	[ '2001:4860:4860::8888', 'Google 主 IPv6 DNS（2001:4860:4860::8888）' ],
+	[ '2001:4860:4860::8844', 'Google 备用 IPv6 DNS（2001:4860:4860::8844）' ],
+	[ '2400:3200::1', '阿里主 IPv6 DNS（2400:3200::1）' ],
+	[ '2400:3200:baba::1', '阿里备用 IPv6 DNS（2400:3200:baba::1）' ],
+	[ '2620:fe::fe', 'Quad9 主 IPv6 DNS（2620:fe::fe）' ],
+	[ '2620:fe::9', 'Quad9 备用 IPv6 DNS（2620:fe::9）' ]
+];
+
+function addDnsChoices(option, choices) {
+	choices.forEach(function(choice) {
+		option.value(choice[0], choice[1]);
+	});
+}
+
 function asArray(value) {
 	if (Array.isArray(value))
 		return value;
@@ -85,7 +113,16 @@ return view.extend({
 			uci.get('mwan-switch', 'main', 'lan4_uplink') || 'wan2';
 		const desiredWifi24 = uci.get('mwan-switch', 'main', 'wifi24_uplink') || 'wan2';
 		const desiredWifi5 = uci.get('mwan-switch', 'main', 'wifi5_uplink') || 'wan';
-		const desiredVpnIsolation = uci.get('mwan-switch', 'main', 'vpn_wan2_isolation') || '1';
+		const legacyVpnWan1Isolation = uci.get('mwan-switch', 'main', 'vpn_wan1_isolation') || '0';
+		const legacyVpnWan2Isolation = uci.get('mwan-switch', 'main', 'vpn_wan2_isolation') || '1';
+		const desiredVpnIsolation = uci.get('mwan-switch', 'main', 'vpn_isolation') ||
+			(legacyVpnWan1Isolation === '1' ?
+				(legacyVpnWan2Isolation === '1' ? 'both' : 'wan1') :
+				(legacyVpnWan2Isolation === '1' ? 'wan2' : 'none'));
+		const desiredVpnWan1Isolation =
+			(desiredVpnIsolation === 'wan1' || desiredVpnIsolation === 'both') ? '1' : '0';
+		const desiredVpnWan2Isolation =
+			(desiredVpnIsolation === 'wan2' || desiredVpnIsolation === 'both') ? '1' : '0';
 		const desiredWan2Proto = uci.get('mwan-switch', 'main', 'wan2_proto') || 'dhcp';
 		const desiredWan2Ipv6 = uci.get('mwan-switch', 'main', 'wan2_ipv6') || '1';
 		const wan2LinkMonitor = uci.get('mwan-switch', 'main', 'wan2_link_monitor') || '0';
@@ -117,8 +154,10 @@ return view.extend({
 		const brWan2 = findSection('network', 'device', 'name', 'br-lan-wan2');
 		const wifi24 = findWifiByRadio(wifi24Radio);
 		const wifi5 = findWifiByRadio(wifi5Radio);
-		const vpnBlock = findSection('firewall', 'rule', 'name', 'Block-OpenVPN-to-WAN2');
-		const vpnForward = findSectionTwo('firewall', 'forwarding', 'src', 'vpn', 'dest', 'wan2');
+		const vpnWan1Block = findSection('firewall', 'rule', 'name', 'Block-OpenVPN-to-WAN1');
+		const vpnWan1Forward = findSectionTwo('firewall', 'forwarding', 'src', 'vpn', 'dest', 'wan');
+		const vpnWan2Block = findSection('firewall', 'rule', 'name', 'Block-OpenVPN-to-WAN2');
+		const vpnWan2Forward = findSectionTwo('firewall', 'forwarding', 'src', 'vpn', 'dest', 'wan2');
 		const brLanPorts = asArray(brLan ? brLan.ports : null);
 		const brWan2Ports = asArray(brWan2 ? brWan2.ports : null);
 		const wifi24Networks = asArray(wifi24 ? wifi24.network : null);
@@ -141,8 +180,10 @@ return view.extend({
 		const actualWifi5 = !wifi5 ? 'absent' :
 			(wifi5Networks.includes('lan_wan2') ? 'wan2' :
 				(wifi5Networks.includes('lan') ? 'wan' : 'unknown'));
-		const actualVpnIsolation = vpnBlock && vpnBlock.target === 'REJECT' && !vpnForward ? '1' :
-			(!vpnBlock && vpnForward ? '0' : 'unknown');
+		const actualVpnWan1Isolation = vpnWan1Block && vpnWan1Block.target === 'REJECT' && !vpnWan1Forward ? '1' :
+			(!vpnWan1Block && vpnWan1Forward ? '0' : 'unknown');
+		const actualVpnWan2Isolation = vpnWan2Block && vpnWan2Block.target === 'REJECT' && !vpnWan2Forward ? '1' :
+			(!vpnWan2Block && vpnWan2Forward ? '0' : 'unknown');
 		const effectiveDesiredMode = failoverActive ? 'wan_only' : desiredMode;
 		const effectiveDesiredTarget = effectiveDesiredMode === 'dual' ? desiredTarget : 'wan';
 		const effectiveDesiredWifi24 = effectiveDesiredMode === 'dual' ? desiredWifi24 : 'wan';
@@ -151,7 +192,8 @@ return view.extend({
 			actualTarget === effectiveDesiredTarget &&
 			actualWifi24 === effectiveDesiredWifi24 &&
 			(actualWifi5 === 'absent' || actualWifi5 === effectiveDesiredWifi5) &&
-			(effectiveDesiredMode !== 'dual' || actualVpnIsolation === desiredVpnIsolation) &&
+			actualVpnWan1Isolation === desiredVpnWan1Isolation &&
+			(effectiveDesiredMode !== 'dual' || actualVpnWan2Isolation === desiredVpnWan2Isolation) &&
 			(desiredMode === 'dual' && wan2LinkMonitor === '1' ? monitorServiceRunning : !monitorServiceRunning);
 		const label = function(value) {
 			return value === 'dual' ? '双 WAN（' + wan2Port + ' 为 WAN2）' :
@@ -159,8 +201,9 @@ return view.extend({
 					(value === 'wan2' ? 'WAN2' :
 						(value === 'wan' ? 'WAN1' : (value === 'absent' ? '未检测到' : '未知'))));
 		};
-		const vpnLabel = actualVpnIsolation === '1' ? '已隔离' :
-			(actualVpnIsolation === '0' ? '允许访问' : '未知');
+		const vpnLabel = function(value) {
+			return value === '1' ? '已隔离' : (value === '0' ? '允许访问' : '未知');
+		};
 		const targetLabel = targetPort || '未检测到';
 		const wan2LinkLabel = wan2Carrier === true ? '已连接' :
 			(wan2Carrier === false ? '未连接' : '无法检测');
@@ -198,16 +241,18 @@ return view.extend({
 			'；最后 LAN 口（' + targetLabel + '）→ ' + label(actualTarget) +
 			'；2.4G → ' + label(actualWifi24) +
 			'；5G → ' + label(actualWifi5) +
-			(effectiveDesiredMode === 'dual' ? '；VPN/WAN2：' + vpnLabel : '') +
+			'；VPN/WAN1：' + vpnLabel(actualVpnWan1Isolation) +
+			(effectiveDesiredMode === 'dual' ? '；VPN/WAN2：' + vpnLabel(actualVpnWan2Isolation) : '') +
 			'；与页面配置' + (consistent ? '一致' : '不一致，保存并应用后将自动修正');
 
-		m = new form.Map('mwan-switch', 'WAN 端口切换',
+		m = new form.Map('mwan-switch', 'LAN端口切换',
 			'页面只保存 UCI 选项，不直接执行命令。点击 LuCI 自带的“保存并应用”后，mwan-switch 服务会检测物理 LAN 口，并以 UCI 方式增量调整配置；端口或无线出口改变时会自动触发客户端重新获取 IPv4/IPv6。');
 
 		s = m.section(form.NamedSection, 'main', 'settings', '切换设置');
 		s.addremove = false;
 		s.tab('basic', '基本设置');
 		s.tab('wan2', 'WAN2 上网');
+		s.tab('dns', 'DNS 设置');
 		s.tab('advanced', '高级设置');
 
 		o = s.taboption('basic', form.DummyValue, '_current_status', '实际运行状态');
@@ -301,12 +346,6 @@ return view.extend({
 		o.rmempty = false;
 		o.depends('mode', 'dual');
 
-		o = s.taboption('basic', form.Flag, 'vpn_wan2_isolation', '隔离 VPN 与 WAN2');
-		o.default = '1';
-		o.rmempty = false;
-		o.depends('mode', 'dual');
-		o.description = '开启时 tun0、tun1 等 tun+ 只能走 WAN1，并拒绝转发到 WAN2；关闭时允许 VPN 区域访问 WAN2，但不会把 VPN 默认路由强制改到 WAN2。';
-
 		o = s.taboption('wan2', form.ListValue, 'wan2_proto', 'WAN2 上网方式');
 		o.value('dhcp', 'DHCP 自动获取');
 		o.value('pppoe', 'PPPoE 拨号');
@@ -329,20 +368,51 @@ return view.extend({
 		o.depends('mode', 'dual');
 		o.description = 'DHCP 使用静态 wan2_6 → @wan2；PPPoE 由 netifd 在每次拨号成功后自动创建 wan2_6。';
 
-		o = s.taboption('wan2', form.ListValue, 'wan2_dns_mode', 'WAN2 DNS 设置');
+		o = s.taboption('dns', form.ListValue, 'lan_dns_mode', '主 LAN DNS 设置');
+		o.value('keep', '不修改现有 DNS');
+		o.value('custom', '使用下面的自定义 DNS');
+		o.default = 'custom';
+		o.rmempty = false;
+		o.description = '自定义模式会把下面的 DNS 地址下发给主 LAN 的有线和无线客户端。';
+
+		o = s.taboption('dns', form.DynamicList, 'lan_dns4', '主 LAN IPv4 DNS');
+		o.datatype = 'ip4addr';
+		o.default = [ '1.1.1.1', '8.8.8.8', '223.5.5.5', '9.9.9.9' ];
+		o.rmempty = false;
+		o.placeholder = '请选择预置 DNS 或输入自定义 IPv4 地址';
+		addDnsChoices(o, DNS4_CHOICES);
+		o.depends('lan_dns_mode', 'custom');
+
+		o = s.taboption('dns', form.DynamicList, 'lan_dns6', '主 LAN IPv6 DNS');
+		o.datatype = 'ip6addr';
+		o.default = [ '2606:4700:4700::1111', '2001:4860:4860::8888', '2400:3200::1', '2620:fe::fe' ];
+		o.rmempty = false;
+		o.placeholder = '请选择预置 DNS 或输入自定义 IPv6 地址';
+		addDnsChoices(o, DNS6_CHOICES);
+		o.depends('lan_dns_mode', 'custom');
+
+		o = s.taboption('dns', form.ListValue, 'wan2_dns_mode', 'WAN2 DNS 设置');
 		o.value('keep', '不修改现有 DNS');
 		o.value('custom', '使用下面的自定义 DNS');
 		o.default = 'keep';
 		o.rmempty = false;
 		o.depends('mode', 'dual');
-		o.description = '选择“不修改”时，本应用不会写入或删除主 LAN、WAN2 上联及 WAN2 客户端的 DNS 选项。';
+		o.description = '选择“不修改”时，本应用不会写入或删除 WAN2 上联及 WAN2 客户端的 DNS 选项。';
 
-		o = s.taboption('wan2', form.DynamicList, 'wan2_dns4', 'WAN2 客户端 IPv4 DNS');
+		o = s.taboption('dns', form.DynamicList, 'wan2_dns4', 'WAN2 客户端 IPv4 DNS');
 		o.datatype = 'ip4addr';
+		o.default = [ '1.1.1.1', '8.8.8.8', '223.5.5.5', '9.9.9.9' ];
+		o.rmempty = false;
+		o.placeholder = '请选择预置 DNS 或输入自定义 IPv4 地址';
+		addDnsChoices(o, DNS4_CHOICES);
 		o.depends({ mode: 'dual', wan2_dns_mode: 'custom' });
 
-		o = s.taboption('wan2', form.DynamicList, 'wan2_dns6', 'WAN2 客户端 IPv6 DNS');
+		o = s.taboption('dns', form.DynamicList, 'wan2_dns6', 'WAN2 客户端 IPv6 DNS');
 		o.datatype = 'ip6addr';
+		o.default = [ '2606:4700:4700::1111', '2001:4860:4860::8888', '2400:3200::1', '2620:fe::fe' ];
+		o.rmempty = false;
+		o.placeholder = '请选择预置 DNS 或输入自定义 IPv6 地址';
+		addDnsChoices(o, DNS6_CHOICES);
 		o.depends({ mode: 'dual', wan2_dns_mode: 'custom', wan2_ipv6: '1' });
 
 		o = s.taboption('advanced', form.Value, 'wan2_lan_ip', 'WAN2 内网网关');
@@ -379,23 +449,17 @@ return view.extend({
 		o.default = 'radio1';
 		o.rmempty = false;
 
-		o = s.taboption('advanced', form.ListValue, 'ipv6_preferred_lifetime', 'IPv6 首选地址寿命上限');
-		o.value('1h', '1 小时');
-		o.value('6h', '6 小时');
-		o.value('12h', '12 小时');
-		o.value('24h', '24 小时（最长）');
-		o.default = '24h';
+		o = s.taboption('advanced', form.ListValue, 'vpn_isolation', 'VPN 出口隔离');
+		o.value('none', '不隔离（允许使用 WAN1 和 WAN2）');
+		o.value('wan1', '隔离 WAN1（VPN 仅允许使用 WAN2）');
+		o.value('wan2', '隔离 WAN2（VPN 仅允许使用 WAN1）');
+		o.value('both', '同时隔离 WAN1 和 WAN2');
+		o.default = 'wan2';
 		o.rmempty = false;
-		o.description = 'odhcpd 默认只保留约 45 分钟。此项控制下游 DHCPv6 和 RA 的首选寿命上限；仍不会超过 WAN 上级委派前缀的实际寿命。';
-
-		o = s.taboption('advanced', form.ListValue, 'ipv6_valid_lifetime', 'IPv6 有效地址寿命上限');
-		o.value('2h', '2 小时');
-		o.value('6h', '6 小时');
-		o.value('12h', '12 小时');
-		o.value('24h', '24 小时（最长）');
-		o.default = '24h';
-		o.rmempty = false;
-		o.description = '必须不小于首选地址寿命。odhcpd 对下游 DHCPv6 地址的单次下发最大为 24 小时，客户端会在到期前自动续租。';
+		o.cfgvalue = function(sectionId) {
+			return uci.get('mwan-switch', sectionId, 'vpn_isolation') || desiredVpnIsolation;
+		};
+		o.description = '选择 VPN 不能访问的出口；默认隔离 WAN2，使 tun+ 等 VPN 接口只通过 WAN1 上网。';
 
 		return m.render();
 	}

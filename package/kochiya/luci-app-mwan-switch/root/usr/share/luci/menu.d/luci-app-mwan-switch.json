@@ -1,6 +1,6 @@
 {
 	"admin/network/mwan-switch": {
-		"title": "WAN 端口切换",
+		"title": "LAN端口切换",
 		"order": 75,
 		"action": {
 			"type": "view",

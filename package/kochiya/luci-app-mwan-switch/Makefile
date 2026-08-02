@@ -1,8 +1,8 @@
 include $(TOPDIR)/rules.mk
 
-PKG_RELEASE:=12
+PKG_RELEASE:=15
 
-LUCI_TITLE:=LuCI support for declarative WAN port switching
+LUCI_TITLE:=LAN端口切换
 # Do not force firewall4. All firewall changes use the common UCI schema and
 # work with the firewall3 package used by older/custom OpenWrt builds as well.
 LUCI_DEPENDS:=+luci-base +rpcd +uci
