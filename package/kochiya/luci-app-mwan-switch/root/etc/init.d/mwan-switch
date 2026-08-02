@@ -271,6 +271,11 @@ read_settings() {
 	WAN2_LAN_IP="$(uci -q get mwan-switch.main.wan2_lan_ip)"
 	WAN2_TABLE="$(uci -q get mwan-switch.main.wan2_table)"
 	WAN2_PORT="$(uci -q get mwan-switch.main.wan2_port)"
+	WAN2_PROTO="$(uci -q get mwan-switch.main.wan2_proto)"
+	WAN2_PPPOE_USERNAME="$(uci -q get mwan-switch.main.wan2_pppoe_username)"
+	WAN2_PPPOE_PASSWORD="$(uci -q get mwan-switch.main.wan2_pppoe_password)"
+	WAN2_IPV6="$(uci -q get mwan-switch.main.wan2_ipv6)"
+	WAN2_DNS_MODE="$(uci -q get mwan-switch.main.wan2_dns_mode)"
 	LAN4_PORT_SETTING="$(uci -q get mwan-switch.main.target_lan_port)"
 	if [ -z "$LAN4_PORT_SETTING" ]; then
 		LAN4_PORT_SETTING="$(uci -q get mwan-switch.main.lan4_port)"
@@ -280,15 +285,10 @@ read_settings() {
 	fi
 	WIFI24_RADIO="$(uci -q get mwan-switch.main.wifi24_radio)"
 	WIFI5_RADIO="$(uci -q get mwan-switch.main.wifi5_radio)"
-	MANAGE_LUNA="$(uci -q get mwan-switch.main.manage_luna)"
-	LUNA_MAC="$(uci -q get mwan-switch.main.luna_mac)"
-	LUNA_DUID="$(uci -q get mwan-switch.main.luna_duid)"
-	LUNA_IPV4_SUFFIX="$(uci -q get mwan-switch.main.luna_ipv4_suffix)"
-	LUNA_IPV6_SUFFIX="$(uci -q get mwan-switch.main.luna_ipv6_suffix)"
-	WAN1_ACCESS_LAN4="$(uci -q get mwan-switch.main.wan1_access_lan4)"
+	IPV6_PREFERRED_LIFETIME="$(uci -q get mwan-switch.main.ipv6_preferred_lifetime)"
+	IPV6_VALID_LIFETIME="$(uci -q get mwan-switch.main.ipv6_valid_lifetime)"
 	WAN2_DNS4="$(uci -q get mwan-switch.main.wan2_dns4)"
 	WAN2_DNS6="$(uci -q get mwan-switch.main.wan2_dns6)"
-	LUNA_ROUTES="$(uci -q get mwan-switch.main.luna_routes)"
 
 	CONFIG_MODE="${CONFIG_MODE:-dual}"
 	LAN4_UPLINK="${LAN4_UPLINK:-wan2}"
@@ -302,6 +302,9 @@ read_settings() {
 	WAN2_LAN_IP="${WAN2_LAN_IP:-192.168.77.1}"
 	WAN2_TABLE="${WAN2_TABLE:-200}"
 	WAN2_PORT="${WAN2_PORT:-lan1}"
+	WAN2_PROTO="${WAN2_PROTO:-dhcp}"
+	WAN2_IPV6="${WAN2_IPV6:-1}"
+	WAN2_DNS_MODE="${WAN2_DNS_MODE:-keep}"
 	LAN4_PORT_SETTING="${LAN4_PORT_SETTING:-auto}"
 	detect_lan_ports
 	if [ "$LAN4_PORT_SETTING" = "auto" ]; then
@@ -311,11 +314,8 @@ read_settings() {
 	fi
 	WIFI24_RADIO="${WIFI24_RADIO:-radio0}"
 	WIFI5_RADIO="${WIFI5_RADIO:-radio1}"
-	MANAGE_LUNA="${MANAGE_LUNA:-1}"
-	LUNA_IPV4_SUFFIX="${LUNA_IPV4_SUFFIX:-186}"
-	LUNA_IPV6_SUFFIX="${LUNA_IPV6_SUFFIX:-a186}"
-	LUNA_IPV6_SUFFIX="${LUNA_IPV6_SUFFIX#::}"
-	WAN1_ACCESS_LAN4="${WAN1_ACCESS_LAN4:-1}"
+	IPV6_PREFERRED_LIFETIME="${IPV6_PREFERRED_LIFETIME:-24h}"
+	IPV6_VALID_LIFETIME="${IPV6_VALID_LIFETIME:-24h}"
 	WAN2_DNS4="${WAN2_DNS4:-223.5.5.5 223.6.6.6}"
 	WAN2_DNS6="${WAN2_DNS6:-2400:3200::1 2400:3200:baba::1}"
 
@@ -347,8 +347,19 @@ valid_ipv4() {
 	return 0
 }
 
+lifetime_minutes() {
+	case "$1" in
+		1h) echo 60 ;;
+		2h) echo 120 ;;
+		6h) echo 360 ;;
+		12h) echo 720 ;;
+		24h) echo 1440 ;;
+		*) return 1 ;;
+	esac
+}
+
 validate_settings() {
-	local br_lan
+	local br_lan preferred_minutes valid_minutes pppoe_plugin plugin
 	case "$CONFIG_MODE" in
 		dual|wan_only) ;;
 		*) log "无效 mode=$CONFIG_MODE"; return 1 ;;
@@ -380,6 +391,18 @@ validate_settings() {
 	case "$WAN2_FAILOVER_ACTIVE" in
 		0|1) ;;
 		*) log "无效 wan2_failover_active=$WAN2_FAILOVER_ACTIVE"; return 1 ;;
+	esac
+	case "$WAN2_PROTO" in
+		dhcp|pppoe) ;;
+		*) log "无效 wan2_proto=$WAN2_PROTO"; return 1 ;;
+	esac
+	case "$WAN2_DNS_MODE" in
+		keep|custom) ;;
+		*) log "无效 wan2_dns_mode=$WAN2_DNS_MODE"; return 1 ;;
+	esac
+	case "$WAN2_IPV6" in
+		0|1) ;;
+		*) log "无效 wan2_ipv6=$WAN2_IPV6"; return 1 ;;
 	esac
 	case "$WAN2_LINK_DELAY" in
 		''|*[!0-9]*) log "无效 wan2_link_delay=$WAN2_LINK_DELAY"; return 1 ;;
@@ -426,24 +449,42 @@ validate_settings() {
 			log "WAN2 内网不能与现有 LAN 使用同一个 /24 网段"
 			return 1
 		}
+		if [ "$WAN2_PROTO" = "pppoe" ]; then
+			[ -n "$WAN2_PPPOE_USERNAME" ] && [ -n "$WAN2_PPPOE_PASSWORD" ] || {
+				log "WAN2 使用 PPPoE 时账号和密码不能为空"
+				return 1
+			}
+			[ "${#WAN2_PPPOE_USERNAME}" -le 256 ] && [ "${#WAN2_PPPOE_PASSWORD}" -le 256 ] || {
+				log "PPPoE 账号参数过长"
+				return 1
+			}
+			[ -x /usr/sbin/pppd ] || {
+				log "缺少 PPPoE 运行组件，请安装 ppp-mod-pppoe"
+				return 1
+			}
+			pppoe_plugin=""
+			for plugin in /usr/lib/pppd/*/pppoe.so; do
+				[ -f "$plugin" ] && pppoe_plugin="$plugin" && break
+			done
+			[ -n "$pppoe_plugin" ] || {
+				log "缺少 pppoe.so，请安装 ppp-mod-pppoe"
+				return 1
+			}
+		fi
 	fi
 
-	if [ "$MANAGE_LUNA" = "1" ]; then
-		case "$LUNA_IPV4_SUFFIX" in
-			''|*[!0-9]*) log "无效 luna_ipv4_suffix=$LUNA_IPV4_SUFFIX"; return 1 ;;
-		esac
-		[ "$LUNA_IPV4_SUFFIX" -ge 2 ] && [ "$LUNA_IPV4_SUFFIX" -le 254 ] || {
-			log "luna_ipv4_suffix 必须在 2 到 254 之间"
-			return 1
-		}
-		case "$LUNA_IPV6_SUFFIX" in
-			''|*[!0-9A-Fa-f:]*) log "无效 luna_ipv6_suffix=$LUNA_IPV6_SUFFIX"; return 1 ;;
-		esac
-		[ -n "$LUNA_MAC" ] && [ -n "$LUNA_DUID" ] || {
-			log "固定设备 MAC/DUID 不能为空"
-			return 1
-		}
-	fi
+	preferred_minutes="$(lifetime_minutes "$IPV6_PREFERRED_LIFETIME")" || {
+		log "无效 ipv6_preferred_lifetime=$IPV6_PREFERRED_LIFETIME"
+		return 1
+	}
+	valid_minutes="$(lifetime_minutes "$IPV6_VALID_LIFETIME")" || {
+		log "无效 ipv6_valid_lifetime=$IPV6_VALID_LIFETIME"
+		return 1
+	}
+	[ "$preferred_minutes" -le "$valid_minutes" ] || {
+		log "IPv6 valid lifetime 不能小于 preferred lifetime"
+		return 1
+	}
 	return 0
 }
 
@@ -574,7 +615,6 @@ reset_moved_wireless() {
 }
 
 adopt_managed_sections() {
-	local index target
 	adopt_section_one network device mwan_br_lan name br-lan
 	adopt_section_one network device mwan_br_lan_wan2 name br-lan-wan2
 
@@ -592,17 +632,20 @@ adopt_managed_sections() {
 	adopt_section_one firewall rule mwan_allow_icmpv6_input_wan2 name Allow-ICMPv6-Input-WAN2
 	adopt_section_one firewall rule mwan_allow_icmpv6_forward_wan2 name Allow-ICMPv6-Forward-WAN2
 	adopt_section_one firewall rule blockvpntowan2 name Block-OpenVPN-to-WAN2
+}
 
-	[ "$MANAGE_LUNA" = "1" ] || return 0
-	adopt_section_one dhcp host mwan_luna_v4 mac "$LUNA_MAC"
-	adopt_section_one dhcp host mwan_luna_v6 duid "$LUNA_DUID"
-	adopt_section_one firewall redirect mwan_luna_51198 src_dport 51198
-	adopt_section_one firewall rule mwan_luna_ipv6 name Allow-LunaNAS-IPv6
 
-	index=0
-	for target in $LUNA_ROUTES; do
-		index=$((index + 1))
-		adopt_section_one network route "mwan_luna_route_$index" target "$target"
+cleanup_legacy_fixed_device() {
+	local section
+	uci_delete_section dhcp mwan_luna
+	uci_delete_section firewall mwan_luna_51198
+	uci_delete_section firewall mwan_luna_ipv6
+	uci_delete_section firewall allow_wan1_to_lan4_device
+
+	for section in $(list_sections network route); do
+		case "$section" in
+			mwan_luna_route_*) uci_delete_section network "$section" ;;
+		esac
 	done
 }
 
@@ -623,7 +666,7 @@ apply_common_network() {
 }
 
 apply_dual_network() {
-	local port
+	local port option
 	uci_delete_section network wan2_probe
 	uci_del_list_value network mwan_br_lan ports "$WAN2_PORT"
 
@@ -647,14 +690,10 @@ apply_dual_network() {
 		uci_del_list_value network mwan_br_lan ports "$LAN4_PORT"
 		uci_add_list_once network mwan_br_lan_wan2 ports "$LAN4_PORT"
 		LAN4_NETWORK="lan_wan2"
-		LUNA_IPV4="$WAN2_PREFIX.$LUNA_IPV4_SUFFIX"
-		LUNA_GATEWAY="$WAN2_LAN_IP"
 	else
 		uci_del_list_value network mwan_br_lan_wan2 ports "$LAN4_PORT"
 		uci_add_list_once network mwan_br_lan ports "$LAN4_PORT"
 		LAN4_NETWORK="lan"
-		LUNA_IPV4="$LAN_PREFIX.$LUNA_IPV4_SUFFIX"
-		LUNA_GATEWAY="$LAN_IP"
 	fi
 
 	uci_set_type network lan_wan2 interface
@@ -662,23 +701,57 @@ apply_dual_network() {
 	uci_set_value network lan_wan2 proto static
 	uci_set_value network lan_wan2 ipaddr "$WAN2_LAN_IP"
 	uci_set_value network lan_wan2 netmask 255.255.255.0
-	uci_set_value network lan_wan2 ip6assign 64
-	uci_set_list network lan_wan2 ip6class wan2_6
+	if [ "$WAN2_IPV6" = "1" ]; then
+		uci_set_value network lan_wan2 ip6assign 64
+		uci_set_list network lan_wan2 ip6class wan2_6
+	else
+		uci_delete_option network lan_wan2 ip6assign
+		uci_delete_option network lan_wan2 ip6class
+	fi
 
 	uci_set_type network wan2 interface
 	uci_set_value network wan2 device "$WAN2_PORT"
-	uci_set_value network wan2 proto dhcp
+	uci_set_value network wan2 proto "$WAN2_PROTO"
 	uci_set_value network wan2 ip4table "$WAN2_TABLE"
-	uci_set_value network wan2 peerdns 0
+	[ "$WAN2_DNS_MODE" = "custom" ] && uci_set_value network wan2 peerdns 0
 
-	uci_set_type network wan2_6 interface
-	uci_set_value network wan2_6 device @wan2
-	uci_set_value network wan2_6 proto dhcpv6
-	uci_set_value network wan2_6 reqaddress try
-	uci_set_value network wan2_6 reqprefix auto
-	uci_set_value network wan2_6 ip6table "$WAN2_TABLE"
-	uci_set_value network wan2_6 peerdns 0
-	uci_set_value network wan2_6 sourcefilter 1
+	# Release 11 exposed these PPPoE knobs. Remove only the app-owned options so
+	# pppd/netifd can use their protocol defaults from now on.
+	for option in mtu keepalive holdoff persist maxfail service ac reqprefix; do
+		uci_delete_option network wan2 "$option"
+	done
+
+	if [ "$WAN2_PROTO" = "pppoe" ]; then
+		uci_set_value network wan2 username "$WAN2_PPPOE_USERNAME"
+		uci_set_value network wan2 password "$WAN2_PPPOE_PASSWORD"
+		uci_delete_section network wan2_6
+		if [ "$WAN2_IPV6" = "1" ]; then
+			# Missing ipv6 means "auto" for OpenWrt PPP protocols. ppp6-up then
+			# recreates the dynamic wan2_6 DHCPv6 client after every reconnect.
+			uci_delete_option network wan2 ipv6
+			uci_set_value network wan2 ip6table "$WAN2_TABLE"
+		else
+			uci_set_value network wan2 ipv6 0
+			uci_delete_option network wan2 ip6table
+		fi
+	else
+		uci_delete_option network wan2 username
+		uci_delete_option network wan2 password
+		uci_delete_option network wan2 ipv6
+		uci_delete_option network wan2 ip6table
+		if [ "$WAN2_IPV6" = "1" ]; then
+			uci_set_type network wan2_6 interface
+			uci_set_value network wan2_6 device @wan2
+			uci_set_value network wan2_6 proto dhcpv6
+			uci_set_value network wan2_6 reqaddress try
+			uci_set_value network wan2_6 reqprefix auto
+			uci_set_value network wan2_6 ip6table "$WAN2_TABLE"
+			[ "$WAN2_DNS_MODE" = "custom" ] && uci_set_value network wan2_6 peerdns 0
+			uci_set_value network wan2_6 sourcefilter 1
+		else
+			uci_delete_section network wan2_6
+		fi
+	fi
 
 	uci_set_type network lan_wan2_internal_ipv4 rule
 	uci_set_value network lan_wan2_internal_ipv4 in lan_wan2
@@ -686,21 +759,26 @@ apply_dual_network() {
 	uci_set_value network lan_wan2_internal_ipv4 suppress_prefixlength 0
 	uci_set_value network lan_wan2_internal_ipv4 priority 10500
 
-	uci_set_type network lan_wan2_internal_ipv6 rule6
-	uci_set_value network lan_wan2_internal_ipv6 in lan_wan2
-	uci_set_value network lan_wan2_internal_ipv6 lookup main
-	uci_set_value network lan_wan2_internal_ipv6 suppress_prefixlength 0
-	uci_set_value network lan_wan2_internal_ipv6 priority 10500
-
 	uci_set_type network lan_wan2_ipv4 rule
 	uci_set_value network lan_wan2_ipv4 in lan_wan2
 	uci_set_value network lan_wan2_ipv4 lookup "$WAN2_TABLE"
 	uci_set_value network lan_wan2_ipv4 priority 11000
 
-	uci_set_type network lan_wan2_ipv6 rule6
-	uci_set_value network lan_wan2_ipv6 in lan_wan2
-	uci_set_value network lan_wan2_ipv6 lookup "$WAN2_TABLE"
-	uci_set_value network lan_wan2_ipv6 priority 11000
+	if [ "$WAN2_IPV6" = "1" ]; then
+		uci_set_type network lan_wan2_internal_ipv6 rule6
+		uci_set_value network lan_wan2_internal_ipv6 in lan_wan2
+		uci_set_value network lan_wan2_internal_ipv6 lookup main
+		uci_set_value network lan_wan2_internal_ipv6 suppress_prefixlength 0
+		uci_set_value network lan_wan2_internal_ipv6 priority 10500
+
+		uci_set_type network lan_wan2_ipv6 rule6
+		uci_set_value network lan_wan2_ipv6 in lan_wan2
+		uci_set_value network lan_wan2_ipv6 lookup "$WAN2_TABLE"
+		uci_set_value network lan_wan2_ipv6 priority 11000
+	else
+		uci_delete_section network lan_wan2_internal_ipv6
+		uci_delete_section network lan_wan2_ipv6
+	fi
 }
 
 apply_single_network() {
@@ -735,8 +813,6 @@ apply_single_network() {
 	uci_delete_section network mwan_br_lan_wan2
 
 	LAN4_NETWORK="lan"
-	LUNA_IPV4="$LAN_PREFIX.$LUNA_IPV4_SUFFIX"
-	LUNA_GATEWAY="$LAN_IP"
 }
 
 apply_wireless() {
@@ -757,7 +833,17 @@ apply_wireless() {
 
 apply_common_dhcp() {
 	uci_set_type dhcp lan dhcp
-	uci_replace_list_prefix dhcp lan dhcp_option 6, "6,$LAN_IP"
+	[ "$WAN2_DNS_MODE" = "custom" ] && uci_replace_list_prefix dhcp lan dhcp_option 6, "6,$LAN_IP"
+	uci_set_value dhcp lan dhcpv6 server
+	uci_set_value dhcp lan dhcpv6_na 1
+	uci_set_value dhcp lan ra server
+	uci_set_value dhcp lan ra_slaac 1
+	# firewall3-era odhcpd reads ra_management; newer releases use ra_flags.
+	# Keeping both makes the M/A flags explicit across both generations.
+	uci_set_value dhcp lan ra_management 1
+	uci_set_list dhcp lan ra_flags managed-config other-config
+	uci_set_value dhcp lan max_preferred_lifetime "$IPV6_PREFERRED_LIFETIME"
+	uci_set_value dhcp lan max_valid_lifetime "$IPV6_VALID_LIFETIME"
 }
 
 apply_dual_dhcp() {
@@ -767,61 +853,50 @@ apply_dual_dhcp() {
 	uci_set_value dhcp lan_wan2 limit 150
 	uci_set_value dhcp lan_wan2 leasetime 12h
 	uci_set_value dhcp lan_wan2 dhcpv4 server
-	uci_set_value dhcp lan_wan2 dhcpv6 server
-	uci_set_value dhcp lan_wan2 ra server
-	uci_set_value dhcp lan_wan2 ra_slaac 1
-	uci_set_list dhcp lan_wan2 dhcp_option "6,$(printf '%s' "$WAN2_DNS4" | tr ' ' ',')"
-	uci_set_list dhcp lan_wan2 dns $WAN2_DNS6
-	uci_set_list dhcp lan_wan2 ra_flags managed-config other-config
+	if [ "$WAN2_IPV6" = "1" ]; then
+		uci_set_value dhcp lan_wan2 dhcpv6 server
+		uci_set_value dhcp lan_wan2 dhcpv6_na 1
+		uci_set_value dhcp lan_wan2 ra server
+		uci_set_value dhcp lan_wan2 ra_slaac 1
+		uci_set_value dhcp lan_wan2 ra_management 1
+		uci_set_value dhcp lan_wan2 max_preferred_lifetime "$IPV6_PREFERRED_LIFETIME"
+		uci_set_value dhcp lan_wan2 max_valid_lifetime "$IPV6_VALID_LIFETIME"
+		uci_set_list dhcp lan_wan2 ra_flags managed-config other-config
+	else
+		uci_set_value dhcp lan_wan2 dhcpv6 disabled
+		uci_set_value dhcp lan_wan2 ra disabled
+		uci_delete_option dhcp lan_wan2 dhcpv6_na
+		uci_delete_option dhcp lan_wan2 ra_slaac
+		uci_delete_option dhcp lan_wan2 ra_management
+		uci_delete_option dhcp lan_wan2 ra_flags
+		uci_delete_option dhcp lan_wan2 max_preferred_lifetime
+		uci_delete_option dhcp lan_wan2 max_valid_lifetime
+	fi
+	if [ "$WAN2_DNS_MODE" = "custom" ]; then
+		uci_replace_list_prefix dhcp lan_wan2 dhcp_option 6, "6,$(printf '%s' "$WAN2_DNS4" | tr ' ' ',')"
+		if [ "$WAN2_IPV6" = "1" ]; then
+			uci_set_list dhcp lan_wan2 dns $WAN2_DNS6
+		else
+			uci_delete_option dhcp lan_wan2 dns
+		fi
+	fi
 
 	uci_set_type dhcp wan2 dhcp
 	uci_set_value dhcp wan2 interface wan2
 	uci_set_value dhcp wan2 ignore 1
-	uci_set_type dhcp wan2_6 dhcp
-	uci_set_value dhcp wan2_6 interface wan2_6
-	uci_set_value dhcp wan2_6 ignore 1
+	if [ "$WAN2_IPV6" = "1" ]; then
+		uci_set_type dhcp wan2_6 dhcp
+		uci_set_value dhcp wan2_6 interface wan2_6
+		uci_set_value dhcp wan2_6 ignore 1
+	else
+		uci_delete_section dhcp wan2_6
+	fi
 }
 
 apply_single_dhcp() {
 	uci_delete_section dhcp lan_wan2
 	uci_delete_section dhcp wan2
 	uci_delete_section dhcp wan2_6
-}
-
-apply_luna() {
-	local index target section keep current
-	[ "$MANAGE_LUNA" = "1" ] || return 0
-
-	uci_set_type dhcp mwan_luna_v4 host
-	uci_set_value dhcp mwan_luna_v4 name LunaNAS
-	uci_set_list dhcp mwan_luna_v4 mac "$LUNA_MAC"
-	uci_set_value dhcp mwan_luna_v4 ip "$LUNA_IPV4"
-
-	uci_set_type dhcp mwan_luna_v6 host
-	uci_set_value dhcp mwan_luna_v6 name LunaNAS
-	uci_set_value dhcp mwan_luna_v6 duid "$LUNA_DUID"
-	uci_set_value dhcp mwan_luna_v6 hostid "$LUNA_IPV6_SUFFIX"
-
-	index=0
-	for target in $LUNA_ROUTES; do
-		index=$((index + 1))
-		section="mwan_luna_route_$index"
-		uci_set_type network "$section" route
-		uci_set_value network "$section" target "$target"
-		uci_set_value network "$section" gateway "$LUNA_IPV4"
-		uci_set_value network "$section" interface "$LAN4_NETWORK"
-	done
-
-	for section in $(list_sections network route); do
-		case "$section" in
-			mwan_luna_route_*)
-				keep=0
-				current="${section#mwan_luna_route_}"
-				[ "$current" -le "$index" ] 2>/dev/null && keep=1
-				[ "$keep" = "1" ] || uci_delete_section network "$section"
-				;;
-		esac
-	done
 }
 
 ensure_wan2_rule_dhcp4() {
@@ -912,7 +987,11 @@ apply_dual_firewall() {
 
 	uci_set_type firewall mwan_wan2_zone zone
 	uci_set_value firewall mwan_wan2_zone name wan2
-	uci_set_list firewall mwan_wan2_zone network wan2 wan2_6
+	if [ "$WAN2_IPV6" = "1" ]; then
+		uci_set_list firewall mwan_wan2_zone network wan2 wan2_6
+	else
+		uci_set_list firewall mwan_wan2_zone network wan2
+	fi
 	uci_set_value firewall mwan_wan2_zone input REJECT
 	uci_set_value firewall mwan_wan2_zone output ACCEPT
 	uci_set_value firewall mwan_wan2_zone forward REJECT
@@ -923,11 +1002,22 @@ apply_dual_firewall() {
 	ensure_forwarding mwan_lan_to_lan_wan2 lan lan_wan2
 	ensure_forwarding mwan_lan_wan2_to_lan lan_wan2 lan
 
-	ensure_wan2_rule_dhcp4
-	ensure_wan2_rule_dhcp6
-	ensure_wan2_rule_mld
-	ensure_wan2_rule_icmp_input
-	ensure_wan2_rule_icmp_forward
+	if [ "$WAN2_PROTO" = "dhcp" ]; then
+		ensure_wan2_rule_dhcp4
+	else
+		uci_delete_section firewall mwan_allow_dhcp_renew_wan2
+	fi
+	if [ "$WAN2_IPV6" = "1" ]; then
+		ensure_wan2_rule_dhcp6
+		ensure_wan2_rule_mld
+		ensure_wan2_rule_icmp_input
+		ensure_wan2_rule_icmp_forward
+	else
+		uci_delete_section firewall mwan_allow_dhcpv6_wan2
+		uci_delete_section firewall mwan_allow_mld_wan2
+		uci_delete_section firewall mwan_allow_icmpv6_input_wan2
+		uci_delete_section firewall mwan_allow_icmpv6_forward_wan2
+	fi
 
 	if [ "$VPN_WAN2_ISOLATION" = "1" ]; then
 		delete_forwardings vpn wan2
@@ -957,51 +1047,6 @@ apply_single_firewall() {
 	uci_delete_section firewall mwan_lan_wan2_zone
 }
 
-apply_luna_firewall() {
-	local source_zone dest_zone enabled
-	[ "$MANAGE_LUNA" = "1" ] || return 0
-
-	if [ "$LAN4_NETWORK" = "lan_wan2" ]; then
-		source_zone="wan2"
-		dest_zone="lan_wan2"
-	else
-		source_zone="wan"
-		dest_zone="lan"
-	fi
-
-	uci_set_type firewall mwan_luna_51198 redirect
-	uci_set_value firewall mwan_luna_51198 target DNAT
-	uci_set_value firewall mwan_luna_51198 src "$source_zone"
-	uci_set_value firewall mwan_luna_51198 dest "$dest_zone"
-	uci_set_value firewall mwan_luna_51198 src_dport 51198
-	uci_set_value firewall mwan_luna_51198 dest_port 51198
-	uci_set_value firewall mwan_luna_51198 dest_ip "$LUNA_IPV4"
-
-	enabled="$(uci -q get firewall.mwan_luna_ipv6.enabled)"
-	uci_set_type firewall mwan_luna_ipv6 rule
-	uci_set_value firewall mwan_luna_ipv6 name Allow-LunaNAS-IPv6
-	uci_set_value firewall mwan_luna_ipv6 src "$source_zone"
-	uci_set_value firewall mwan_luna_ipv6 dest "$dest_zone"
-	uci_set_value firewall mwan_luna_ipv6 family ipv6
-	uci_set_value firewall mwan_luna_ipv6 proto 'tcp udp'
-	uci_set_value firewall mwan_luna_ipv6 dest_port '55666 55667'
-	uci_set_list firewall mwan_luna_ipv6 dest_ip "::$LUNA_IPV6_SUFFIX/::ffff:ffff:ffff:ffff"
-	uci_set_value firewall mwan_luna_ipv6 target ACCEPT
-	[ -n "$enabled" ] || uci_set_value firewall mwan_luna_ipv6 enabled 0
-
-	if [ "$WAN1_ACCESS_LAN4" = "1" ]; then
-		uci_set_type firewall allow_wan1_to_lan4_device rule
-		uci_set_value firewall allow_wan1_to_lan4_device name Allow-WAN1-Upstream-to-LAN4-Device
-		uci_set_value firewall allow_wan1_to_lan4_device src wan
-		uci_set_value firewall allow_wan1_to_lan4_device dest "$dest_zone"
-		uci_set_value firewall allow_wan1_to_lan4_device dest_ip "$LUNA_IPV4"
-		uci_set_value firewall allow_wan1_to_lan4_device family ipv4
-		uci_set_value firewall allow_wan1_to_lan4_device target ACCEPT
-	else
-		uci_delete_section firewall allow_wan1_to_lan4_device
-	fi
-}
-
 commit_and_reload() {
 	[ "$NETWORK_CHANGED" = "1" ] && uci commit network
 	[ "$DHCP_CHANGED" = "1" ] && uci commit dhcp
@@ -1024,7 +1069,7 @@ commit_and_reload() {
 }
 
 check_state() {
-	local errors=0 br_lan br_wan2 br_wan2_ports ports wifi_network vpn_zone vpn_block vpn_forward port
+	local errors=0 br_lan br_wan2 br_wan2_ports ports wifi_network vpn_zone vpn_block vpn_forward port option section
 	read_settings || return 1
 	validate_settings || return 1
 
@@ -1035,6 +1080,36 @@ check_state() {
 	if [ "$MODE" = "dual" ]; then
 		uci -q get network.wan2_probe >/dev/null && errors=$((errors + 1))
 		[ "$(uci -q get network.wan2.device)" = "$WAN2_PORT" ] || errors=$((errors + 1))
+		[ "$(uci -q get network.wan2.proto)" = "$WAN2_PROTO" ] || errors=$((errors + 1))
+		if [ "$WAN2_PROTO" = "pppoe" ]; then
+			[ "$(uci -q get network.wan2.username)" = "$WAN2_PPPOE_USERNAME" ] || errors=$((errors + 1))
+			[ "$(uci -q get network.wan2.password)" = "$WAN2_PPPOE_PASSWORD" ] || errors=$((errors + 1))
+			for option in mtu keepalive holdoff persist maxfail service ac reqprefix; do
+				uci -q get "network.wan2.$option" >/dev/null && errors=$((errors + 1))
+			done
+			uci -q get network.wan2_6 >/dev/null && errors=$((errors + 1))
+			if [ "$WAN2_IPV6" = "1" ]; then
+				uci -q get network.wan2.ipv6 >/dev/null && errors=$((errors + 1))
+				[ "$(uci -q get network.wan2.ip6table)" = "$WAN2_TABLE" ] || errors=$((errors + 1))
+			else
+				[ "$(uci -q get network.wan2.ipv6)" = "0" ] || errors=$((errors + 1))
+				uci -q get network.wan2.ip6table >/dev/null && errors=$((errors + 1))
+			fi
+		else
+			for option in username password mtu keepalive holdoff persist maxfail ipv6 service ac reqprefix ip6table; do
+				uci -q get "network.wan2.$option" >/dev/null && errors=$((errors + 1))
+			done
+			if [ "$WAN2_IPV6" = "1" ]; then
+				[ "$(uci -q get network.wan2_6.device)" = "@wan2" ] || errors=$((errors + 1))
+				[ "$(uci -q get network.wan2_6.proto)" = "dhcpv6" ] || errors=$((errors + 1))
+				[ "$(uci -q get network.wan2_6.reqprefix)" = "auto" ] || errors=$((errors + 1))
+			else
+				uci -q get network.wan2_6 >/dev/null && errors=$((errors + 1))
+			fi
+		fi
+		if [ "$WAN2_DNS_MODE" = "custom" ]; then
+			[ "$(uci -q get network.wan2.peerdns)" = "0" ] || errors=$((errors + 1))
+		fi
 		case " $ports " in *" $WAN2_PORT "*) errors=$((errors + 1));; esac
 		find_section_one network device name br-lan-wan2
 		br_wan2="$FOUND_SECTION"
@@ -1073,6 +1148,14 @@ check_state() {
 			case " $ports " in *" $port "*) ;; *) errors=$((errors + 1));; esac
 		done
 	fi
+
+	uci -q get dhcp.mwan_luna >/dev/null && errors=$((errors + 1))
+	uci -q get firewall.mwan_luna_51198 >/dev/null && errors=$((errors + 1))
+	uci -q get firewall.mwan_luna_ipv6 >/dev/null && errors=$((errors + 1))
+	uci -q get firewall.allow_wan1_to_lan4_device >/dev/null && errors=$((errors + 1))
+	for section in $(list_sections network route); do
+		case "$section" in mwan_luna_route_*) errors=$((errors + 1));; esac
+	done
 
 	find_section_one wireless wifi-iface device "$WIFI24_RADIO"
 	wifi_network="$(uci -q get wireless.$FOUND_SECTION.network)"
@@ -1139,6 +1222,7 @@ apply_config() {
 	validate_settings || return 1
 	find_wifi_sections || return 1
 	adopt_managed_sections
+	cleanup_legacy_fixed_device
 	capture_target_port_network
 	capture_wireless_networks
 	apply_common_network
@@ -1158,8 +1242,6 @@ apply_config() {
 
 	apply_wireless
 	detect_wireless_moves
-	apply_luna
-	apply_luna_firewall
 	commit_and_reload
 	reset_target_port_link || log "请检查 $LAN4_PORT 链路；自动重置未完成"
 	reset_moved_wireless

@@ -12,6 +12,12 @@ const callServiceList = rpc.declare({
 	expect: { '': {} }
 });
 
+const callInterfaceDump = rpc.declare({
+	object: 'network.interface',
+	method: 'dump',
+	expect: { interface: [] }
+});
+
 function asArray(value) {
 	if (Array.isArray(value))
 		return value;
@@ -59,7 +65,8 @@ return view.extend({
 			uci.load('firewall'),
 			uci.load('wireless'),
 			network.getDevices(),
-			L.resolveDefault(callServiceList('mwan-switch-monitor'), {})
+			L.resolveDefault(callServiceList('mwan-switch-monitor'), {}),
+			L.resolveDefault(callInterfaceDump(), [])
 		]);
 	},
 
@@ -79,9 +86,19 @@ return view.extend({
 		const desiredWifi24 = uci.get('mwan-switch', 'main', 'wifi24_uplink') || 'wan2';
 		const desiredWifi5 = uci.get('mwan-switch', 'main', 'wifi5_uplink') || 'wan';
 		const desiredVpnIsolation = uci.get('mwan-switch', 'main', 'vpn_wan2_isolation') || '1';
+		const desiredWan2Proto = uci.get('mwan-switch', 'main', 'wan2_proto') || 'dhcp';
+		const desiredWan2Ipv6 = uci.get('mwan-switch', 'main', 'wan2_ipv6') || '1';
 		const wan2LinkMonitor = uci.get('mwan-switch', 'main', 'wan2_link_monitor') || '0';
 		const wan2LinkRestore = uci.get('mwan-switch', 'main', 'wan2_link_restore') || '1';
 		const monitorService = (data[6] || {})['mwan-switch-monitor'];
+		const interfaceDump = Array.isArray(data[7]) ? data[7] :
+			(Array.isArray((data[7] || {}).interface) ? data[7].interface : []);
+		const wan2Runtime = interfaceDump.filter(function(status) {
+			return status.interface === 'wan2';
+		})[0] || {};
+		const wan2Ipv6Runtime = interfaceDump.filter(function(status) {
+			return status.interface === 'wan2_6';
+		})[0] || {};
 		const monitorInstances = monitorService && monitorService.instances ? monitorService.instances : {};
 		const monitorServiceRunning = Object.keys(monitorInstances).some(function(name) {
 			return monitorInstances[name] && monitorInstances[name].running === true;
@@ -106,7 +123,9 @@ return view.extend({
 		const brWan2Ports = asArray(brWan2 ? brWan2.ports : null);
 		const wifi24Networks = asArray(wifi24 ? wifi24.network : null);
 		const wifi5Networks = asArray(wifi5 ? wifi5.network : null);
-		const wan2Ready = uci.get('network', 'wan2', 'proto') === 'dhcp' &&
+		const actualWan2Proto = uci.get('network', 'wan2', 'proto') || '';
+		const wan2Ready = actualWan2Proto === desiredWan2Proto &&
+			(actualWan2Proto === 'dhcp' || actualWan2Proto === 'pppoe') &&
 			uci.get('network', 'wan2', 'device') === wan2Port &&
 			!brLanPorts.includes(wan2Port);
 		const actualMode = wan2Ready ? 'dual' : 'wan_only';
@@ -145,13 +164,37 @@ return view.extend({
 		const targetLabel = targetPort || '未检测到';
 		const wan2LinkLabel = wan2Carrier === true ? '已连接' :
 			(wan2Carrier === false ? '未连接' : '无法检测');
+		const wan2ProtoLabel = actualWan2Proto === 'pppoe' ? 'PPPoE' :
+			(actualWan2Proto === 'dhcp' ? 'DHCP' : '未配置');
+		const wan2Ipv4Addresses = Array.isArray(wan2Runtime['ipv4-address']) ?
+			wan2Runtime['ipv4-address'] : [];
+		const wan2Ipv4 = wan2Ipv4Addresses.length ? wan2Ipv4Addresses[0].address : '';
+		const wan2Online = wan2Runtime.up === true || !!wan2Ipv4;
+		const wan2Ipv6Addresses = Array.isArray(wan2Ipv6Runtime['ipv6-address']) ?
+			wan2Ipv6Runtime['ipv6-address'] : [];
+		const wan2Ipv6Prefixes = Array.isArray(wan2Ipv6Runtime['ipv6-prefix']) ?
+			wan2Ipv6Runtime['ipv6-prefix'] : [];
+		const wan2SessionLabel = failoverActive ? '故障转移中' :
+			(wan2Carrier === false ? '物理链路断开' :
+				(wan2Online ?
+					(actualWan2Proto === 'pppoe' ? '拨号已连接' : '接口已联网') +
+					(wan2Ipv4 ? '（' + wan2Ipv4 + '）' : '') :
+					(wan2Runtime.pending === true ? '正在连接' :
+						(actualWan2Proto === 'pppoe' ? '拨号未连接' : '接口未联网'))));
+		const wan2Ipv6Label = desiredWan2Ipv6 !== '1' ? '已关闭' :
+			(wan2Ipv6Runtime.up === true ?
+				(wan2Ipv6Prefixes.length ? '已获得 IPv6-PD' :
+					(wan2Ipv6Addresses.length ? '已获得 IPv6 地址，未获得 PD' : '客户端已启动，等待地址/PD')) :
+				'客户端未启动');
 		const monitorLabel = wan2LinkMonitor !== '1' ? '拔出检测关闭' :
 			(!monitorServiceRunning ? '持续检测服务未运行' :
 			(failoverActive ?
 				(wan2LinkRestore === '1' ? '故障转移中，插入后自动恢复' : '故障转移中，插入后保持仅 WAN1') :
 				('持续检测服务运行中；插入恢复' + (wan2LinkRestore === '1' ? '开启' : '关闭'))));
 		const statusText = '当前状态：' + label(actualMode) +
-			(desiredMode === 'dual' ? '；WAN2 链路：' + wan2LinkLabel + '（自动检测：' + monitorLabel + '）' : '') +
+			(desiredMode === 'dual' ? '；WAN2：' + wan2ProtoLabel + '，' + wan2SessionLabel +
+				'；IPv6：' + wan2Ipv6Label +
+				'；物理链路：' + wan2LinkLabel + '（自动检测：' + monitorLabel + '）' : '') +
 			'；最后 LAN 口（' + targetLabel + '）→ ' + label(actualTarget) +
 			'；2.4G → ' + label(actualWifi24) +
 			'；5G → ' + label(actualWifi5) +
@@ -164,6 +207,7 @@ return view.extend({
 		s = m.section(form.NamedSection, 'main', 'settings', '切换设置');
 		s.addremove = false;
 		s.tab('basic', '基本设置');
+		s.tab('wan2', 'WAN2 上网');
 		s.tab('advanced', '高级设置');
 
 		o = s.taboption('basic', form.DummyValue, '_current_status', '实际运行状态');
@@ -263,6 +307,44 @@ return view.extend({
 		o.depends('mode', 'dual');
 		o.description = '开启时 tun0、tun1 等 tun+ 只能走 WAN1，并拒绝转发到 WAN2；关闭时允许 VPN 区域访问 WAN2，但不会把 VPN 默认路由强制改到 WAN2。';
 
+		o = s.taboption('wan2', form.ListValue, 'wan2_proto', 'WAN2 上网方式');
+		o.value('dhcp', 'DHCP 自动获取');
+		o.value('pppoe', 'PPPoE 拨号');
+		o.default = 'dhcp';
+		o.rmempty = false;
+		o.depends('mode', 'dual');
+
+		o = s.taboption('wan2', form.Value, 'wan2_pppoe_username', 'PPPoE 账号');
+		o.rmempty = false;
+		o.depends({ mode: 'dual', wan2_proto: 'pppoe' });
+
+		o = s.taboption('wan2', form.Value, 'wan2_pppoe_password', 'PPPoE 密码');
+		o.password = true;
+		o.rmempty = false;
+		o.depends({ mode: 'dual', wan2_proto: 'pppoe' });
+
+		o = s.taboption('wan2', form.Flag, 'wan2_ipv6', '自动获取 IPv6');
+		o.default = '1';
+		o.rmempty = false;
+		o.depends('mode', 'dual');
+		o.description = 'DHCP 使用静态 wan2_6 → @wan2；PPPoE 由 netifd 在每次拨号成功后自动创建 wan2_6。';
+
+		o = s.taboption('wan2', form.ListValue, 'wan2_dns_mode', 'WAN2 DNS 设置');
+		o.value('keep', '不修改现有 DNS');
+		o.value('custom', '使用下面的自定义 DNS');
+		o.default = 'keep';
+		o.rmempty = false;
+		o.depends('mode', 'dual');
+		o.description = '选择“不修改”时，本应用不会写入或删除主 LAN、WAN2 上联及 WAN2 客户端的 DNS 选项。';
+
+		o = s.taboption('wan2', form.DynamicList, 'wan2_dns4', 'WAN2 客户端 IPv4 DNS');
+		o.datatype = 'ip4addr';
+		o.depends({ mode: 'dual', wan2_dns_mode: 'custom' });
+
+		o = s.taboption('wan2', form.DynamicList, 'wan2_dns6', 'WAN2 客户端 IPv6 DNS');
+		o.datatype = 'ip6addr';
+		o.depends({ mode: 'dual', wan2_dns_mode: 'custom', wan2_ipv6: '1' });
+
 		o = s.taboption('advanced', form.Value, 'wan2_lan_ip', 'WAN2 内网网关');
 		o.datatype = 'ip4addr';
 		o.default = '192.168.77.1';
@@ -297,42 +379,23 @@ return view.extend({
 		o.default = 'radio1';
 		o.rmempty = false;
 
-		o = s.taboption('advanced', form.Flag, 'manage_luna', '管理最后 LAN 口固定设备');
-		o.default = '1';
+		o = s.taboption('advanced', form.ListValue, 'ipv6_preferred_lifetime', 'IPv6 首选地址寿命上限');
+		o.value('1h', '1 小时');
+		o.value('6h', '6 小时');
+		o.value('12h', '12 小时');
+		o.value('24h', '24 小时（最长）');
+		o.default = '24h';
 		o.rmempty = false;
+		o.description = 'odhcpd 默认只保留约 45 分钟。此项控制下游 DHCPv6 和 RA 的首选寿命上限；仍不会超过 WAN 上级委派前缀的实际寿命。';
 
-		o = s.taboption('advanced', form.Value, 'luna_mac', '固定设备 MAC');
-		o.datatype = 'macaddr';
-		o.default = '66:89:48:AE:2D:9E';
-		o.depends('manage_luna', '1');
-
-		o = s.taboption('advanced', form.Value, 'luna_duid', '固定设备 IPv6 DUID');
-		o.default = '00041f4077fde69db0d06d26583c13a4083e';
-		o.depends('manage_luna', '1');
-
-		o = s.taboption('advanced', form.Value, 'luna_ipv4_suffix', '固定 IPv4 末段');
-		o.datatype = 'range(2,254)';
-		o.default = '186';
-		o.depends('manage_luna', '1');
-
-		o = s.taboption('advanced', form.Value, 'luna_ipv6_suffix', '固定 IPv6 后缀');
-		o.default = 'a186';
-		o.depends('manage_luna', '1');
-
-		o = s.taboption('advanced', form.Flag, 'wan1_access_lan4', '允许 WAN1 上级访问固定设备');
-		o.default = '1';
+		o = s.taboption('advanced', form.ListValue, 'ipv6_valid_lifetime', 'IPv6 有效地址寿命上限');
+		o.value('2h', '2 小时');
+		o.value('6h', '6 小时');
+		o.value('12h', '12 小时');
+		o.value('24h', '24 小时（最长）');
+		o.default = '24h';
 		o.rmempty = false;
-		o.depends('manage_luna', '1');
-
-		o = s.taboption('advanced', form.DynamicList, 'wan2_dns4', 'WAN2 客户端 IPv4 DNS');
-		o.datatype = 'ip4addr';
-
-		o = s.taboption('advanced', form.DynamicList, 'wan2_dns6', 'WAN2 客户端 IPv6 DNS');
-		o.datatype = 'ip6addr';
-
-		o = s.taboption('advanced', form.DynamicList, 'luna_routes', '固定设备后方路由');
-		o.datatype = 'cidr4';
-		o.depends('manage_luna', '1');
+		o.description = '必须不小于首选地址寿命。odhcpd 对下游 DHCPv6 地址的单次下发最大为 24 小时，客户端会在到期前自动续租。';
 
 		return m.render();
 	}

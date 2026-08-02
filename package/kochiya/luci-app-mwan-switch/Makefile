@@ -1,6 +1,6 @@
 include $(TOPDIR)/rules.mk
 
-PKG_RELEASE:=8
+PKG_RELEASE:=12
 
 LUCI_TITLE:=LuCI support for declarative WAN port switching
 # Do not force firewall4. All firewall changes use the common UCI schema and
