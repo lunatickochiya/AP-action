@@ -2,6 +2,7 @@
 
 APP="mwan-switch"
 LOCK_DIR="/var/lock/mwan-switch.lock"
+RETURN_PATH_HELPER="/usr/libexec/mwan-switch-return-path"
 
 NETWORK_CHANGED=0
 DHCP_CHANGED=0
@@ -133,6 +134,42 @@ uci_replace_list_prefix() {
 list_sections() {
 	local package="$1" type="$2"
 	uci -q show "$package" | sed -n "s/^${package}\.\([^=]*\)=${type}$/\1/p"
+}
+
+list_all_sections() {
+	local package="$1"
+	uci -q show "$package" | sed -n "s/^${package}\.\([^.=]*\)=[^=]*$/\1/p"
+}
+
+move_section_to_position() {
+	local package="$1" wanted="$2" target="$3" section current=-1 count=0
+	for section in $(list_all_sections "$package"); do
+		[ "$section" = "$wanted" ] && current="$count"
+		count=$((count + 1))
+	done
+	[ "$current" -ge 0 ] || return 1
+	[ "$current" -eq "$target" ] && return 0
+	uci reorder "$package.$wanted=$target" || return 1
+	mark_changed "$package"
+}
+
+access_rules_are_first() {
+	local package="$1" section first_rule second_rule
+	for section in $(list_all_sections "$package"); do
+		[ "$(uci -q get "$package.$section")" = "rule" ] || continue
+		if [ -z "$first_rule" ]; then
+			first_rule="$section"
+		elif [ -z "$second_rule" ]; then
+			second_rule="$section"
+			break
+		fi
+	done
+	if [ "$LUNA_IPV6_FIREWALL" = "1" ]; then
+		[ "$first_rule" = "mwan_luna_ipv6_access" ] && \
+			[ "$second_rule" = "mwan_block_wan_to_lan_wan2" ]
+	else
+		[ "$first_rule" = "mwan_block_wan_to_lan_wan2" ]
+	fi
 }
 
 find_section_one() {
@@ -346,20 +383,18 @@ read_settings() {
 	WIFI24_RADIO="${WIFI24_RADIO:-radio0}"
 	WIFI5_RADIO="${WIFI5_RADIO:-radio1}"
 	MANAGE_LUNA="${MANAGE_LUNA:-1}"
-	LUNA_MAC="${LUNA_MAC:-66:89:48:AE:2D:9E}"
+	LUNA_MAC="${LUNA_MAC:-02:12:34:56:78:9A}"
 	LUNA_IPV4_SUFFIX="${LUNA_IPV4_SUFFIX:-186}"
 	LUNA_IPV4_PORT_FORWARD="${LUNA_IPV4_PORT_FORWARD:-1}"
-	LUNA_IPV4_PORT="${LUNA_IPV4_PORT:-51198}"
+	LUNA_IPV4_PORT="${LUNA_IPV4_PORT:-50000}"
 	LUNA_IPV6_FIREWALL="${LUNA_IPV6_FIREWALL:-1}"
-	LUNA_IPV6_DEST_SUFFIX="${LUNA_IPV6_DEST_SUFFIX:-2d9e}"
+	LUNA_IPV6_DEST_SUFFIX="${LUNA_IPV6_DEST_SUFFIX:-789a}"
 	LAN_DNS4="${LAN_DNS4:-1.1.1.1 8.8.8.8 223.5.5.5 9.9.9.9}"
 	LAN_DNS6="${LAN_DNS6:-2606:4700:4700::1111 2001:4860:4860::8888 2400:3200::1 2620:fe::fe}"
 	WAN2_DNS4="${WAN2_DNS4:-1.1.1.1 8.8.8.8 223.5.5.5 9.9.9.9}"
 	WAN2_DNS6="${WAN2_DNS6:-2606:4700:4700::1111 2001:4860:4860::8888 2400:3200::1 2620:fe::fe}"
 	LUNA_ROUTES="${LUNA_ROUTES:-172.16.7.0/24 192.168.8.0/24}"
-	LUNA_IPV6_PORTS="${LUNA_IPV6_PORTS:-55666 55667}"
-	LUNA_IPV6_DEST_IP="::$LUNA_IPV6_DEST_SUFFIX/::ffff:ffff:ffff:ffff"
-
+	LUNA_IPV6_PORTS="${LUNA_IPV6_PORTS:-50000 50001}"
 	LAN_IP="$(uci -q get network.lan.ipaddr)"
 	LAN_IP="${LAN_IP:-192.168.7.1}"
 	LAN_PREFIX="${LAN_IP%.*}"
@@ -380,6 +415,28 @@ read_settings() {
 		LUNA_SOURCE_ZONE="wan"
 		LUNA_DEST_ZONE="lan"
 	fi
+}
+
+valid_mac() {
+	case "$1" in
+		[0-9A-Fa-f][0-9A-Fa-f]:[0-9A-Fa-f][0-9A-Fa-f]:[0-9A-Fa-f][0-9A-Fa-f]:[0-9A-Fa-f][0-9A-Fa-f]:[0-9A-Fa-f][0-9A-Fa-f]:[0-9A-Fa-f][0-9A-Fa-f]) return 0 ;;
+		*) return 1 ;;
+	esac
+}
+
+build_luna_ipv6_dest_ip() {
+	local mac suffix old_ifs first_byte
+	mac="$(printf '%s' "$LUNA_MAC" | tr 'A-F' 'a-f')"
+	suffix="$(printf '%s' "$LUNA_IPV6_DEST_SUFFIX" | tr 'A-F' 'a-f')"
+	old_ifs="$IFS"
+	IFS=':'
+	set -- $mac
+	IFS="$old_ifs"
+	[ "$#" -eq 6 ] || return 1
+	first_byte="$(printf '%02x' $((0x$1 ^ 0x02)))" || return 1
+	# Match the stable EUI-64 interface ID derived from luna_mac. The configurable
+	# suffix replaces the last 16 bits, preserving the existing LuCI setting.
+	LUNA_IPV6_DEST_IP="::${first_byte}${2}:${3}ff:fe${4}:${suffix}/::ffff:ffff:ffff:ffff"
 }
 
 valid_ipv4() {
@@ -513,6 +570,10 @@ validate_settings() {
 		*) log "无效 luna_ipv6_firewall=$LUNA_IPV6_FIREWALL"; return 1 ;;
 	esac
 	if [ "$LUNA_IPV6_FIREWALL" = "1" ]; then
+		valid_mac "$LUNA_MAC" || {
+			log "无效 luna_mac=$LUNA_MAC"
+			return 1
+		}
 		case "$LUNA_IPV6_DEST_SUFFIX" in
 			''|*[!0-9A-Fa-f]*) log "无效 luna_ipv6_dest_suffix=$LUNA_IPV6_DEST_SUFFIX"; return 1 ;;
 		esac
@@ -526,10 +587,14 @@ validate_settings() {
 		}
 		for port in $LUNA_IPV6_PORTS; do
 			valid_port "$port" || {
-				log "无效 LunaNAS IPv6 放行端口=$port"
+				log "无效固定设备 IPv6 放行端口=$port"
 				return 1
 			}
 		done
+		build_luna_ipv6_dest_ip || {
+			log "无法根据 luna_mac 生成 IPv6 接口标识"
+			return 1
+		}
 	fi
 	case "$WAN2_LINK_DELAY" in
 		''|*[!0-9]*) log "无效 wan2_link_delay=$WAN2_LINK_DELAY"; return 1 ;;
@@ -774,6 +839,8 @@ adopt_managed_sections() {
 	adopt_section_one firewall zone mwan_wan2_zone name wan2
 	adopt_section_two firewall forwarding mwan_lan_to_wan src lan dest wan
 	adopt_section_two firewall forwarding mwan_lan_wan2_to_wan2 src lan_wan2 dest wan2
+	adopt_section_two firewall forwarding mwan_lan_to_lan_wan2 src lan dest lan_wan2
+	adopt_section_two firewall forwarding mwan_wan_to_lan_wan2 src wan dest lan_wan2
 	adopt_section_two firewall forwarding mwan_lan_wan2_to_lan src lan_wan2 dest lan
 	adopt_section_two firewall forwarding mwan_vpn_to_wan2 src vpn dest wan2
 
@@ -785,12 +852,13 @@ adopt_managed_sections() {
 	adopt_section_one firewall rule blockvpntowan1 name Block-OpenVPN-to-WAN1
 	adopt_section_one firewall rule blockvpntowan2 name Block-OpenVPN-to-WAN2
 	adopt_section_one firewall rule mwan_block_lan_to_lan_wan2 name Block-MainLAN-to-WAN2-Clients
-	adopt_section_one firewall rule mwan_luna_ipv6_access name Allow-LunaNAS-IPv6
+	adopt_section_one firewall rule mwan_block_wan_to_lan_wan2 name Block-WAN1-Upstream-to-LastLAN
+	adopt_section_one firewall rule mwan_luna_ipv6_access name Allow-Managed-Device-IPv6
 
 	[ "$MANAGE_LUNA" = "1" ] || return 0
 	adopt_section_one dhcp host mwan_luna_v4 mac "$LUNA_MAC"
 	[ "$LUNA_IPV4_PORT_FORWARD" = "1" ] && \
-		adopt_section_one firewall redirect mwan_luna_51198 src_dport "$LUNA_IPV4_PORT"
+		adopt_section_one firewall redirect mwan_luna_ipv4_redirect src_dport "$LUNA_IPV4_PORT"
 
 	index=0
 	for target in $LUNA_ROUTES; do
@@ -801,17 +869,27 @@ adopt_managed_sections() {
 
 
 cleanup_fixed_device_ipv6() {
-	# Never recreate the old DUID/::a186 lease or its former fixed-device rule.
-	# The separately managed Allow-LunaNAS-IPv6 rule uses a different section.
+	# Never recreate the old DUID-based IPv6 lease or its former fixed-device
+	# rule. The separately managed IPv6 access rule uses a different section.
 	uci_delete_section dhcp mwan_luna_v6
 	uci_delete_section firewall mwan_luna_ipv6
+}
+
+cleanup_legacy_luna_redirects() {
+	local section
+	for section in $(list_sections firewall redirect); do
+		case "$section" in
+			mwan_luna_[0-9]*) uci_delete_section firewall "$section" ;;
+		esac
+	done
 }
 
 cleanup_fixed_device_ipv4() {
 	local section
 	uci_delete_section dhcp mwan_luna
 	uci_delete_section dhcp mwan_luna_v4
-	uci_delete_section firewall mwan_luna_51198
+	uci_delete_section firewall mwan_luna_ipv4_redirect
+	cleanup_legacy_luna_redirects
 	uci_delete_section firewall allow_wan1_to_lan4_device
 
 	for section in $(list_sections network route); do
@@ -833,7 +911,7 @@ apply_luna_ipv4() {
 	# IPv4 host deliberately keeps only the MAC reservation and IPv4 address.
 	uci_delete_section dhcp mwan_luna
 	uci_set_type dhcp mwan_luna_v4 host
-	uci_set_value dhcp mwan_luna_v4 name LunaNAS
+	uci_set_value dhcp mwan_luna_v4 name ManagedDevice
 	uci_set_list dhcp mwan_luna_v4 mac "$LUNA_MAC"
 	uci_set_value dhcp mwan_luna_v4 ip "$LUNA_IPV4"
 	uci_delete_option dhcp mwan_luna_v4 duid
@@ -861,22 +939,24 @@ apply_luna_ipv4() {
 	done
 
 	if [ "$LUNA_IPV4_PORT_FORWARD" = "1" ]; then
-		uci_set_type firewall mwan_luna_51198 redirect
-		uci_set_value firewall mwan_luna_51198 name LunaNAS-IPv4-Port-Forward
-		uci_set_value firewall mwan_luna_51198 target DNAT
-		uci_set_value firewall mwan_luna_51198 src "$LUNA_SOURCE_ZONE"
-		uci_set_value firewall mwan_luna_51198 dest "$LUNA_DEST_ZONE"
-		uci_set_value firewall mwan_luna_51198 proto 'tcp udp'
-		uci_set_value firewall mwan_luna_51198 src_dport "$LUNA_IPV4_PORT"
-		uci_set_value firewall mwan_luna_51198 dest_port "$LUNA_IPV4_PORT"
-		uci_set_value firewall mwan_luna_51198 dest_ip "$LUNA_IPV4"
-		uci_set_value firewall mwan_luna_51198 family ipv4
+		cleanup_legacy_luna_redirects
+		uci_set_type firewall mwan_luna_ipv4_redirect redirect
+		uci_set_value firewall mwan_luna_ipv4_redirect name Managed-Device-IPv4-Port-Forward
+		uci_set_value firewall mwan_luna_ipv4_redirect target DNAT
+		uci_set_value firewall mwan_luna_ipv4_redirect src "$LUNA_SOURCE_ZONE"
+		uci_set_value firewall mwan_luna_ipv4_redirect dest "$LUNA_DEST_ZONE"
+		uci_set_value firewall mwan_luna_ipv4_redirect proto 'tcp udp'
+		uci_set_value firewall mwan_luna_ipv4_redirect src_dport "$LUNA_IPV4_PORT"
+		uci_set_value firewall mwan_luna_ipv4_redirect dest_port "$LUNA_IPV4_PORT"
+		uci_set_value firewall mwan_luna_ipv4_redirect dest_ip "$LUNA_IPV4"
+		uci_set_value firewall mwan_luna_ipv4_redirect family ipv4
 	else
-		uci_delete_section firewall mwan_luna_51198
+		uci_delete_section firewall mwan_luna_ipv4_redirect
+		cleanup_legacy_luna_redirects
 	fi
-	# Main-LAN access is managed centrally by lan_access_target. Remove the old
-	# WAN-zone rule so it cannot duplicate that policy or expose the device to
-	# the WAN1 upstream network.
+	# WAN1-upstream access is managed centrally by lan_access_target for the whole
+	# last-LAN zone. Remove the old fixed-device-only rule so it cannot bypass the
+	# current allow/reject policy.
 	uci_delete_section firewall allow_wan1_to_lan4_device
 }
 
@@ -887,14 +967,38 @@ apply_luna_ipv6_firewall() {
 	fi
 
 	uci_set_type firewall mwan_luna_ipv6_access rule
-	uci_set_value firewall mwan_luna_ipv6_access name Allow-LunaNAS-IPv6
-	uci_set_value firewall mwan_luna_ipv6_access src wan
-	uci_set_value firewall mwan_luna_ipv6_access dest lan
+	# A rule disabled from LuCI keeps option enabled='0' even when its managed
+	# switch is later turned back on. Remove that stale per-rule override.
+	uci_delete_option firewall mwan_luna_ipv6_access enabled
+	uci_set_value firewall mwan_luna_ipv6_access name Allow-Managed-Device-IPv6
+	uci_set_value firewall mwan_luna_ipv6_access src "$LUNA_SOURCE_ZONE"
+	uci_set_value firewall mwan_luna_ipv6_access dest "$LUNA_DEST_ZONE"
 	uci_set_value firewall mwan_luna_ipv6_access family ipv6
 	uci_set_value firewall mwan_luna_ipv6_access proto 'tcp udp'
 	uci_set_value firewall mwan_luna_ipv6_access dest_port "$LUNA_IPV6_PORTS"
 	uci_set_value firewall mwan_luna_ipv6_access target ACCEPT
 	uci_set_list firewall mwan_luna_ipv6_access dest_ip "$LUNA_IPV6_DEST_IP"
+}
+
+order_access_firewall_rules() {
+	local section first_rule_position=-1 count=0
+	# firewall3 and firewall4 both evaluate traffic rules in UCI order. Put the
+	# broad reject ahead of unrelated allows, while keeping the managed IPv6 port
+	# exception immediately before it.
+	[ "$MODE" = "dual" ] || return 0
+	[ "$LAN_ACCESS_TARGET" = "0" ] || return 0
+	for section in $(list_all_sections firewall); do
+		if [ "$(uci -q get firewall.$section)" = "rule" ]; then
+			first_rule_position="$count"
+			break
+		fi
+		count=$((count + 1))
+	done
+	[ "$first_rule_position" -ge 0 ] || return 1
+	move_section_to_position firewall mwan_block_wan_to_lan_wan2 "$first_rule_position" || return 1
+	if [ "$LUNA_IPV6_FIREWALL" = "1" ]; then
+		move_section_to_position firewall mwan_luna_ipv6_access "$first_rule_position" || return 1
+	fi
 }
 
 apply_common_network() {
@@ -1013,6 +1117,19 @@ apply_dual_network() {
 	uci_set_value network lan_wan2_ipv4 priority 11000
 
 	if [ "$WAN2_IPV6" = "1" ]; then
+		if [ "$LAN4_UPLINK" = "wan2" ] && [ "$LUNA_IPV6_FIREWALL" = "1" ]; then
+			uci_set_type network lan_wan2_return_ipv6 rule6
+			for option in disabled in out src dest tos uidrange ipproto invert \
+				action goto suppress_prefixlength; do
+				uci_delete_option network lan_wan2_return_ipv6 "$option"
+			done
+			uci_set_value network lan_wan2_return_ipv6 mark 0x20000/0x20000
+			uci_set_value network lan_wan2_return_ipv6 lookup "$WAN2_TABLE"
+			uci_set_value network lan_wan2_return_ipv6 priority 10400
+		else
+			uci_delete_section network lan_wan2_return_ipv6
+		fi
+
 		uci_set_type network lan_wan2_internal_ipv6 rule6
 		uci_set_value network lan_wan2_internal_ipv6 in lan_wan2
 		uci_set_value network lan_wan2_internal_ipv6 lookup main
@@ -1024,6 +1141,7 @@ apply_dual_network() {
 		uci_set_value network lan_wan2_ipv6 lookup "$WAN2_TABLE"
 		uci_set_value network lan_wan2_ipv6 priority 11000
 	else
+		uci_delete_section network lan_wan2_return_ipv6
 		uci_delete_section network lan_wan2_internal_ipv6
 		uci_delete_section network lan_wan2_ipv6
 	fi
@@ -1053,6 +1171,7 @@ apply_single_network() {
 
 	uci_delete_section network lan_wan2_internal_ipv4
 	uci_delete_section network lan_wan2_internal_ipv6
+	uci_delete_section network lan_wan2_return_ipv6
 	uci_delete_section network lan_wan2_ipv4
 	uci_delete_section network lan_wan2_ipv6
 	uci_delete_section network wan2_6
@@ -1211,6 +1330,22 @@ apply_common_firewall() {
 	local vpn_zone
 	ensure_forwarding mwan_lan_to_wan lan wan
 
+	uci_set_type firewall mwan_switch_return_path include
+	uci_delete_option firewall mwan_switch_return_path enabled
+	uci_delete_option firewall mwan_switch_return_path family
+	uci_delete_option firewall mwan_switch_return_path position
+	uci_delete_option firewall mwan_switch_return_path chain
+	uci_set_value firewall mwan_switch_return_path type script
+	uci_set_value firewall mwan_switch_return_path path "$RETURN_PATH_HELPER"
+	# reload is a firewall3-only include option. firewall4 reports it as
+	# unsupported, and the app invokes the helper explicitly after applying UCI.
+	if command -v fw4 >/dev/null 2>&1; then
+		uci_delete_option firewall mwan_switch_return_path reload
+	else
+		uci_set_value firewall mwan_switch_return_path reload 1
+	fi
+	uci_set_value firewall mwan_switch_return_path fw4_compatible 1
+
 	find_section_one firewall zone name vpn
 	vpn_zone="$FOUND_SECTION"
 	if [ -z "$vpn_zone" ]; then
@@ -1263,33 +1398,34 @@ apply_dual_firewall() {
 	uci_set_value firewall mwan_wan2_zone mtu_fix 1
 
 	ensure_forwarding mwan_lan_wan2_to_wan2 lan_wan2 wan2
+	# Main-LAN clients keep one-way access to the last-LAN network. The page
+	# selector below controls WAN1-upstream access independently.
+	uci_delete_section firewall mwan_block_lan_to_lan_wan2
+	ensure_forwarding mwan_lan_to_lan_wan2 lan lan_wan2
 	if [ "$LAN_ACCESS_TARGET" = "1" ]; then
-		uci_delete_section firewall mwan_block_lan_to_lan_wan2
-		# Always keep an app-owned forwarding so the applied state is deterministic
-		# and can be detected reliably even when unrelated user rules also exist.
-		# firewall3/4 connection tracking accepts replies without reverse forwarding.
-		ensure_forwarding mwan_lan_to_lan_wan2 lan lan_wan2
+		uci_delete_section firewall mwan_block_wan_to_lan_wan2
+		ensure_forwarding mwan_wan_to_lan_wan2 wan lan_wan2
 	else
-		# Match the VPN isolation model: remove every allow-forwarding in this
-		# direction and add an explicit reject rule. This makes the off state
-		# enforceable and independently detectable instead of merely hiding a UI
-		# checkbox while another forwarding still permits access.
-		delete_forwardings lan lan_wan2
-		uci_set_type firewall mwan_block_lan_to_lan_wan2 rule
-		uci_set_value firewall mwan_block_lan_to_lan_wan2 name Block-MainLAN-to-WAN2-Clients
-		uci_set_value firewall mwan_block_lan_to_lan_wan2 src lan
-		uci_set_value firewall mwan_block_lan_to_lan_wan2 dest lan_wan2
-		uci_set_value firewall mwan_block_lan_to_lan_wan2 target REJECT
+		# The explicit reject is required on vendor configurations whose global
+		# forwarding policy is ACCEPT. A managed IPv6 port allow rule is ordered
+		# before this broad reject after all firewall sections are generated.
+		delete_forwardings wan lan_wan2
+		uci_set_type firewall mwan_block_wan_to_lan_wan2 rule
+		uci_set_value firewall mwan_block_wan_to_lan_wan2 name Block-WAN1-Upstream-to-LastLAN
+		uci_set_value firewall mwan_block_wan_to_lan_wan2 src wan
+		uci_set_value firewall mwan_block_wan_to_lan_wan2 dest lan_wan2
+		uci_set_value firewall mwan_block_wan_to_lan_wan2 target REJECT
 		# Keep this a broad IPv4/IPv6, all-protocol reject. Remove any stale match
 		# restriction if a same-name rule from an older/manual setup was adopted.
 		for option in enabled family proto src_ip dest_ip src_port dest_port \
 			icmp_type ipset mark limit limit_burst weekdays monthdays \
 			start_date stop_date start_time stop_time utc_time; do
-			uci_delete_option firewall mwan_block_lan_to_lan_wan2 "$option"
+			uci_delete_option firewall mwan_block_wan_to_lan_wan2 "$option"
 		done
 	fi
-	# Do not let devices behind the last port initiate connections to main LAN.
+	# Do not let devices behind the last port initiate connections to either LAN.
 	delete_forwardings lan_wan2 lan
+	delete_forwardings lan_wan2 wan
 
 	if [ "$WAN2_PROTO" = "dhcp" ]; then
 		ensure_wan2_rule_dhcp4
@@ -1325,7 +1461,10 @@ apply_single_firewall() {
 	uci_delete_section firewall mwan_lan_wan2_to_wan2
 	delete_forwardings lan lan_wan2
 	uci_delete_section firewall mwan_block_lan_to_lan_wan2
+	delete_forwardings wan lan_wan2
+	uci_delete_section firewall mwan_block_wan_to_lan_wan2
 	delete_forwardings lan_wan2 lan
+	delete_forwardings lan_wan2 wan
 	uci_delete_section firewall mwan_allow_dhcp_renew_wan2
 	uci_delete_section firewall mwan_allow_dhcpv6_wan2
 	uci_delete_section firewall mwan_allow_mld_wan2
@@ -1361,15 +1500,18 @@ commit_and_reload() {
 check_luna_ipv4_state() {
 	local index=0 target section route_count=0
 
-	# The former DUID/::a186 fixed-device state must remain absent. The new
-	# Allow-LunaNAS-IPv6 firewall rule is checked separately below.
+	# The former DUID-based fixed-device state must remain absent. The current
+	# IPv6 access rule is checked separately below.
 	uci -q get dhcp.mwan_luna_v6 >/dev/null && return 1
 	uci -q get firewall.mwan_luna_ipv6 >/dev/null && return 1
 	uci -q get dhcp.mwan_luna >/dev/null && return 1
+	for section in $(list_sections firewall redirect); do
+		case "$section" in mwan_luna_[0-9]*) return 1 ;; esac
+	done
 
 	if [ "$MANAGE_LUNA" != "1" ]; then
 		uci -q get dhcp.mwan_luna_v4 >/dev/null && return 1
-		uci -q get firewall.mwan_luna_51198 >/dev/null && return 1
+		uci -q get firewall.mwan_luna_ipv4_redirect >/dev/null && return 1
 		uci -q get firewall.allow_wan1_to_lan4_device >/dev/null && return 1
 		for section in $(list_sections network route); do
 			case "$section" in mwan_luna_route_*) return 1 ;; esac
@@ -1378,7 +1520,7 @@ check_luna_ipv4_state() {
 	fi
 
 	[ "$(uci -q get dhcp.mwan_luna_v4)" = "host" ] || return 1
-	[ "$(uci -q get dhcp.mwan_luna_v4.name)" = "LunaNAS" ] || return 1
+	[ "$(uci -q get dhcp.mwan_luna_v4.name)" = "ManagedDevice" ] || return 1
 	[ "$(uci -q get dhcp.mwan_luna_v4.mac)" = "$LUNA_MAC" ] || return 1
 	[ "$(uci -q get dhcp.mwan_luna_v4.ip)" = "$LUNA_IPV4" ] || return 1
 	uci -q get dhcp.mwan_luna_v4.duid >/dev/null && return 1
@@ -1398,18 +1540,18 @@ check_luna_ipv4_state() {
 	[ "$route_count" -eq "$index" ] || return 1
 
 	if [ "$LUNA_IPV4_PORT_FORWARD" = "1" ]; then
-		[ "$(uci -q get firewall.mwan_luna_51198)" = "redirect" ] || return 1
-		[ "$(uci -q get firewall.mwan_luna_51198.name)" = "LunaNAS-IPv4-Port-Forward" ] || return 1
-		[ "$(uci -q get firewall.mwan_luna_51198.target)" = "DNAT" ] || return 1
-		[ "$(uci -q get firewall.mwan_luna_51198.src)" = "$LUNA_SOURCE_ZONE" ] || return 1
-		[ "$(uci -q get firewall.mwan_luna_51198.dest)" = "$LUNA_DEST_ZONE" ] || return 1
-		[ "$(uci -q get firewall.mwan_luna_51198.proto)" = "tcp udp" ] || return 1
-		[ "$(uci -q get firewall.mwan_luna_51198.src_dport)" = "$LUNA_IPV4_PORT" ] || return 1
-		[ "$(uci -q get firewall.mwan_luna_51198.dest_port)" = "$LUNA_IPV4_PORT" ] || return 1
-		[ "$(uci -q get firewall.mwan_luna_51198.dest_ip)" = "$LUNA_IPV4" ] || return 1
-		[ "$(uci -q get firewall.mwan_luna_51198.family)" = "ipv4" ] || return 1
+		[ "$(uci -q get firewall.mwan_luna_ipv4_redirect)" = "redirect" ] || return 1
+		[ "$(uci -q get firewall.mwan_luna_ipv4_redirect.name)" = "Managed-Device-IPv4-Port-Forward" ] || return 1
+		[ "$(uci -q get firewall.mwan_luna_ipv4_redirect.target)" = "DNAT" ] || return 1
+		[ "$(uci -q get firewall.mwan_luna_ipv4_redirect.src)" = "$LUNA_SOURCE_ZONE" ] || return 1
+		[ "$(uci -q get firewall.mwan_luna_ipv4_redirect.dest)" = "$LUNA_DEST_ZONE" ] || return 1
+		[ "$(uci -q get firewall.mwan_luna_ipv4_redirect.proto)" = "tcp udp" ] || return 1
+		[ "$(uci -q get firewall.mwan_luna_ipv4_redirect.src_dport)" = "$LUNA_IPV4_PORT" ] || return 1
+		[ "$(uci -q get firewall.mwan_luna_ipv4_redirect.dest_port)" = "$LUNA_IPV4_PORT" ] || return 1
+		[ "$(uci -q get firewall.mwan_luna_ipv4_redirect.dest_ip)" = "$LUNA_IPV4" ] || return 1
+		[ "$(uci -q get firewall.mwan_luna_ipv4_redirect.family)" = "ipv4" ] || return 1
 	else
-		uci -q get firewall.mwan_luna_51198 >/dev/null && return 1
+		uci -q get firewall.mwan_luna_ipv4_redirect >/dev/null && return 1
 	fi
 
 	uci -q get firewall.allow_wan1_to_lan4_device >/dev/null && return 1
@@ -1424,9 +1566,10 @@ check_luna_ipv6_firewall_state() {
 	fi
 
 	[ "$(uci -q get firewall.mwan_luna_ipv6_access)" = "rule" ] || return 1
-	[ "$(uci -q get firewall.mwan_luna_ipv6_access.name)" = "Allow-LunaNAS-IPv6" ] || return 1
-	[ "$(uci -q get firewall.mwan_luna_ipv6_access.src)" = "wan" ] || return 1
-	[ "$(uci -q get firewall.mwan_luna_ipv6_access.dest)" = "lan" ] || return 1
+	[ "$(uci -q get firewall.mwan_luna_ipv6_access.enabled)" != "0" ] || return 1
+	[ "$(uci -q get firewall.mwan_luna_ipv6_access.name)" = "Allow-Managed-Device-IPv6" ] || return 1
+	[ "$(uci -q get firewall.mwan_luna_ipv6_access.src)" = "$LUNA_SOURCE_ZONE" ] || return 1
+	[ "$(uci -q get firewall.mwan_luna_ipv6_access.dest)" = "$LUNA_DEST_ZONE" ] || return 1
 	[ "$(uci -q get firewall.mwan_luna_ipv6_access.family)" = "ipv6" ] || return 1
 	[ "$(uci -q get firewall.mwan_luna_ipv6_access.proto)" = "tcp udp" ] || return 1
 	[ "$(uci -q get firewall.mwan_luna_ipv6_access.dest_port)" = "$LUNA_IPV6_PORTS" ] || return 1
@@ -1435,10 +1578,29 @@ check_luna_ipv6_firewall_state() {
 	return 0
 }
 
+check_return_path_state() {
+	[ "$(uci -q get firewall.mwan_switch_return_path)" = "include" ] || return 1
+	[ "$(uci -q get firewall.mwan_switch_return_path.enabled)" != "0" ] || return 1
+	[ "$(uci -q get firewall.mwan_switch_return_path.type)" = "script" ] || return 1
+	[ "$(uci -q get firewall.mwan_switch_return_path.path)" = "$RETURN_PATH_HELPER" ] || return 1
+	uci -q get firewall.mwan_switch_return_path.family >/dev/null && return 1
+	uci -q get firewall.mwan_switch_return_path.position >/dev/null && return 1
+	uci -q get firewall.mwan_switch_return_path.chain >/dev/null && return 1
+	if command -v fw4 >/dev/null 2>&1; then
+		uci -q get firewall.mwan_switch_return_path.reload >/dev/null && return 1
+	else
+		[ "$(uci -q get firewall.mwan_switch_return_path.reload)" = "1" ] || return 1
+	fi
+	[ "$(uci -q get firewall.mwan_switch_return_path.fw4_compatible)" = "1" ] || return 1
+	[ -x "$RETURN_PATH_HELPER" ] || return 1
+	"$RETURN_PATH_HELPER" check
+}
+
 check_lan_wan2_policy_state() {
 	if [ "$MODE" != "dual" ]; then
 		uci -q get network.lan_wan2_internal_ipv4 >/dev/null && return 1
 		uci -q get network.lan_wan2_ipv4 >/dev/null && return 1
+		uci -q get network.lan_wan2_return_ipv6 >/dev/null && return 1
 		uci -q get network.lan_wan2_internal_ipv6 >/dev/null && return 1
 		uci -q get network.lan_wan2_ipv6 >/dev/null && return 1
 		return 0
@@ -1456,6 +1618,15 @@ check_lan_wan2_policy_state() {
 	[ "$(uci -q get network.lan_wan2_ipv4.priority)" = "11000" ] || return 1
 
 	if [ "$WAN2_IPV6" = "1" ]; then
+		if [ "$LAN4_UPLINK" = "wan2" ] && [ "$LUNA_IPV6_FIREWALL" = "1" ]; then
+			[ "$(uci -q get network.lan_wan2_return_ipv6)" = "rule6" ] || return 1
+			uci -q get network.lan_wan2_return_ipv6.disabled >/dev/null && return 1
+			[ "$(uci -q get network.lan_wan2_return_ipv6.mark)" = "0x20000/0x20000" ] || return 1
+			[ "$(uci -q get network.lan_wan2_return_ipv6.lookup)" = "$WAN2_TABLE" ] || return 1
+			[ "$(uci -q get network.lan_wan2_return_ipv6.priority)" = "10400" ] || return 1
+		else
+			uci -q get network.lan_wan2_return_ipv6 >/dev/null && return 1
+		fi
 		if [ "$WAN2_PROTO" = "pppoe" ]; then
 			[ "$(uci -q get network.wan2.ip6table)" = "$WAN2_TABLE" ] || return 1
 		else
@@ -1471,6 +1642,7 @@ check_lan_wan2_policy_state() {
 		[ "$(uci -q get network.lan_wan2_ipv6.lookup)" = "$WAN2_TABLE" ] || return 1
 		[ "$(uci -q get network.lan_wan2_ipv6.priority)" = "11000" ] || return 1
 	else
+		uci -q get network.lan_wan2_return_ipv6 >/dev/null && return 1
 		uci -q get network.lan_wan2_internal_ipv6 >/dev/null && return 1
 		uci -q get network.lan_wan2_ipv6 >/dev/null && return 1
 	fi
@@ -1479,7 +1651,7 @@ check_lan_wan2_policy_state() {
 }
 
 check_state() {
-	local errors=0 br_lan br_wan2 br_wan2_ports ports wifi_network lan_target_forward lan_target_block target_lan_forward vpn_zone vpn1_block vpn1_forward vpn2_block vpn2_forward port option section
+	local errors=0 br_lan br_wan2 br_wan2_ports ports wifi_network lan_target_forward wan_target_forward wan_target_block target_lan_forward target_wan_forward vpn_zone vpn1_block vpn1_forward vpn2_block vpn2_forward port option section
 	echo "mwan-switch: 检查阶段 1/5：读取并验证设置"
 	read_settings || return 1
 	validate_settings || return 1
@@ -1586,31 +1758,48 @@ check_state() {
 	fi
 
 	echo "mwan-switch: 检查阶段 5/5：防火墙访问与 VPN 隔离"
+	if ! check_return_path_state; then
+		echo "mwan-switch: WAN2 IPv6 入站回程的 UCI 或运行时标记不一致" >&2
+		errors=$((errors + 1))
+	fi
 	find_enabled_forwarding lan lan_wan2
 	lan_target_forward="$FOUND_SECTION"
-	if [ "$(uci -q get firewall.mwan_block_lan_to_lan_wan2)" = "rule" ] && \
-		[ "$(uci -q get firewall.mwan_block_lan_to_lan_wan2.name)" = "Block-MainLAN-to-WAN2-Clients" ] && \
-		[ "$(uci -q get firewall.mwan_block_lan_to_lan_wan2.src)" = "lan" ] && \
-		[ "$(uci -q get firewall.mwan_block_lan_to_lan_wan2.dest)" = "lan_wan2" ] && \
-		[ "$(uci -q get firewall.mwan_block_lan_to_lan_wan2.target)" = "REJECT" ] && \
-		[ "$(uci -q get firewall.mwan_block_lan_to_lan_wan2.enabled)" != "0" ]; then
-		lan_target_block=1
+	find_enabled_forwarding wan lan_wan2
+	wan_target_forward="$FOUND_SECTION"
+	if [ "$(uci -q get firewall.mwan_block_wan_to_lan_wan2)" = "rule" ] && \
+		[ "$(uci -q get firewall.mwan_block_wan_to_lan_wan2.name)" = "Block-WAN1-Upstream-to-LastLAN" ] && \
+		[ "$(uci -q get firewall.mwan_block_wan_to_lan_wan2.src)" = "wan" ] && \
+		[ "$(uci -q get firewall.mwan_block_wan_to_lan_wan2.dest)" = "lan_wan2" ] && \
+		[ "$(uci -q get firewall.mwan_block_wan_to_lan_wan2.target)" = "REJECT" ] && \
+		[ "$(uci -q get firewall.mwan_block_wan_to_lan_wan2.enabled)" != "0" ]; then
+		wan_target_block=1
 	else
-		lan_target_block=0
+		wan_target_block=0
 	fi
 	find_section_two firewall forwarding src lan_wan2 dest lan
 	target_lan_forward="$FOUND_SECTION"
+	find_section_two firewall forwarding src lan_wan2 dest wan
+	target_wan_forward="$FOUND_SECTION"
 	if [ "$MODE" = "dual" ] && [ "$LAN_ACCESS_TARGET" = "1" ]; then
 		[ -n "$lan_target_forward" ] || errors=$((errors + 1))
-		[ "$lan_target_block" = "0" ] || errors=$((errors + 1))
+		[ -n "$wan_target_forward" ] || errors=$((errors + 1))
+		[ "$wan_target_block" = "0" ] || errors=$((errors + 1))
+		uci -q get firewall.mwan_block_lan_to_lan_wan2 >/dev/null && errors=$((errors + 1))
+		uci -q get firewall.mwan_block_wan_to_lan_wan2 >/dev/null && errors=$((errors + 1))
 	elif [ "$MODE" = "dual" ]; then
-		[ -z "$lan_target_forward" ] || errors=$((errors + 1))
-		[ "$lan_target_block" = "1" ] || errors=$((errors + 1))
+		[ -n "$lan_target_forward" ] || errors=$((errors + 1))
+		[ -z "$wan_target_forward" ] || errors=$((errors + 1))
+		[ "$wan_target_block" = "1" ] || errors=$((errors + 1))
+		uci -q get firewall.mwan_block_lan_to_lan_wan2 >/dev/null && errors=$((errors + 1))
+		access_rules_are_first firewall || errors=$((errors + 1))
 	else
 		[ -z "$lan_target_forward" ] || errors=$((errors + 1))
+		[ -z "$wan_target_forward" ] || errors=$((errors + 1))
 		uci -q get firewall.mwan_block_lan_to_lan_wan2 >/dev/null && errors=$((errors + 1))
+		uci -q get firewall.mwan_block_wan_to_lan_wan2 >/dev/null && errors=$((errors + 1))
 	fi
 	[ -z "$target_lan_forward" ] || errors=$((errors + 1))
+	[ -z "$target_wan_forward" ] || errors=$((errors + 1))
 
 	find_section_one firewall zone name vpn
 	vpn_zone="$FOUND_SECTION"
@@ -1691,8 +1880,13 @@ apply_config() {
 	apply_wireless
 	apply_luna_ipv4
 	apply_luna_ipv6_firewall
+	order_access_firewall_rules || return 1
 	detect_wireless_moves
 	commit_and_reload
+	"$RETURN_PATH_HELPER" apply || {
+		log "WAN2 IPv6 回程标记安装失败"
+		return 1
+	}
 	reset_target_port_link || log "请检查 $LAN4_PORT 链路；自动重置未完成"
 	reset_moved_wireless
 
