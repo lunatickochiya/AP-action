@@ -1,0 +1,275 @@
+#!/bin/sh
+
+APP="mwan-switch-return-path"
+CHAIN="MWAN_SWITCH_RETURN"
+NFT_TABLE="mwan_switch"
+MARK_VALUE="0x20000"
+MARK_MASK="0x20000"
+MARK_SPEC="0x20000/0x20000"
+INGRESS_COMMENT="mwan-switch WAN2 IPv6 ingress"
+RETURN_COMMENT="mwan-switch WAN2 IPv6 return"
+
+ACTIVE=0
+DEST_IP=""
+DEST_VALUE=""
+DEST_MASK=""
+PORTS=""
+LOOKUP_TABLE=""
+WAN2_DEVICE=""
+LAN_WAN2_DEVICE=""
+
+log() {
+	logger -t "$APP" "$*"
+}
+
+load_state() {
+	local mode failover target ipv6 firewall src dest enabled rule_mark
+	mode="$(uci -q get mwan-switch.main.mode)"
+	failover="$(uci -q get mwan-switch.main.wan2_failover_active)"
+	target="$(uci -q get mwan-switch.main.target_lan_uplink)"
+	[ -n "$target" ] || target="$(uci -q get mwan-switch.main.lan4_uplink)"
+	[ -n "$target" ] || target="wan2"
+	ipv6="$(uci -q get mwan-switch.main.wan2_ipv6)"
+	firewall="$(uci -q get mwan-switch.main.luna_ipv6_firewall)"
+	src="$(uci -q get firewall.mwan_luna_ipv6_access.src)"
+	dest="$(uci -q get firewall.mwan_luna_ipv6_access.dest)"
+	enabled="$(uci -q get firewall.mwan_luna_ipv6_access.enabled)"
+	rule_mark="$(uci -q get network.lan_wan2_return_ipv6.mark)"
+
+	[ "$mode" = "dual" ] || return 0
+	[ "$failover" != "1" ] || return 0
+	[ "$target" = "wan2" ] || return 0
+	[ "$ipv6" = "1" ] || return 0
+	[ "$firewall" = "1" ] || return 0
+	[ "$enabled" != "0" ] || return 0
+	[ "$src" = "wan2" ] || return 0
+	[ "$dest" = "lan_wan2" ] || return 0
+	[ "$(uci -q get network.lan_wan2_return_ipv6)" = "rule6" ] || return 0
+	[ "$rule_mark" = "$MARK_SPEC" ] || return 0
+	[ "$(uci -q get network.lan_wan2_return_ipv6.priority)" = "10400" ] || return 0
+	LOOKUP_TABLE="$(uci -q get network.lan_wan2_return_ipv6.lookup)"
+	case "$LOOKUP_TABLE" in
+		''|*[!0-9]*) return 1 ;;
+	esac
+
+	DEST_IP="$(uci -q get firewall.mwan_luna_ipv6_access.dest_ip)"
+	PORTS="$(uci -q get firewall.mwan_luna_ipv6_access.dest_port)"
+	case "$DEST_IP" in
+		*/*) ;;
+		*) return 1 ;;
+	esac
+	DEST_VALUE="${DEST_IP%/*}"
+	DEST_MASK="${DEST_IP#*/}"
+	case "$DEST_VALUE:$DEST_MASK" in
+		*[!0-9A-Fa-f:]*) return 1 ;;
+	esac
+	[ -n "$PORTS" ] || return 1
+	ACTIVE=1
+	return 0
+}
+
+valid_device() {
+	[ -n "$1" ] || return 1
+	case "$1" in
+		*[!A-Za-z0-9_.:+-]*) return 1 ;;
+	esac
+}
+
+valid_port() {
+	case "$1" in
+		''|*[!0-9]*) return 1 ;;
+	esac
+	[ "$1" -ge 1 ] && [ "$1" -le 65535 ]
+}
+
+load_devices() {
+	if [ -r /lib/functions/network.sh ]; then
+		. /lib/functions/network.sh
+		network_get_device WAN2_DEVICE wan2 2>/dev/null
+		network_get_device LAN_WAN2_DEVICE lan_wan2 2>/dev/null
+	fi
+
+	if [ -z "$WAN2_DEVICE" ]; then
+		if [ "$(uci -q get mwan-switch.main.wan2_proto)" = "pppoe" ]; then
+			WAN2_DEVICE="pppoe-wan2"
+		else
+			WAN2_DEVICE="$(uci -q get network.wan2.device)"
+		fi
+	fi
+	[ -n "$LAN_WAN2_DEVICE" ] || LAN_WAN2_DEVICE="$(uci -q get network.lan_wan2.device)"
+	[ -n "$LAN_WAN2_DEVICE" ] || LAN_WAN2_DEVICE="br-lan-wan2"
+
+	valid_device "$WAN2_DEVICE" || return 1
+	valid_device "$LAN_WAN2_DEVICE" || return 1
+	for port in $PORTS; do
+		valid_port "$port" || return 1
+	done
+	return 0
+}
+
+cleanup_firewall3() {
+	local removed=0
+	command -v ip6tables >/dev/null 2>&1 || return 0
+	while ip6tables -t mangle -C PREROUTING -j "$CHAIN" >/dev/null 2>&1; do
+		ip6tables -t mangle -D PREROUTING -j "$CHAIN" >/dev/null 2>&1 || break
+		removed=$((removed + 1))
+		[ "$removed" -lt 32 ] || break
+	done
+	ip6tables -t mangle -F "$CHAIN" >/dev/null 2>&1
+	ip6tables -t mangle -X "$CHAIN" >/dev/null 2>&1
+	return 0
+}
+
+cleanup_firewall4() {
+	command -v nft >/dev/null 2>&1 || return 0
+	nft delete table inet "$NFT_TABLE" >/dev/null 2>&1
+	return 0
+}
+
+apply_firewall3() {
+	local proto port
+	command -v ip6tables >/dev/null 2>&1 || return 1
+	ip6tables -t mangle -N "$CHAIN" || return 1
+	ip6tables -t mangle -A PREROUTING -j "$CHAIN" || return 1
+
+	for proto in tcp udp; do
+		for port in $PORTS; do
+			ip6tables -t mangle -A "$CHAIN" -i "$WAN2_DEVICE" \
+				-d "$DEST_IP" -p "$proto" --dport "$port" \
+				-m conntrack --ctstate NEW \
+				-m comment --comment "$INGRESS_COMMENT" \
+				-j CONNMARK --set-xmark "$MARK_SPEC" || return 1
+		done
+	done
+
+	ip6tables -t mangle -A "$CHAIN" -i "$LAN_WAN2_DEVICE" \
+		-m conntrack --ctstate ESTABLISHED,RELATED \
+		-m connmark --mark "$MARK_SPEC" \
+		-m comment --comment "$RETURN_COMMENT" \
+		-j CONNMARK --restore-mark --nfmask "$MARK_MASK" --ctmask "$MARK_MASK"
+}
+
+apply_firewall4() {
+	local proto port
+	command -v nft >/dev/null 2>&1 || return 1
+	{
+		echo "add table inet $NFT_TABLE"
+		echo "add chain inet $NFT_TABLE prerouting { type filter hook prerouting priority -151; policy accept; }"
+		for proto in tcp udp; do
+			for port in $PORTS; do
+				echo "add rule inet $NFT_TABLE prerouting iifname \"$WAN2_DEVICE\" ip6 daddr & $DEST_MASK == $DEST_VALUE meta l4proto $proto $proto dport $port ct state new ct mark set ct mark or $MARK_VALUE comment \"$INGRESS_COMMENT\""
+			done
+		done
+		echo "add rule inet $NFT_TABLE prerouting iifname \"$LAN_WAN2_DEVICE\" ct state established,related ct mark and $MARK_MASK != 0 meta mark set meta mark or $MARK_VALUE comment \"$RETURN_COMMENT\""
+	} | nft -f -
+}
+
+firewall_backend() {
+	if command -v nft >/dev/null 2>&1 && nft list table inet fw4 >/dev/null 2>&1; then
+		echo firewall4
+	elif command -v ip6tables >/dev/null 2>&1; then
+		echo firewall3
+	else
+		echo unsupported
+	fi
+}
+
+apply_rules() {
+	local backend
+	load_state || {
+		log "invalid IPv6 return-path settings"
+		return 1
+	}
+	cleanup_firewall3
+	cleanup_firewall4
+	[ "$ACTIVE" = "1" ] || return 0
+	load_devices || {
+		log "unable to determine WAN2 or lan_wan2 device"
+		return 1
+	}
+	backend="$(firewall_backend)"
+	case "$backend" in
+		firewall3) apply_firewall3 || { cleanup_firewall3; return 1; } ;;
+		firewall4) apply_firewall4 || { cleanup_firewall4; return 1; } ;;
+		*) log "neither firewall3/ip6tables nor firewall4/nftables is available"; return 1 ;;
+	esac
+}
+
+check_firewall3() {
+	local proto port
+	ip6tables -t mangle -C PREROUTING -j "$CHAIN" >/dev/null 2>&1 || return 1
+	for proto in tcp udp; do
+		for port in $PORTS; do
+			ip6tables -t mangle -C "$CHAIN" -i "$WAN2_DEVICE" \
+				-d "$DEST_IP" -p "$proto" --dport "$port" \
+				-m conntrack --ctstate NEW \
+				-m comment --comment "$INGRESS_COMMENT" \
+				-j CONNMARK --set-xmark "$MARK_SPEC" >/dev/null 2>&1 || return 1
+		done
+	done
+	ip6tables -t mangle -C "$CHAIN" -i "$LAN_WAN2_DEVICE" \
+		-m conntrack --ctstate ESTABLISHED,RELATED \
+		-m connmark --mark "$MARK_SPEC" \
+		-m comment --comment "$RETURN_COMMENT" \
+		-j CONNMARK --restore-mark --nfmask "$MARK_MASK" --ctmask "$MARK_MASK" >/dev/null 2>&1
+}
+
+check_firewall4() {
+	local rules
+	rules="$(nft list table inet "$NFT_TABLE" 2>/dev/null)" || return 1
+	echo "$rules" | grep -F "$INGRESS_COMMENT" >/dev/null 2>&1 || return 1
+	echo "$rules" | grep -F "$RETURN_COMMENT" >/dev/null 2>&1
+}
+
+check_inactive() {
+	if command -v ip6tables >/dev/null 2>&1 && \
+		ip6tables -t mangle -S "$CHAIN" >/dev/null 2>&1; then
+		return 1
+	fi
+	if command -v nft >/dev/null 2>&1 && \
+		nft list table inet "$NFT_TABLE" >/dev/null 2>&1; then
+		return 1
+	fi
+	return 0
+}
+
+check_policy_rule() {
+	local rules
+	command -v ip >/dev/null 2>&1 || return 1
+	rules="$(ip -6 rule show 2>/dev/null)" || return 1
+	echo "$rules" | grep -F "10400:" | grep -F "fwmark $MARK_SPEC" | \
+		grep -F "lookup $LOOKUP_TABLE" >/dev/null 2>&1
+}
+
+check_rules() {
+	local backend
+	load_state || return 1
+	if [ "$ACTIVE" != "1" ]; then
+		check_inactive
+		return $?
+	fi
+	load_devices || return 1
+	check_policy_rule || return 1
+	backend="$(firewall_backend)"
+	case "$backend" in
+		firewall3) check_firewall3 ;;
+		firewall4) check_firewall4 ;;
+		*) return 1 ;;
+	esac
+}
+
+main() {
+	case "${1:-apply}" in
+		apply) apply_rules ;;
+		check) check_rules ;;
+		*) echo "Usage: $0 {apply|check}" >&2; return 2 ;;
+	esac
+}
+
+case "$0" in
+	*mwan-switch-return-path) main "$@" ;;
+	*) apply_rules ;;
+esac
+rc=$?
+return "$rc" 2>/dev/null
+exit "$rc"
