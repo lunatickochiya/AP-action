@@ -45,7 +45,7 @@ on:
       packages:
         description: 'OpenWrt packages（example: luci-app-example,luci-app-helloworld）'
         required: true
-        default: 'luci-app-example,luci-app-example2'
+        default: 'luci-app-mwan-switch,luci-app-example2'
       packages_mod:
         description: 'The Above packages set to which'
         default: 'm'
