@@ -1,0 +1,25 @@
+From 52aa634107072d550fbd25f9d4d4c8842280dbb8 Mon Sep 17 00:00:00 2001
+From: lunatickochiya <125438787@qq.com>
+Date: Sun, 16 Aug 2026 20:39:33 +0800
+Subject: [PATCH 6/7] fix typo
+
+---
+ .../luci-static/resources/view/status/include/10_system.js      | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/10_system.js b/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/10_system.js
+index f96b068..b1cb156 100644
+--- a/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/10_system.js
++++ b/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/10_system.js
+@@ -119,7 +119,7 @@ return baseclass.extend({
+ 				systeminfo.load[1] / 65535.0,
+ 				systeminfo.load[2] / 65535.0
+ 			) : null,
+-			_('CPU usage (%)'),    cpuusage.cpuusage
++			_('CPU usage (%)'),    cpuusage.cpuusage,
+ 			_('Source Code'),      sourcelink
+ 		];
+ 
+-- 
+2.55.0
+
