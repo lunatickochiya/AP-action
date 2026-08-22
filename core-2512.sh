@@ -12,7 +12,7 @@ function device_config_error() {
 	return 1
 }
 function kernel66_enabled() {
-	[ "${KERNEL66:-0}" = "1" ] || [ "${TEST_KERNEL:-0}" = "1" ]
+	[ "${KERNEL66:-0}" = "1" ]
 }
 function set_testing_kernel_config() {
 	local config_file
@@ -114,14 +114,12 @@ function init_pkg_env() {
 function init_gh_env_2512() {
 	source "${GITHUB_WORKSPACE}/env/common.txt"
 	source "${GITHUB_WORKSPACE}/env/$OpenWrt_PATCH_FILE_DIR.repo"
-	local kernel66 test_kernel
+	local kernel66
 	kernel66=$(echo "$PATCH_JSON_INPUT" | jq -r '.KERNEL66 // "0"')
-	test_kernel=$(echo "$PATCH_JSON_INPUT" | jq -r '.TEST_KERNEL // "0"')
-	if [ "$kernel66" = "1" ] || [ "$test_kernel" = "1" ]; then
-		REPO_URL="${TEST_KERNEL_REPO_URL:-$REPO_URL}"
-		REPO_BRANCH="${TEST_KERNEL_REPO_BRANCH:-$REPO_BRANCH}"
+	if [ "$kernel66" = "1" ]; then
+		REPO_URL="${KERNEL66_REPO_URL:-$REPO_URL}"
+		REPO_BRANCH="${KERNEL66_REPO_BRANCH:-$REPO_BRANCH}"
 	fi
-	echo -e "TEST_KERNEL=$test_kernel" >> "$GITHUB_ENV"
 	echo -e "KERNEL66=$kernel66" >> "$GITHUB_ENV"
 	echo -e "ADD_eBPF=$(echo $PATCH_JSON_INPUT | jq -r ".ADD_eBPF")" >> "$GITHUB_ENV"
 }
@@ -287,7 +285,6 @@ CONFIG_IB=y
 	if kernel66_enabled; then
 		echo "----$Matrix_Target----KERNEL-6.6---"
 		set_testing_kernel_config
-		echo "Kernel_Test=_Kernel_Test_Ver" >> $GITHUB_ENV
 		echo "KERNEL66_NAME=_KERNEL66" >> $GITHUB_ENV
 	fi
 
@@ -420,18 +417,11 @@ function patch_openwrt_core() {
 function patch_openwrt_custom() {
 	apply_openwrt_patch_dir mypatch-custom
 }
-function test_kernel_mediatek_dts_fix() {
-	if kernel66_enabled; then
-		find openwrt/target/linux/mediatek/dts/ -type f -name 'mt7981*.dts' -exec sed -i 's|#include "mt7981.dtsi"|#include "mt7981b.dtsi"|' {} +
-		find openwrt/target/linux/mediatek/dts/ -type f -name 'mt7981*.dtsi' -exec sed -i 's|#include "mt7981.dtsi"|#include "mt7981b.dtsi"|' {} +
-	fi
-}
 function patch_openwrt_core_pre() {
 	cd openwrt || return 1
 	patch_openwrt_core || return 1
 	patch_openwrt_custom || return 1
 	cd ../
-#	test_kernel_mediatek_dts_fix
 }
 function fix_openwrt_feeds() {
 	# [ -e package-configs ] && cp -r package-configs openwrt/package-configs
@@ -622,7 +612,7 @@ echo "The exclude List route is $KMOD_Compile_Exclude_List_Route"
 elif [[ "$Matrix_Target" == ipq-* ]]; then
 KMOD_Compile_Exclude_List_Route=package-configs/kmod_exclude_list_ipq.config
 echo "The exclude List route is $KMOD_Compile_Exclude_List_Route"
-elif [ "$TEST_KERNEL" = "1" ]; then
+elif [ "$KERNEL66" = "1" ]; then
 KMOD_Compile_Exclude_List_Route=package-configs/kmod_exclude_list_6_12.config
 echo "The exclude List route is $KMOD_Compile_Exclude_List_Route"
 else

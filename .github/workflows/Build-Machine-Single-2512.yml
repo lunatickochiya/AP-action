@@ -40,7 +40,7 @@ on:
       patch_repo:
         description: 'Use json patch repo true(1) or false(0) See ReadME'
         required: true
-        default: '{"BCM_FULLCONE": "0", "TRY_BBR_V3": "0", "KERNEL66": "0", "Firewall_Allow_WAN": "1", "TEST_KERNEL": "0", "ADD_IB": "1", "ADD_SDK": "1", "ADD_eBPF": "0", "DOCKER_BUILDIN": "0"}'
+        default: '{"BCM_FULLCONE": "0", "TRY_BBR_V3": "0", "KERNEL66": "0", "Firewall_Allow_WAN": "1", "ADD_IB": "1", "ADD_SDK": "1", "ADD_eBPF": "0", "DOCKER_BUILDIN": "0"}'
 
       SETIP:
         description: 'Set ip address'
@@ -109,6 +109,7 @@ on:
 env:
   TZ: Asia/Shanghai
   OpenWrt_PATCH_FILE_DIR: openwrt-2512
+  KERNEL66_REPO_TOKEN: ${{ secrets.MY_SECRET_TOKEN }}
 
 jobs:
   prepare:
