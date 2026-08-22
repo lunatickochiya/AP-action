@@ -20,12 +20,6 @@ on:
         default: 'aliyun_ap8220'
         type: choice
         options:
-        - 'rax3000m-emmc'
-        - 'rax3000m-nand'
-        - 'nokia_ea0326gmp_ubootmod'
-        - 'nokia_ea0326gmp_stock'
-        - 'lenovo_newifi-d1'
-        - 'd-team_newifi-d2'
         - 'link_nn6000-v2-lite'
         - 'link_nn6000-v2'
         - 'link_nn6000-v2-12m'
@@ -113,28 +107,16 @@ on:
 
 env:
   TZ: Asia/Shanghai
+  OpenWrt_PATCH_FILE_DIR: openwrt-ipq
 
 jobs:
   prepare:
     runs-on: ubuntu-24.04
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
-    strategy:
-      matrix:
-        include:
-        - mt798x: rax3000m-emmc
-        - mt798x: rax3000m-nand
-        - mt798x-nousb: nokia_ea0326gmp_ubootmod
-        - mt798x-nousb: nokia_ea0326gmp_stock
-        - ramips: lenovo_newifi-d1
-        - ipq: link_nn6000-v2-lite
-        - ramips: d-team_newifi-d2
-        - ipq: aliyun_ap8220
-        - ipq: jdcloud_re-ss-01
-        - ipq: jdcloud_re-ss-01-12m
-        - ipq: link_nn6000-v2
-        - ipq: link_nn6000-v2-12m
-        - ipq: link_nn6000-v2-12m-lite
+      machine: ${{ steps.set-matrix.outputs.machine }}
+    env:
+      Target_CFG_Machine: ${{ github.event.inputs.MACH || github.event.client_payload.MACH }}
 
     steps:
       - name: 检查
@@ -142,20 +124,7 @@ jobs:
       
       - name: 生成矩阵配置
         id: set-matrix
-        run: |
-          if [ "${{ github.event.inputs.MACH }}" == "${{ matrix.mt798x }}" ]; then
-            matrix={\"include\":[{\"target\":\"mt798x-iptables\"},{\"target\":\"mt798x-nftables\"}]}
-          elif [ "${{ github.event.inputs.MACH }}" == "${{ matrix.mt798x-nousb }}" ]; then
-            matrix={\"include\":[{\"target\":\"mt798x-nousb-iptables\"},{\"target\":\"mt798x-nousb-nftables\"}]}
-          elif [ "${{ github.event.inputs.MACH }}" == "${{ matrix.ramips }}" ]; then
-            matrix={\"include\":[{\"target\":\"ramips-iptables\"},{\"target\":\"ramips-nftables\"}]}
-          elif [ "${{ github.event.inputs.MACH }}" == "${{ matrix.ath79 }}" ]; then
-            matrix={\"include\":[{\"target\":\"ath79-iptables\"},{\"target\":\"ath79-nftables\"}]}
-          elif [ "${{ github.event.inputs.MACH }}" == "${{ matrix.ipq }}" ]; then
-            matrix={\"include\":[{\"target\":\"ipq-iptables\"},{\"target\":\"ipq-nftables\"}]}
-          fi
-          echo "Generated matrix: "$matrix""
-          echo "matrix=$matrix" >> $GITHUB_OUTPUT
+        run: bash "$GITHUB_WORKSPACE/core.sh" resolve-build-matrix
  
   build:
     runs-on: Ubuntu-24.04
@@ -163,12 +132,11 @@ jobs:
     needs: prepare
     env:
       Matrix_Target: ${{ matrix.target }}
-      Target_CFG_Machine: ${{github.event.inputs.MACH}}
-      OpenWrt_PATCH_FILE_DIR: openwrt-ipq
+      Target_CFG_Machine: ${{ needs.prepare.outputs.machine }}
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     strategy:
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
-    name: Build ${{github.event.inputs.MACH}} openwrt 24.10
+    name: Build ${{ needs.prepare.outputs.machine }} openwrt 24.10
 
     steps:
     - name: 检查
@@ -219,7 +187,7 @@ jobs:
         CONFIG_JSON_INPUT: ${{ github.event.inputs.config_repo }}
       run: |
         echo ${{matrix.target}}
-        $GITHUB_WORKSPACE/core.sh init-gh-env-2410-ipq
+        $GITHUB_WORKSPACE/core.sh init-gh-env
 
     - name: 克隆源代码
       working-directory: /workdir
@@ -255,7 +223,7 @@ jobs:
     - name: Patch 自定义
       id: patch
       run: |
-        $GITHUB_WORKSPACE/core.sh init-openwrt-patch-2410-ipq
+        $GITHUB_WORKSPACE/core.sh init-openwrt-patch
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 添加 SFE
@@ -275,7 +243,7 @@ jobs:
       env:
         SFE_INPUT_STATUS: ${{ github.event.inputs.SFE_BUILDIN }}
       run: |
-        $GITHUB_WORKSPACE/core.sh add-openwrt-files-2410
+        $GITHUB_WORKSPACE/core.sh add-openwrt-files
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 设置 IP 地址
@@ -396,7 +364,7 @@ jobs:
       continue-on-error: true
       if: steps.organize.outputs.status == 'success' && env.UPLOAD_FIRMWARE == 'true'
       with:
-        name: ${{ env.date3 }}_${{matrix.target}}_firmware_24.10-${{github.event.inputs.MACH}}-${{ github.event.inputs.SETIP }}${{ env.Kernel_Test }}${{ env.BCM_FULLCONE_NAME }}${{ env.SFE }}${{ env.TRY_BBR_V3_NAME }}${{ env.OPENSSL_3_5_NAME }}${{ env.DOCKER_NAME }}${{ env.WAN_NAME }}_${{ env.Branch }}_${{ env.IPQ_Firmware }}${{ env.eBPF }}
+        name: ${{ env.date3 }}_${{matrix.target}}_firmware_24.10-${{ env.Target_CFG_Machine }}-${{ github.event.inputs.SETIP }}${{ env.Kernel_Test }}${{ env.BCM_FULLCONE_NAME }}${{ env.SFE }}${{ env.TRY_BBR_V3_NAME }}${{ env.OPENSSL_3_5_NAME }}${{ env.DOCKER_NAME }}${{ env.WAN_NAME }}_${{ env.Branch }}_${{ env.IPQ_Firmware }}${{ env.eBPF }}
         path: |
           firmware
 
@@ -405,7 +373,7 @@ jobs:
       continue-on-error: true
       if: steps.organize.outputs.status == 'success' && env.UPLOAD_IPK_DIR == 'true' && steps.afb.outputs.status == 'success'
       with:
-        name: ${{ env.date3 }}_${{matrix.target}}_ipks_24.10-${{github.event.inputs.MACH}}${{ env.Kernel_Test }}${{ env.BCM_FULLCONE_NAME }}${{ env.SFE }}${{ env.TRY_BBR_V3_NAME }}${{ env.OPENSSL_3_5_NAME }}${{ env.DOCKER_NAME }}${{ env.WAN_NAME }}_${{ env.Branch }}_${{ env.IPQ_Firmware }}${{ env.eBPF }}
+        name: ${{ env.date3 }}_${{matrix.target}}_ipks_24.10-${{ env.Target_CFG_Machine }}${{ env.Kernel_Test }}${{ env.BCM_FULLCONE_NAME }}${{ env.SFE }}${{ env.TRY_BBR_V3_NAME }}${{ env.OPENSSL_3_5_NAME }}${{ env.DOCKER_NAME }}${{ env.WAN_NAME }}_${{ env.Branch }}_${{ env.IPQ_Firmware }}${{ env.eBPF }}
         path: |
           ipks
 
@@ -435,7 +403,6 @@ jobs:
         $GITHUB_WORKSPACE/gen-sha256sum.sh
         echo "# 当前固件IP地址："${{ github.event.inputs.SETIP }}" " >> release.txt
         [ ${{matrix.target}} = mt798x* ] && [ -e openwrt/target/linux/mediatek/filogic/base-files/lib/firmware/mediatek/nx30pro_eeprom.bin ] && echo "- eeprom 使用 H3C NX30 Pro 提取版本" >> release.txt
-        [ ${{github.event.inputs.MACH}} = rax3000m-emmc ] && echo "- 使用闪存频率: ($(grep -oP "max-frequency = <\K[0-9]*" openwrt/target/linux/mediatek/dts/mt7981b-cmcc-rax3000m-emmc-ubootmod.dts)) Hz" >> release.txt
         [ $UPLOAD_COWTRANSFER = true ] && echo "🔗 [Cowtransfer](${{ steps.cowtransfer.outputs.url }})" >> release.txt
         [ $UPLOAD_WETRANSFER = true ] && echo "🔗 [WeTransfer](${{ steps.wetransfer.outputs.url }})" >> release.txt
         echo "🔗 ${{ env.BCM_FULLCONE_NAME }}${{ env.SFE }}${{ env.TRY_BBR_V3_NAME }}${{ env.OPENSSL_3_5_NAME }}" >> release.txt
@@ -448,8 +415,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         files: "${{ env.FIRMWARE }}/*"
-        name: ${{ env.date }} ${{matrix.target}}-${{github.event.inputs.MACH}}-openwrt-ipq
-        tag_name: ${{ env.date }}_${{matrix.target}}-${{github.event.inputs.MACH}}-openwrt-ipq
+        name: ${{ env.date }} ${{matrix.target}}-${{ env.Target_CFG_Machine }}-openwrt-ipq
+        tag_name: ${{ env.date }}_${{matrix.target}}-${{ env.Target_CFG_Machine }}-openwrt-ipq
         body_path: release.txt
 
     - name: 删除工作流

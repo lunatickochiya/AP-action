@@ -13,6 +13,87 @@ function init_openwrt_patch_file_dir_2410_nss() {
 OpenWrt_PATCH_FILE_DIR="openwrt-ipq"
 }
 
+function device_config_error() {
+	echo "::error title=Device config error::$*" >&2
+	return 1
+}
+
+# Resolve <machine>-<target>-{iptables,nftables}.config into a build matrix.
+# Adding a device only requires matching files in machine-configs and package-configs.
+function resolve_build_matrix() {
+	local workspace="${GITHUB_WORKSPACE:-$PWD}"
+	local machine="${Target_CFG_Machine:-}"
+	local config_dir="$workspace/machine-configs/${OpenWrt_PATCH_FILE_DIR:-}"
+	local package_dir="$workspace/package-configs/${OpenWrt_PATCH_FILE_DIR:-}"
+	local config_file file_name target candidate_target matrix firewall
+	local target_length best_length=999999
+	local ambiguous_target=false
+	local -a iptables_configs
+
+	if [[ ! "$machine" =~ ^[A-Za-z0-9._-]+$ ]]; then
+		device_config_error "Invalid or empty machine name: '$machine'"
+		return 1
+	fi
+	if [ -z "${OpenWrt_PATCH_FILE_DIR:-}" ] || [ ! -d "$config_dir" ]; then
+		device_config_error "Machine config directory not found: $config_dir"
+		return 1
+	fi
+
+	shopt -s nullglob
+	iptables_configs=("$config_dir/${machine}-"*"-iptables.config")
+	shopt -u nullglob
+	if [ "${#iptables_configs[@]}" -eq 0 ]; then
+		device_config_error "No ${machine}-<target>-iptables.config found in $config_dir"
+		return 1
+	fi
+
+	# A machine name can prefix another machine (for example, -v2 and -v2-lite).
+	# The exact machine leaves the shortest <target> suffix in the config filename.
+	for config_file in "${iptables_configs[@]}"; do
+		file_name="${config_file##*/}"
+		candidate_target="${file_name#"${machine}-"}"
+		candidate_target="${candidate_target%-iptables.config}"
+		if [[ ! "$candidate_target" =~ ^[A-Za-z0-9._-]+$ ]]; then
+			continue
+		fi
+		target_length="${#candidate_target}"
+		if [ "$target_length" -lt "$best_length" ]; then
+			target="$candidate_target"
+			best_length="$target_length"
+			ambiguous_target=false
+		elif [ "$target_length" -eq "$best_length" ] && [ "$candidate_target" != "$target" ]; then
+			ambiguous_target=true
+		fi
+	done
+	if [ -z "${target:-}" ] || [ "$ambiguous_target" = true ]; then
+		device_config_error "Could not uniquely resolve target for $machine in $config_dir"
+		return 1
+	fi
+
+	for firewall in iptables nftables; do
+		config_file="$config_dir/${machine}-${target}-${firewall}.config"
+		if [ ! -s "$config_file" ]; then
+			device_config_error "Missing machine config: $config_file"
+			return 1
+		fi
+		config_file="$package_dir/${machine}-${target}-${firewall}.config"
+		if [ ! -s "$config_file" ]; then
+			device_config_error "Missing package config: $config_file"
+			return 1
+		fi
+	done
+
+	printf -v matrix '{"include":[{"target":"%s-iptables"},{"target":"%s-nftables"}]}' "$target" "$target"
+	echo "Resolved $machine to target $target"
+	echo "Generated matrix: $matrix"
+	if [ -n "${GITHUB_OUTPUT:-}" ]; then
+		echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+		echo "machine=$machine" >> "$GITHUB_OUTPUT"
+	else
+		echo "$matrix"
+	fi
+}
+
 function init_pkg_env() {
 	sudo bash -c 'bash <(curl -sL https://build-scripts.immortalwrt.org/init_build_environment.sh)'
 	sudo -E apt-get -qq install libgnutls28-dev coccinelle libfuse-dev \
@@ -42,6 +123,20 @@ function init_gh_env_2410_ipq() {
 	echo -e "ADD_SKB_RECYCLER=$(echo $PATCH_JSON_INPUT | jq -r ".ADD_SKB_RECYCLER")" >> "$GITHUB_ENV"
 }
 
+function init_gh_env_by_config_set() {
+	case "$OpenWrt_PATCH_FILE_DIR" in
+		openwrt-ipq)
+			init_gh_env_2410_ipq
+			;;
+		*)
+			init_gh_env_2410
+			;;
+	esac
+	config_json_input_set
+	patch_json_input_set
+	init_gh_env_common
+}
+
 function config_json_input_set() {
 	echo -e "Cache=$(echo $CONFIG_JSON_INPUT | jq -r ".Cache")" >> "$GITHUB_ENV"
 	echo -e "CacheLinux=$(echo $CONFIG_JSON_INPUT | jq -r ".CacheLinux")" >> "$GITHUB_ENV"
@@ -63,6 +158,7 @@ function patch_json_input_set() {
 }
 
 function init_gh_env_common() {
+	local diy_script
 	echo "date=$(date +'%m/%d_%Y_%H/%M')" >> "$GITHUB_ENV"
 	echo "date2=$(date +'%Y/%m %d')" >> "$GITHUB_ENV"
 	echo "date3=$(date +'%m.%d')" >> "$GITHUB_ENV"
@@ -83,7 +179,9 @@ function init_gh_env_common() {
 	echo "UPLOAD_SYSUPGRADE=${UPLOAD_SYSUPGRADE}" >> "$GITHUB_ENV"
 	echo "USE_Cache=${USE_Cache}" >> "$GITHUB_ENV"
 
-	chmod +x "$DIY_SH" "$DIY_SH_AFB" "$DIY_SH_RFC"
+	for diy_script in "$DIY_SH" "$DIY_SH_AFB" "$DIY_SH_RFC"; do
+		[ -f "$diy_script" ] && chmod +x "$diy_script"
+	done
 	echo "The Matrix_Target is: $Matrix_Target"
 	echo "The MATH Matrix_Target is: $Target_CFG_Machine"
 }
@@ -458,18 +556,31 @@ function add_openwrt_files() {
 	[ -e files ] && mv files openwrt/files
 }
 
-function patch_openwrt_core() {
-	for i1 in $( ls mypatch-core ); do
-		echo Applying mypatch-core $i1
-		patch -p1 --no-backup-if-mismatch --quiet < mypatch-core/$i1
+function apply_openwrt_patch_dir() {
+	local patch_dir="$1"
+	local patch_file
+	local -a patch_files
+
+	if [ ! -d "$patch_dir" ]; then
+		echo "No $patch_dir directory, skipping"
+		return 0
+	fi
+
+	shopt -s nullglob
+	patch_files=("$patch_dir"/*.patch)
+	shopt -u nullglob
+	for patch_file in "${patch_files[@]}"; do
+		echo "Applying $patch_file"
+		patch -p1 --no-backup-if-mismatch --quiet < "$patch_file" || return 1
 	done
 }
 
+function patch_openwrt_core() {
+	apply_openwrt_patch_dir mypatch-core
+}
+
 function patch_openwrt_custom() {
-	for i2 in $( ls mypatch-custom ); do
-		echo Applying mypatch-custom $i2
-		patch -p1 --no-backup-if-mismatch --quiet < mypatch-custom/$i2
-	done
+	apply_openwrt_patch_dir mypatch-custom
 }
 
 function test_kernel_mediatek_dts_fix() {
@@ -480,9 +591,9 @@ function test_kernel_mediatek_dts_fix() {
 }
 
 function patch_openwrt_core_pre() {
-	cd openwrt
-	patch_openwrt_core
-	patch_openwrt_custom
+	cd openwrt || return 1
+	patch_openwrt_core || return 1
+	patch_openwrt_custom || return 1
 # for 2410
 	if [ "$SFE_INPUT_STATUS" = "true" ] && [ "$TEST_KERNEL" = "1" ]; then
 		echo "# CONFIG_NF_CONNTRACK_CHAIN_EVENTS is not set" >> "./target/linux/generic/config-6.12"
@@ -551,19 +662,21 @@ function autosetver() {
 	done
 }
 
-function add_machine_package_iptables_config() {
-echo "$(cat machine-configs/$OpenWrt_PATCH_FILE_DIR/$Target_CFG_Machine-iptables.config)" >> openwrt/.config
-echo "$(cat package-configs/$OpenWrt_PATCH_FILE_DIR/$Target_CFG_Machine-iptables.config)" >> openwrt/.config
-}
-
-function add_machine_package_nftables_config() {
-echo "$(cat machine-configs/$OpenWrt_PATCH_FILE_DIR/$Target_CFG_Machine-nftables.config)" >> openwrt/.config
-echo "$(cat package-configs/$OpenWrt_PATCH_FILE_DIR/$Target_CFG_Machine-nftables.config)" >> openwrt/.config
-}
-
 function add_machine_package_config() {
-echo "$(cat machine-configs/$OpenWrt_PATCH_FILE_DIR/$Target_CFG_Machine-$Matrix_Target.config)" >> openwrt/.config
-echo "$(cat package-configs/$OpenWrt_PATCH_FILE_DIR/$Target_CFG_Machine-$Matrix_Target.config)" >> openwrt/.config
+	local config_name="${Target_CFG_Machine}-${Matrix_Target}.config"
+	local machine_config="machine-configs/$OpenWrt_PATCH_FILE_DIR/$config_name"
+	local package_config="package-configs/$OpenWrt_PATCH_FILE_DIR/$config_name"
+
+	if [ ! -s "$machine_config" ]; then
+		device_config_error "Missing machine config: $machine_config"
+		return 1
+	fi
+	if [ ! -s "$package_config" ]; then
+		device_config_error "Missing package config: $package_config"
+		return 1
+	fi
+
+	cat "$machine_config" "$package_config" >> openwrt/.config
 }
 
 function change_qca_start_order() {
@@ -813,63 +926,76 @@ function awk_openwrt_config() {
 
 
 
-if [ "$1" == "init-pkg-env" ]; then
-init_pkg_env
-elif [ "$1" == "init-gh-env-2410" ]; then
-init_gh_env_2410
-config_json_input_set
-patch_json_input_set
-init_gh_env_common
-elif [ "$1" == "init-gh-env-2512" ]; then
-init_gh_env_2410
-config_json_input_set
-patch_json_input_set
-init_gh_env_common
-elif [ "$1" == "init-gh-env-2410-ipq" ]; then
-init_gh_env_2410_ipq
-config_json_input_set
-patch_json_input_set
-init_gh_env_common
-elif [ "$1" == "init-openwrt-pkg-config" ]; then
-init_openwrt_pkg_config
-elif [ "$1" == "init-openwrt-pkg-config-nss" ]; then
-init_openwrt_pkg_config_nss
-elif [ "$1" == "init-openwrt-patch-2410" ]; then
-init_openwrt_patch_common
-elif [ "$1" == "init-openwrt-patch-2512" ]; then
-init_openwrt_patch_common
-elif [ "$1" == "init-openwrt-patch-2410-ipq" ]; then
-init_openwrt_patch_common
-elif [ "$1" == "ln-openwrt" ]; then
-ln_openwrt
-elif [ "$1" == "add-openwrt-sfe-2410" ]; then
-add_openwrt_sfe_ipt_k66
-add_openwrt_sfe_nft_k66
-add_openwrt_sfe_kernel_k612
-add_openwrt_sfe_kmods
-elif [ "$1" == "add-openwrt-sfe-2410-ipq" ]; then
-add_openwrt_sfe_ipt_k66
-add_openwrt_sfe_nft_k66
-add_openwrt_sfe_kernel_k612
-add_openwrt_sfe_kmods
-add_openwrt_sfe_kernel_nss_patch
-elif [ "$1" == "add-openwrt-nosfe-2410-ipq" ]; then
-add_openwrt_nosfe_nss_pkgs
-elif [ "$1" == "add-openwrt-files-2410" ]; then
-add_openwrt_files
-patch_openwrt_core_pre
-add_openwrt_sfe_patch_fix_66
-elif [ "$1" == "add-openwrt-files-2512" ]; then
-add_openwrt_files
-patch_openwrt_core_pre
-elif [ "$1" == "add-openwrt-kmods" ]; then
-add_openwrt_kmods
-elif [ "$1" == "fix-openwrt-feeds" ]; then
-fix_openwrt_nss_sfe_feeds
-fix_openwrt_feeds
-refine_openwrt_config
-elif [ "$1" == "awk-openwrt-config" ]; then
-awk_openwrt_config
-else
-echo "Invalid argument"
-fi
+case "${1:-}" in
+	resolve-build-matrix)
+		resolve_build_matrix
+		;;
+	init-pkg-env)
+		init_pkg_env
+		;;
+	init-gh-env)
+		init_gh_env_by_config_set
+		;;
+	init-gh-env-2410|init-gh-env-2512)
+		init_gh_env_2410
+		config_json_input_set
+		patch_json_input_set
+		init_gh_env_common
+		;;
+	init-gh-env-2410-ipq)
+		init_gh_env_2410_ipq
+		config_json_input_set
+		patch_json_input_set
+		init_gh_env_common
+		;;
+	init-openwrt-pkg-config)
+		init_openwrt_pkg_config
+		;;
+	init-openwrt-pkg-config-nss)
+		init_openwrt_pkg_config_nss
+		;;
+	init-openwrt-patch|init-openwrt-patch-2410|init-openwrt-patch-2512|init-openwrt-patch-2410-ipq)
+		init_openwrt_patch_common
+		;;
+	ln-openwrt)
+		ln_openwrt
+		;;
+	add-openwrt-sfe-2410)
+		add_openwrt_sfe_ipt_k66
+		add_openwrt_sfe_nft_k66
+		add_openwrt_sfe_kernel_k612
+		add_openwrt_sfe_kmods
+		;;
+	add-openwrt-sfe-2410-ipq)
+		add_openwrt_sfe_ipt_k66
+		add_openwrt_sfe_nft_k66
+		add_openwrt_sfe_kernel_k612
+		add_openwrt_sfe_kmods
+		add_openwrt_sfe_kernel_nss_patch
+		;;
+	add-openwrt-nosfe-2410-ipq)
+		add_openwrt_nosfe_nss_pkgs
+		;;
+	add-openwrt-files|add-openwrt-files-2410|add-openwrt-files-2512)
+		add_openwrt_files
+		patch_openwrt_core_pre || exit 1
+		if [ "$OpenWrt_PATCH_FILE_DIR" != "openwrt-2512" ]; then
+			add_openwrt_sfe_patch_fix_66 || exit 1
+		fi
+		;;
+	add-openwrt-kmods)
+		add_openwrt_kmods
+		;;
+	fix-openwrt-feeds)
+		fix_openwrt_nss_sfe_feeds
+		fix_openwrt_feeds
+		refine_openwrt_config
+		;;
+	awk-openwrt-config)
+		awk_openwrt_config
+		;;
+	*)
+		echo "Usage: $0 {resolve-build-matrix|init-pkg-env|init-gh-env|init-openwrt-patch|add-openwrt-files|add-openwrt-kmods|fix-openwrt-feeds|awk-openwrt-config}" >&2
+		exit 1
+		;;
+esac
