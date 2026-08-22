@@ -536,6 +536,9 @@ function autosetver() {
 	if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-2410" ]; then
 		version=24.10
 	fi
+	if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-2512" ]; then
+		version=25.12
+	fi
 
 	# 在文件的 'exit 0' 之前插入 DISTRIB_DESCRIPTION 信息
 	sed -i "/^exit 0$/i\
@@ -767,7 +770,7 @@ function add_openwrt_kmods() {
 	cd openwrt && make defconfig && cd ../
 	fi
 
-	if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-2410" ]; then
+	if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-2410" ] || [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-2512" ]; then
 	add_all_kmod_config
 	cd openwrt && make defconfig && cd ../
 	add_all_kmod_config
@@ -817,6 +820,11 @@ init_gh_env_2410
 config_json_input_set
 patch_json_input_set
 init_gh_env_common
+elif [ "$1" == "init-gh-env-2512" ]; then
+init_gh_env_2410
+config_json_input_set
+patch_json_input_set
+init_gh_env_common
 elif [ "$1" == "init-gh-env-2410-ipq" ]; then
 init_gh_env_2410_ipq
 config_json_input_set
@@ -827,6 +835,8 @@ init_openwrt_pkg_config
 elif [ "$1" == "init-openwrt-pkg-config-nss" ]; then
 init_openwrt_pkg_config_nss
 elif [ "$1" == "init-openwrt-patch-2410" ]; then
+init_openwrt_patch_common
+elif [ "$1" == "init-openwrt-patch-2512" ]; then
 init_openwrt_patch_common
 elif [ "$1" == "init-openwrt-patch-2410-ipq" ]; then
 init_openwrt_patch_common
@@ -849,6 +859,9 @@ elif [ "$1" == "add-openwrt-files-2410" ]; then
 add_openwrt_files
 patch_openwrt_core_pre
 add_openwrt_sfe_patch_fix_66
+elif [ "$1" == "add-openwrt-files-2512" ]; then
+add_openwrt_files
+patch_openwrt_core_pre
 elif [ "$1" == "add-openwrt-kmods" ]; then
 add_openwrt_kmods
 elif [ "$1" == "fix-openwrt-feeds" ]; then
