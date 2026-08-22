@@ -430,6 +430,81 @@ function add_openwrt_sfe_kernel_k612() {
 
 }
 
+function add_openwrt_sfe_2512() {
+	local config_name="${Target_CFG_Machine}-${Matrix_Target}.config"
+	local config_file="package-configs/$OpenWrt_PATCH_FILE_DIR/$config_name"
+	local kernel_config="openwrt/target/linux/generic/config-6.12"
+	local turboacc_luci_commit="530092c532839efb96e9f328d34dbf3adff4b557"
+	local turboacc_package_commit="c56760174a4b25e2a4f7566e3e4058e75e4ac9f8"
+	local temp_dir
+
+	if [ "$OpenWrt_PATCH_FILE_DIR" != "openwrt-2512" ]; then
+		device_config_error "add-openwrt-sfe-2512 requires openwrt-2512"
+		return 1
+	fi
+	if [[ "$Matrix_Target" != *-iptables && "$Matrix_Target" != *-nftables ]]; then
+		device_config_error "Unsupported SFE matrix target: $Matrix_Target"
+		return 1
+	fi
+	if [ ! -s "$config_file" ]; then
+		device_config_error "Missing package config: $config_file"
+		return 1
+	fi
+	if [ ! -f "$kernel_config" ]; then
+		device_config_error "OpenWrt 6.12 kernel config not found: $kernel_config"
+		return 1
+	fi
+
+	temp_dir="$(mktemp -d)" || return 1
+	(
+		trap 'rm -rf "$temp_dir"' EXIT
+		mkdir -p "$temp_dir/luci" "$temp_dir/package" openwrt/package/turboacc || exit 1
+		curl -fsSL "https://codeload.github.com/chenmozhijin/turboacc/tar.gz/$turboacc_luci_commit" \
+			-o "$temp_dir/luci.tar.gz" || exit 1
+		curl -fsSL "https://codeload.github.com/chenmozhijin/turboacc/tar.gz/$turboacc_package_commit" \
+			-o "$temp_dir/package.tar.gz" || exit 1
+		tar -xzf "$temp_dir/luci.tar.gz" -C "$temp_dir/luci" --strip-components=1 || exit 1
+		tar -xzf "$temp_dir/package.tar.gz" -C "$temp_dir/package" --strip-components=1 || exit 1
+
+		rm -rf openwrt/package/turboacc/luci-app-turboacc openwrt/package/turboacc/shortcut-fe
+		cp -r "$temp_dir/luci/luci-app-turboacc" openwrt/package/turboacc/ || exit 1
+		cp -r "$temp_dir/package/shortcut-fe" openwrt/package/turboacc/ || exit 1
+		rm -rf openwrt/package/turboacc/shortcut-fe/simulated-driver
+
+		cp -f "$temp_dir/package/pending-6.12/613-netfilter_optional_tcp_window_check.patch" \
+			openwrt/target/linux/generic/pending-6.12/ || exit 1
+		cp -f "$temp_dir/package/hack-6.12/952-add-net-conntrack-events-support-multiple-registrant.patch" \
+			openwrt/target/linux/generic/hack-6.12/ || exit 1
+		cp -f "$temp_dir/package/hack-6.12/953-net-patch-linux-kernel-to-support-shortcut-fe.patch" \
+			openwrt/target/linux/generic/hack-6.12/ || exit 1
+	) || return 1
+
+	grep -q 'CONFIG_NF_CONNTRACK_CHAIN_EVENTS' "$kernel_config" || \
+		echo '# CONFIG_NF_CONNTRACK_CHAIN_EVENTS is not set' >> "$kernel_config"
+	grep -q 'CONFIG_SHORTCUT_FE' "$kernel_config" || \
+		echo '# CONFIG_SHORTCUT_FE is not set' >> "$kernel_config"
+
+	if ! grep -q '^CONFIG_PACKAGE_luci-app-turboacc=y$' "$config_file"; then
+		cat >> "$config_file" <<'EOF'
+
+# SFE acceleration
+CONFIG_PACKAGE_luci-app-turboacc=y
+# CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_OFFLOADING is not set
+CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_SHORTCUT_FE=y
+# CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_SHORTCUT_FE_CM is not set
+# CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_SHORTCUT_FE_DRV is not set
+CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_BBR_CCA=y
+# CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_NFT_FULLCONE is not set
+CONFIG_PACKAGE_kmod-fast-classifier=y
+CONFIG_PACKAGE_kmod-shortcut-fe=y
+# CONFIG_PACKAGE_kmod-shortcut-fe-cm is not set
+EOF
+	fi
+
+	add_openwrt_sfe_kmods
+	echo "----$Matrix_Target-----SFE-6.12----"
+}
+
 function add_openwrt_sfe_kernel_nss_patch() {
 		mkdir -p openwrt/target/linux/qualcommax/patches-6.6
 		mkdir -p openwrt/target/linux/qualcommax/patches-6.12
@@ -965,6 +1040,9 @@ case "${1:-}" in
 		add_openwrt_sfe_nft_k66
 		add_openwrt_sfe_kernel_k612
 		add_openwrt_sfe_kmods
+		;;
+	add-openwrt-sfe-2512)
+		add_openwrt_sfe_2512
 		;;
 	add-openwrt-sfe-2410-ipq)
 		add_openwrt_sfe_ipt_k66

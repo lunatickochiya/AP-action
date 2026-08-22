@@ -29,6 +29,14 @@ on:
         - 'ath79_generic-multi'
         - 'lunaticbox'
 
+      SFE_BUILDIN:
+        description: 'Build sfe'
+        default: 'true'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
+
       patch_repo:
         description: 'Use json patch repo true(1) or false(0) See ReadME'
         required: true
@@ -209,11 +217,19 @@ jobs:
         $GITHUB_WORKSPACE/core.sh init-openwrt-patch
         echo "status=success" >> $GITHUB_OUTPUT
 
+    - name: 添加 SFE
+      if: github.event.inputs.SFE_BUILDIN == 'true'
+      id: sfe
+      run: |
+        $GITHUB_WORKSPACE/core.sh add-openwrt-sfe-2512
+        echo "status=success" >> $GITHUB_OUTPUT
+        echo "SFE=_SFE" >> $GITHUB_ENV
+
     - name: 自定义安装包(优先于feeds)
       if: steps.clone.outputs.status == 'success'
       id: files
       env:
-        SFE_INPUT_STATUS: 'false'
+        SFE_INPUT_STATUS: ${{ github.event.inputs.SFE_BUILDIN }}
       run: |
         $GITHUB_WORKSPACE/core.sh add-openwrt-files
         echo "status=success" >> $GITHUB_OUTPUT
@@ -273,7 +289,7 @@ jobs:
       if: env.Cache == '1' && !cancelled()
       with:
         ccache: 'true'
-        mixkey: ${{ matrix.target }}${{ env.eBPF }}${{ env.Branch }}
+        mixkey: ${{ matrix.target }}${{ env.SFE }}${{ env.eBPF }}${{ env.Branch }}
         prefix: ${{ github.workspace }}/openwrt
         skip_saving: ${{ env.CacheSave }}
 
@@ -331,7 +347,7 @@ jobs:
       continue-on-error: true
       if: steps.organize.outputs.status == 'success' && env.UPLOAD_FIRMWARE == 'true'
       with:
-        name: ${{ env.date3 }}_${{matrix.target}}_firmware_25.12-${{ env.Target_CFG_Machine }}-${{ github.event.inputs.SETIP }}${{ env.Kernel_Test }}${{ env.BCM_FULLCONE_NAME }}${{ env.TRY_BBR_V3_NAME }}${{ env.OPENSSL_3_5_NAME }}${{ env.DOCKER_NAME }}${{ env.WAN_NAME }}${{ env.MAC80211_616_NAME }}${{ env.eBPF }}
+        name: ${{ env.date3 }}_${{matrix.target}}_firmware_25.12-${{ env.Target_CFG_Machine }}-${{ github.event.inputs.SETIP }}${{ env.Kernel_Test }}${{ env.BCM_FULLCONE_NAME }}${{ env.SFE }}${{ env.TRY_BBR_V3_NAME }}${{ env.OPENSSL_3_5_NAME }}${{ env.DOCKER_NAME }}${{ env.WAN_NAME }}${{ env.MAC80211_616_NAME }}${{ env.eBPF }}
         path: |
           firmware
 
@@ -340,7 +356,7 @@ jobs:
       continue-on-error: true
       if: steps.organize.outputs.status == 'success' && env.UPLOAD_IPK_DIR == 'true' && steps.afb.outputs.status == 'success'
       with:
-        name: ${{ env.date3 }}_${{matrix.target}}_packages_25.12-${{ env.Target_CFG_Machine }}${{ env.Kernel_Test }}${{ env.BCM_FULLCONE_NAME }}${{ env.TRY_BBR_V3_NAME }}${{ env.OPENSSL_3_5_NAME }}${{ env.DOCKER_NAME }}${{ env.WAN_NAME }}${{ env.MAC80211_616_NAME }}${{ env.eBPF }}
+        name: ${{ env.date3 }}_${{matrix.target}}_packages_25.12-${{ env.Target_CFG_Machine }}${{ env.Kernel_Test }}${{ env.BCM_FULLCONE_NAME }}${{ env.SFE }}${{ env.TRY_BBR_V3_NAME }}${{ env.OPENSSL_3_5_NAME }}${{ env.DOCKER_NAME }}${{ env.WAN_NAME }}${{ env.MAC80211_616_NAME }}${{ env.eBPF }}
         path: |
           ipks
 
@@ -373,7 +389,7 @@ jobs:
         [ "${{ env.Target_CFG_Machine }}" = rax3000m-emmc ] && echo "- 使用闪存频率: ($(grep -oP "max-frequency = <\K[0-9]*" openwrt/target/linux/mediatek/dts/mt7981b-cmcc-rax3000m-emmc-ubootmod.dts)) Hz" >> release.txt
         [ $UPLOAD_COWTRANSFER = true ] && echo "🔗 [Cowtransfer](${{ steps.cowtransfer.outputs.url }})" >> release.txt
         [ $UPLOAD_WETRANSFER = true ] && echo "🔗 [WeTransfer](${{ steps.wetransfer.outputs.url }})" >> release.txt
-        echo "🔗 ${{ env.BCM_FULLCONE_NAME }}${{ env.TRY_BBR_V3_NAME }}${{ env.OPENSSL_3_5_NAME }}" >> release.txt
+        echo "🔗 ${{ env.BCM_FULLCONE_NAME }}${{ env.SFE }}${{ env.TRY_BBR_V3_NAME }}${{ env.OPENSSL_3_5_NAME }}" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 上传固件发布
