@@ -20,6 +20,7 @@ on:
         default: 'rax3000m-emmc'
         type: choice
         options:
+        - 's20p'
         - 'rax3000m-emmc'
         - 'rax3000m-nand'
         - 'nokia_ea0326gmp_ubootmod'
@@ -120,6 +121,7 @@ jobs:
     strategy:
       matrix:
         include:
+        - mt798x: s20p
         - mt798x: rax3000m-emmc
         - mt798x: rax3000m-nand
         - mt798x-nousb: nokia_ea0326gmp_ubootmod
