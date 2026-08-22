@@ -1,4 +1,4 @@
-name: Build 25.12 S20P
+name: Build 25.12 Single Machine
 
 # Fix for broken build: https://github.com/softprops/action-gh-release/issues/236
 permissions:
@@ -21,6 +21,13 @@ on:
         type: choice
         options:
         - 's20p'
+        - 'lenovo_newifi-d1'
+        - 'd-team_newifi-d2'
+        - 'lenovo_newifi-y1'
+        - 'raisecom_msg1500'
+        - 'domywifi_dw33d'
+        - 'ath79_generic-multi'
+        - 'lunaticbox'
 
       patch_repo:
         description: 'Use json patch repo true(1) or false(0) See ReadME'
@@ -110,6 +117,12 @@ jobs:
           case "${{ github.event.inputs.MACH }}" in
             s20p)
               target=mt798x
+              ;;
+            lenovo_newifi-d1|d-team_newifi-d2|lenovo_newifi-y1|raisecom_msg1500)
+              target=ramips
+              ;;
+            domywifi_dw33d|ath79_generic-multi|lunaticbox)
+              target=ath79
               ;;
             *)
               echo "Unsupported machine: ${{ github.event.inputs.MACH }}" >&2
