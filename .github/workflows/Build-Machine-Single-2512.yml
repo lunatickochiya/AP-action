@@ -177,7 +177,7 @@ jobs:
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
-        chmod +x gen-sha256sum.sh add-test-packages.sh add-sfe-packages.sh core-2512.sh
+        chmod +x gen-sha256sum.sh add-test-packages.sh add-sfe-packages.sh core-2512.sh core.sh
         $GITHUB_WORKSPACE/core-2512.sh init-pkg-env
 
     - name: 设置GITHUB_ENV
