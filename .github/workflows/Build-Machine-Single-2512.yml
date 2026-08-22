@@ -124,7 +124,7 @@ jobs:
       
       - name: 生成矩阵配置
         id: set-matrix
-        run: bash "$GITHUB_WORKSPACE/core.sh" resolve-build-matrix
+        run: bash "$GITHUB_WORKSPACE/core-2512.sh" resolve-build-matrix
  
   build:
     runs-on: Ubuntu-24.04
@@ -176,8 +176,8 @@ jobs:
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
-        chmod +x gen-sha256sum.sh add-test-packages.sh add-sfe-packages.sh core.sh
-        $GITHUB_WORKSPACE/core.sh init-pkg-env
+        chmod +x gen-sha256sum.sh add-test-packages.sh add-sfe-packages.sh core-2512.sh
+        $GITHUB_WORKSPACE/core-2512.sh init-pkg-env
 
     - name: 设置GITHUB_ENV
       id: env
@@ -186,7 +186,7 @@ jobs:
         CONFIG_JSON_INPUT: ${{ github.event.inputs.config_repo }}
       run: |
         echo ${{matrix.target}}
-        $GITHUB_WORKSPACE/core.sh init-gh-env
+        $GITHUB_WORKSPACE/core-2512.sh init-gh-env
 
     - name: 克隆源代码
       working-directory: /workdir
@@ -209,19 +209,19 @@ jobs:
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
-        $GITHUB_WORKSPACE/core.sh ln-openwrt
+        $GITHUB_WORKSPACE/core-2512.sh ln-openwrt
 
     - name: Patch 自定义
       id: patch
       run: |
-        $GITHUB_WORKSPACE/core.sh init-openwrt-patch
+        $GITHUB_WORKSPACE/core-2512.sh init-openwrt-patch
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 添加 SFE
       if: github.event.inputs.SFE_BUILDIN == 'true'
       id: sfe
       run: |
-        $GITHUB_WORKSPACE/core.sh add-openwrt-sfe-2512
+        $GITHUB_WORKSPACE/core-2512.sh add-openwrt-sfe-2512
         echo "status=success" >> $GITHUB_OUTPUT
         echo "SFE=_SFE" >> $GITHUB_ENV
 
@@ -231,7 +231,7 @@ jobs:
       env:
         SFE_INPUT_STATUS: ${{ github.event.inputs.SFE_BUILDIN }}
       run: |
-        $GITHUB_WORKSPACE/core.sh add-openwrt-files
+        $GITHUB_WORKSPACE/core-2512.sh add-openwrt-files
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 设置 IP 地址
@@ -261,21 +261,21 @@ jobs:
         INPUT_PKGS_CFG_STATUS: ${{ github.event.inputs.packages_mod }}
         INPUT_PKGS_CFG_FOO: ${{ github.event.inputs.packages }}
       run: |
-        $GITHUB_WORKSPACE/core.sh fix-openwrt-feeds
+        $GITHUB_WORKSPACE/core-2512.sh fix-openwrt-feeds
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 添加kmod
       if: steps.config.outputs.status == 'success' && env.ALLKMOD == '1'
       id: config2
       run: |
-        $GITHUB_WORKSPACE/core.sh add-openwrt-kmods
+        $GITHUB_WORKSPACE/core-2512.sh add-openwrt-kmods
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Run awk command
       if: steps.config.outputs.status == 'success'
       working-directory: ./openwrt
       run: |
-        $GITHUB_WORKSPACE/core.sh awk-openwrt-config
+        $GITHUB_WORKSPACE/core-2512.sh awk-openwrt-config
 
     - name: 下载包文件
       if: steps.config.outputs.status == 'success'
