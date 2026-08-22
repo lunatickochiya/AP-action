@@ -43,14 +43,14 @@ Link: https://github.com/openwrt/openwrt/pull/17970
 Signed-off-by: Robert Marko <robimarko@gmail.com>
 ---
  .../uboot-envtools/files/qualcommax_ipq807x   |   1 +
- package/firmware/ipq-wifi/Makefile            |   8 +-
+ package/firmware/ipq-wifi/Makefile            |   2 +
  .../arm64/boot/dts/qcom/ipq8071-ap8220.dts    | 347 ++++++++++++++++++
  target/linux/qualcommax/image/ipq807x.mk      |  13 +
  .../ipq807x/base-files/etc/board.d/02_network |   6 +
  .../etc/hotplug.d/firmware/11-ath11k-caldata  |   1 +
  .../etc/hotplug.d/ieee80211/11_fix_wifi_mac   |   5 +
  .../base-files/lib/upgrade/platform.sh        |   4 +
- 8 files changed, 382 insertions(+), 3 deletions(-)
+ 8 files changed, 379 insertions(+)
  create mode 100644 target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq8071-ap8220.dts
 
 diff --git a/package/boot/uboot-envtools/files/qualcommax_ipq807x b/package/boot/uboot-envtools/files/qualcommax_ipq807x
@@ -66,22 +66,9 @@ index 2d76045c66..26f7d64c54 100644
  edgecore,eap102|\
  zyxel,nbg7815)
 diff --git a/package/firmware/ipq-wifi/Makefile b/package/firmware/ipq-wifi/Makefile
-index 4732a14b1b..d71ee94bb3 100644
+index 8c5495522d..9623d4dec7 100644
 --- a/package/firmware/ipq-wifi/Makefile
 +++ b/package/firmware/ipq-wifi/Makefile
-@@ -6,9 +6,9 @@ PKG_RELEASE:=1
- 
- PKG_SOURCE_PROTO:=git
- PKG_SOURCE_URL=$(PROJECT_GIT)/project/firmware/qca-wireless.git
--PKG_SOURCE_DATE:=2024-10-08
--PKG_SOURCE_VERSION:=dcbab62272bf5cab2ed857bc655d240970e14f2a
--PKG_MIRROR_HASH:=e53a3872abf5e35db6baaceb56e6ffa289f8dd9b6226cf8a4d5b87b541179175
-+PKG_SOURCE_DATE:=2025-02-16
-+PKG_SOURCE_VERSION:=331dd0ead646f0d3fe38cb4bf83cce4b448343e8
-+PKG_MIRROR_HASH:=f49b3acd56a1cf4a0d52413b060d6adbd65c2754b44cabe096fed69172febbb5
- PKG_FLAGS:=nonshared
- 
- include $(INCLUDE_DIR)/package.mk
 @@ -28,6 +28,7 @@ endef
  
  ALLWIFIBOARDS:= \
@@ -544,4 +531,3 @@ index 0691c92184..ab12084870 100644
  	compex,wpq873|\
 -- 
 2.34.1
-
