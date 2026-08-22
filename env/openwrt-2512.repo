@@ -1,5 +1,7 @@
 REPO_URL="https://github.com/openwrt/openwrt"
 REPO_BRANCH="openwrt-25.12"
+TEST_KERNEL_REPO_URL="https://github.com/SmartRouterZone/openwrt-official"
+TEST_KERNEL_REPO_BRANCH="openwrt-25.12-66"
 DIY_SH="diy-2410.sh"
 DIY_SH_AFB="after_build.sh"
 DIY_SH_RFC="refineconfig.sh"

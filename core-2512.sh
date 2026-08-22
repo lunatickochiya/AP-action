@@ -11,6 +11,21 @@ function device_config_error() {
 	echo "::error title=Device config error::$*" >&2
 	return 1
 }
+function kernel66_enabled() {
+	[ "${KERNEL66:-0}" = "1" ] || [ "${TEST_KERNEL:-0}" = "1" ]
+}
+function set_testing_kernel_config() {
+	local config_file
+	for config_file in machine-configs/$OpenWrt_PATCH_FILE_DIR/*.config; do
+		[ -f "$config_file" ] || continue
+		if ! grep -qx 'CONFIG_TESTING_KERNEL=y' "$config_file"; then
+			sed -i '1iCONFIG_TESTING_KERNEL=y' "$config_file"
+		fi
+		if ! grep -qx 'CONFIG_HAS_TESTING_KERNEL=y' "$config_file"; then
+			sed -i '1iCONFIG_HAS_TESTING_KERNEL=y' "$config_file"
+		fi
+	done
+}
 function resolve_build_matrix() {
 	local workspace="${GITHUB_WORKSPACE:-$PWD}"
 	local machine="${Target_CFG_Machine:-}"
@@ -99,7 +114,15 @@ function init_pkg_env() {
 function init_gh_env_2512() {
 	source "${GITHUB_WORKSPACE}/env/common.txt"
 	source "${GITHUB_WORKSPACE}/env/$OpenWrt_PATCH_FILE_DIR.repo"
-	echo -e "TEST_KERNEL=$(echo $PATCH_JSON_INPUT | jq -r ".TEST_KERNEL")" >> "$GITHUB_ENV"
+	local kernel66 test_kernel
+	kernel66=$(echo "$PATCH_JSON_INPUT" | jq -r '.KERNEL66 // "0"')
+	test_kernel=$(echo "$PATCH_JSON_INPUT" | jq -r '.TEST_KERNEL // "0"')
+	if [ "$kernel66" = "1" ] || [ "$test_kernel" = "1" ]; then
+		REPO_URL="${TEST_KERNEL_REPO_URL:-$REPO_URL}"
+		REPO_BRANCH="${TEST_KERNEL_REPO_BRANCH:-$REPO_BRANCH}"
+	fi
+	echo -e "TEST_KERNEL=$test_kernel" >> "$GITHUB_ENV"
+	echo -e "KERNEL66=$kernel66" >> "$GITHUB_ENV"
 	echo -e "ADD_eBPF=$(echo $PATCH_JSON_INPUT | jq -r ".ADD_eBPF")" >> "$GITHUB_ENV"
 }
 function config_json_input_set() {
@@ -114,6 +137,7 @@ function patch_json_input_set() {
 	echo -e "OPENSSL_3_5=$(echo $PATCH_JSON_INPUT | jq -r ".OPENSSL_3_5")" >> "$GITHUB_ENV"
 	echo -e "BCM_FULLCONE=$(echo $PATCH_JSON_INPUT | jq -r ".BCM_FULLCONE")" >> "$GITHUB_ENV"
 	echo -e "TRY_BBR_V3=$(echo $PATCH_JSON_INPUT | jq -r ".TRY_BBR_V3")" >> "$GITHUB_ENV"
+	echo -e "KERNEL66=$(echo $PATCH_JSON_INPUT | jq -r ".KERNEL66 // \"0\"")" >> "$GITHUB_ENV"
 	echo -e "Firewall_Allow_WAN=$(echo $PATCH_JSON_INPUT | jq -r ".Firewall_Allow_WAN")" >> "$GITHUB_ENV"
 	echo -e "DOCKER_BUILDIN=$(echo $PATCH_JSON_INPUT | jq -r ".DOCKER_BUILDIN")" >> "$GITHUB_ENV"
 	echo -e "ADD_IB=$(echo $PATCH_JSON_INPUT | jq -r ".ADD_IB")" >> "$GITHUB_ENV"
@@ -251,14 +275,11 @@ CONFIG_IB=y
 		echo "----$Matrix_Target----IB---"
 	fi
 
-	if [ "$TEST_KERNEL" = "1" ]; then
-		[ -d $OpenWrt_PATCH_FILE_DIR/core-6-12 ] && cp -r $OpenWrt_PATCH_FILE_DIR/core-6-12/* $OpenWrt_PATCH_FILE_DIR/mypatch-custom-$Matrix_Target
-		#rm -rf $OpenWrt_PATCH_FILE_DIR/mypatch-core/0010-mediatek-dts-update-6.12.patch
-		rm -rf openwrt/package/kernel/mt76/patches/100-api_compat.patch
-		echo "----$Matrix_Target----TEST-KERNEL---"
-		sed -i '1i\
-CONFIG_TESTING_KERNEL=y\nCONFIG_HAS_TESTING_KERNEL=y' machine-configs/$OpenWrt_PATCH_FILE_DIR/*
+	if kernel66_enabled; then
+		echo "----$Matrix_Target----KERNEL-6.6---"
+		set_testing_kernel_config
 		echo "Kernel_Test=_Kernel_Test_Ver" >> $GITHUB_ENV
+		echo "KERNEL66_NAME=_KERNEL66" >> $GITHUB_ENV
 	fi
 
 }
@@ -391,7 +412,7 @@ function patch_openwrt_custom() {
 	apply_openwrt_patch_dir mypatch-custom
 }
 function test_kernel_mediatek_dts_fix() {
-	if [ "$TEST_KERNEL" = "1" ]; then
+	if kernel66_enabled; then
 		find openwrt/target/linux/mediatek/dts/ -type f -name 'mt7981*.dts' -exec sed -i 's|#include "mt7981.dtsi"|#include "mt7981b.dtsi"|' {} +
 		find openwrt/target/linux/mediatek/dts/ -type f -name 'mt7981*.dtsi' -exec sed -i 's|#include "mt7981.dtsi"|#include "mt7981b.dtsi"|' {} +
 	fi
@@ -401,7 +422,7 @@ function patch_openwrt_core_pre() {
 	patch_openwrt_core || return 1
 	patch_openwrt_custom || return 1
 	cd ../
-	test_kernel_mediatek_dts_fix
+#	test_kernel_mediatek_dts_fix
 }
 function fix_openwrt_feeds() {
 	# [ -e package-configs ] && cp -r package-configs openwrt/package-configs
