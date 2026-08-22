@@ -222,7 +222,11 @@ jobs:
       if: github.event.inputs.SFE_BUILDIN == 'true'
       id: sfe
       run: |
+        if [ "$KERNEL66" = "1" ]; then
+        $GITHUB_WORKSPACE/core.sh add-openwrt-sfe-2410
+        else
         $GITHUB_WORKSPACE/core-2512.sh add-openwrt-sfe-2512
+        fi
         echo "status=success" >> $GITHUB_OUTPUT
         echo "SFE=_SFE" >> $GITHUB_ENV
 
