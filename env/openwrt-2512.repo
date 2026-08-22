@@ -1,6 +1,6 @@
 REPO_URL="https://github.com/openwrt/openwrt"
 REPO_BRANCH="openwrt-25.12"
-TEST_KERNEL_REPO_URL="https://github.com/SmartRouterZone/openwrt-official"
+TEST_KERNEL_REPO_URL="https://${{ secrets.MY_SECRET_TOKEN }}@github.com/lunatickochiya/openwrt-ipq-2410.git"
 TEST_KERNEL_REPO_BRANCH="openwrt-25.12-66"
 DIY_SH="diy-2410.sh"
 DIY_SH_AFB="after_build.sh"

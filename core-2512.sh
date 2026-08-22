@@ -186,7 +186,16 @@ function init_openwrt_patch_2512() {
 	fi
 
 	if [ "$TRY_BBR_V3" = "1" ]; then
-		[ -d $OpenWrt_PATCH_FILE_DIR/mypatch-bbr-v3 ] && cp -r $OpenWrt_PATCH_FILE_DIR/mypatch-bbr-v3/* $OpenWrt_PATCH_FILE_DIR/mypatch-custom-$Matrix_Target
+		if ! kernel66_enabled; then
+			device_config_error "BBR v3 requires KERNEL66=1"
+			return 1
+		fi
+		local bbr_patch_dir="$OpenWrt_PATCH_FILE_DIR/mypatch-core-66/mypatch-bbr-v3"
+		if [ ! -d "$bbr_patch_dir" ] || [ ! -d "$OpenWrt_PATCH_FILE_DIR/mypatch-core" ]; then
+			device_config_error "BBR v3 patch directory is incomplete"
+			return 1
+		fi
+		cp -f "$bbr_patch_dir"/*.patch "$OpenWrt_PATCH_FILE_DIR/mypatch-core/"
 		echo "----$Matrix_Target----bbr-v3---"
 		echo "TRY_BBR_V3_NAME=_BBR_V3" >> $GITHUB_ENV
 	fi
