@@ -25,6 +25,7 @@ on:
         - 'link_nn6000-v2-12m'
         - 'link_nn6000-v2-12m-lite'
         - 'aliyun_ap8220'
+        - 'aliyun_ap8220-12m'
         - 'jdcloud_re-ss-01'
         - 'jdcloud_re-ss-01-12m'
 
