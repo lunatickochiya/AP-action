@@ -36,7 +36,7 @@ on:
       patch_repo:
         description: 'IPQ 25.12 branch and feature options'
         required: true
-        default: '{"Branch":"25.12-nss-6.6-dev","IPQ_Firmware":"ipq-nss-12-5","OPENSSL_3_5":"0","BCM_FULLCONE":"1","TRY_BBR_V3":"0","KERNEL66":"1","Firewall_Allow_WAN":"0","ADD_IB":"1","ADD_SDK":"1","ADD_eBPF":"0","ADD_SKB_RECYCLER":"1","DOCKER_BUILDIN":"0"}'
+        default: '{"Branch":"25.12-nss-6.6-dev","IPQ_Firmware":"ipq-nss-12-5","OPENSSL_3_5":"0","BCM_FULLCONE":"1","TRY_BBR_V3":"1","KERNEL66":"1","Firewall_Allow_WAN":"0","ADD_IB":"1","ADD_SDK":"1","ADD_eBPF":"0","ADD_SKB_RECYCLER":"1","DOCKER_BUILDIN":"0"}'
       SETIP:
         description: 'Set LAN IP address'
         default: '192.168.17.1'
@@ -44,7 +44,7 @@ on:
       packages:
         description: 'Additional packages'
         required: true
-        default: 'luci-app-mwan-switch,luci-app-example2'
+        default: 'luci-app-mwan-switch'
       packages_mod:
         description: 'Additional package mode'
         default: 'm'
@@ -181,13 +181,13 @@ jobs:
           INPUT_PKGS_CFG_STATUS: ${{ github.event.inputs.packages_mod || github.event.client_payload.packages_mod || 'm' }}
           INPUT_PKGS_CFG_FOO: ${{ github.event.inputs.packages || github.event.client_payload.packages || '' }}
         run: |
-          "$GITHUB_WORKSPACE/core.sh" fix-openwrt-feeds
+          "$GITHUB_WORKSPACE/core-2512.sh" fix-openwrt-feeds
           echo "status=success" >> "$GITHUB_OUTPUT"
 
       - name: Add all kernel modules
         if: steps.config.outputs.status == 'success' && env.ALLKMOD == '1'
         run: |
-          "$GITHUB_WORKSPACE/core.sh" add-openwrt-kmods
+          "$GITHUB_WORKSPACE/core-2512.sh" add-openwrt-kmods
 
       - name: Download sources
         if: steps.config.outputs.status == 'success'

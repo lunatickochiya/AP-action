@@ -650,7 +650,7 @@ done
 make defconfig
 
 for pkg in "${package_array[@]}"; do
-    awk -v pkg="$pkg" '\$0 ~ pkg { print }' .config
+    awk -v pkg="$pkg" '$0 ~ pkg { print }' .config
 done
 
 cd ../
