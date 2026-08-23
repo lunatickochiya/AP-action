@@ -112,7 +112,7 @@ new file mode 100644
 index 0000000000..65c0deca9b
 --- /dev/null
 +++ b/package/network/utils/fullconenat/Makefile
-@@ -0,0 +1,56 @@
+@@ -0,0 +1,70 @@
 +#
 +# Copyright (C) 2022 Chion Tang <tech@chionlab.moe>
 +#
@@ -157,15 +157,29 @@ index 0000000000..65c0deca9b
 +  DEPENDS:=+libxtables +kmod-ipt-fullconenat
 +endef
 +
++define Package/ip6tables-mod-fullconenat
++  SECTION:=net
++  CATEGORY:=Network
++  SUBMENU:=Firewall
++  TITLE:=FULLCONENAT ip6tables extension
++  DEPENDS:=+libxtables +ip6tables-mod-nat +kmod-ipt-fullconenat
++endef
++
 +define Package/iptables-mod-fullconenat/install
 +	$(INSTALL_DIR) $(1)/usr/lib/iptables
 +	$(INSTALL_BIN) $(PKG_BUILD_DIR)/libipt_FULLCONENAT.so $(1)/usr/lib/iptables
 +endef
 +
++define Package/ip6tables-mod-fullconenat/install
++	$(INSTALL_DIR) $(1)/usr/lib/iptables
++	$(INSTALL_BIN) $(PKG_BUILD_DIR)/libip6t_FULLCONENAT.so $(1)/usr/lib/iptables
++endef
++
 +define Build/Compile
 +	+$(KERNEL_MAKE) M="$(PKG_BUILD_DIR)" modules
-+	$(call Build/Compile/Default,libipt_FULLCONENAT.so)
++	$(call Build/Compile/Default,libipt_FULLCONENAT.so libip6t_FULLCONENAT.so)
 +endef
 +
 +$(eval $(call KernelPackage,ipt-fullconenat))
 +$(eval $(call BuildPackage,iptables-mod-fullconenat))
++$(eval $(call BuildPackage,ip6tables-mod-fullconenat))
