@@ -56,7 +56,7 @@ on:
 
 env:
   TZ: Asia/Shanghai
-  OpenWrt_PATCH_FILE_DIR: openwrt-ipq
+  OpenWrt_PATCH_FILE_DIR: openwrt-2512
   OpenWrt_REPO_ENV_FILE: openwrt-ipq-2512
   KERNEL66_REPO_TOKEN: ${{ secrets.MY_SECRET_TOKEN }}
 
