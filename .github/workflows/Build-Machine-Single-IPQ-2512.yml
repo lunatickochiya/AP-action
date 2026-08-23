@@ -162,12 +162,10 @@ jobs:
         run: |
           cd openwrt
           ./scripts/feeds update -a
-          rm -rf feeds/packages.index
-          ./scripts/feeds update packages
+          (cp -r $GITHUB_WORKSPACE/$OpenWrt_PATCH_FILE_DIR/feeds-replace/luci/* feeds/luci/ && echo "luci-lib-docker Re-add")
+          rm -rf feeds/luci.index
+          ./scripts/feeds update luci
           ./scripts/feeds install -a
-          if [ -d "$GITHUB_WORKSPACE/$OpenWrt_PATCH_FILE_DIR/feeds-packages-replace" ]; then
-            cp -rf "$GITHUB_WORKSPACE/$OpenWrt_PATCH_FILE_DIR/feeds-packages-replace"/* feeds/packages/
-          fi
           echo "status=success" >> "$GITHUB_OUTPUT"
 
       - name: Fix feeds and append package config
