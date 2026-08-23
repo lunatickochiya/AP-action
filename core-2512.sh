@@ -893,7 +893,6 @@ function patch_lunatic7() {
 }
 function remove_error_package_not_install() {
 	packages=(
-		"luci-app-dockerman"
 		"luci-app-smartdns"
 		"rtl8821cu"
 		"xray-core"
@@ -909,7 +908,6 @@ function remove_error_package_not_install() {
 	done
 
 	directories=(
-		"feeds/luci/applications/luci-app-dockerman"
 		"feeds/luci/applications/luci-app-smartdns"
 		"feeds/luci/applications/luci-app-filebrowser"
 		"feeds/luci/applications/luci-app-filemanager"
