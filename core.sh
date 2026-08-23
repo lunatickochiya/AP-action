@@ -642,7 +642,10 @@ function fix_openwrt_feeds() {
 
 function autosetver() {
 	if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-ipq" ]; then
-		version=24.10-NSS
+		case "${Branch:-}" in
+			25.12-*) version=25.12-NSS ;;
+			*) version=24.10-NSS ;;
+		esac
 	fi
 	if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-2410" ]; then
 		version=24.10
@@ -967,7 +970,13 @@ case "${1:-}" in
 		add_openwrt_sfe_nft_k66
 		add_openwrt_sfe_kernel_k612
 		add_openwrt_sfe_kmods
-		add_openwrt_sfe_kernel_nss_patch
+		# The private OpenWrt 25.12 IPQ branches already carry their
+		# qualcommax/NSS kernel patches. Keep the generic turboacc setup,
+		# but do not overlay the older 24.10 patch set.
+		case "${Branch:-}" in
+			25.12-*) ;;
+			*) add_openwrt_sfe_kernel_nss_patch ;;
+		esac
 		;;
 	add-openwrt-nosfe-2410-ipq)
 		add_openwrt_nosfe_nss_pkgs

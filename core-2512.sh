@@ -113,14 +113,24 @@ function init_pkg_env() {
 }
 function init_gh_env_2512() {
 	source "${GITHUB_WORKSPACE}/env/common.txt"
-	source "${GITHUB_WORKSPACE}/env/$OpenWrt_PATCH_FILE_DIR.repo"
+	local repo_env_file="${OpenWrt_REPO_ENV_FILE:-$OpenWrt_PATCH_FILE_DIR}"
+	source "${GITHUB_WORKSPACE}/env/$repo_env_file.repo"
 	local kernel66
 	kernel66=$(echo "$PATCH_JSON_INPUT" | jq -r '.KERNEL66 // "0"')
+	local branch firmware
+	branch=$(echo "$PATCH_JSON_INPUT" | jq -r '.Branch // empty')
+	if [ "$repo_env_file" = "openwrt-ipq-2512" ] && [ -n "$branch" ]; then
+		REPO_BRANCH="$branch"
+	fi
 	if [ "$kernel66" = "1" ]; then
 		REPO_URL="${KERNEL66_REPO_URL:-$REPO_URL}"
 		REPO_BRANCH="${KERNEL66_REPO_BRANCH:-$REPO_BRANCH}"
 	fi
+	firmware=$(echo "$PATCH_JSON_INPUT" | jq -r '.IPQ_Firmware // empty')
 	echo -e "KERNEL66=$kernel66" >> "$GITHUB_ENV"
+	echo -e "Branch=${branch:-$REPO_BRANCH}" >> "$GITHUB_ENV"
+	echo -e "IPQ_Firmware=${firmware:-ipq-nss-12-5}" >> "$GITHUB_ENV"
+	echo -e "ADD_SKB_RECYCLER=$(echo "$PATCH_JSON_INPUT" | jq -r '.ADD_SKB_RECYCLER // "0"')" >> "$GITHUB_ENV"
 	echo -e "ADD_eBPF=$(echo $PATCH_JSON_INPUT | jq -r ".ADD_eBPF")" >> "$GITHUB_ENV"
 }
 function config_json_input_set() {
@@ -171,10 +181,14 @@ function init_gh_env_common() {
 	echo "The MATH Matrix_Target is: $Target_CFG_Machine"
 }
 function init_openwrt_patch_2512() {
-	[ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-2512" ] || {
-		device_config_error "This script only supports openwrt-2512"
-		return 1
-	}
+	case "$OpenWrt_PATCH_FILE_DIR" in
+		openwrt-2512|openwrt-ipq)
+			;;
+		*)
+			device_config_error "This script only supports openwrt-2512 or openwrt-ipq"
+			return 1
+			;;
+	esac
 	if [ "$Firewall_Allow_WAN" = "1" ]; then
 		sed -i '/^	commit$/i\
 		set firewall.@zone[1].input="ACCEPT"
@@ -188,7 +202,12 @@ function init_openwrt_patch_2512() {
 			device_config_error "BBR v3 requires KERNEL66=1"
 			return 1
 		fi
-		local bbr_patch_dir="$OpenWrt_PATCH_FILE_DIR/mypatch-core-66/mypatch-bbr-v3"
+		local bbr_patch_dir
+		if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-ipq" ]; then
+			bbr_patch_dir="$OpenWrt_PATCH_FILE_DIR/mypatch-bbr-v3"
+		else
+			bbr_patch_dir="$OpenWrt_PATCH_FILE_DIR/mypatch-core-66/mypatch-bbr-v3"
+		fi
 		if [ ! -d "$bbr_patch_dir" ] || [ ! -d "$OpenWrt_PATCH_FILE_DIR/mypatch-core" ]; then
 			device_config_error "BBR v3 patch directory is incomplete"
 			return 1
@@ -275,6 +294,14 @@ CONFIG_PACKAGE_kmod-xdp-sockets-diag=y
 		echo "----$Matrix_Target----eBPF---"
 	fi
 
+	if [ "${ADD_SKB_RECYCLER:-0}" = "1" ]; then
+		for file1 in package-configs/$OpenWrt_PATCH_FILE_DIR/*.config; do
+			grep -qx 'CONFIG_KERNEL_SKB_RECYCLER=y' "$file1" || echo 'CONFIG_KERNEL_SKB_RECYCLER=y' >> "$file1"
+			grep -qx 'CONFIG_KERNEL_SKB_RECYCLER_MULTI_CPU=y' "$file1" || echo 'CONFIG_KERNEL_SKB_RECYCLER_MULTI_CPU=y' >> "$file1"
+		done
+		echo "----$Matrix_Target----SKB_RECYCLER---"
+	fi
+
 	if [ "$ADD_IB" = "1" ]; then
 		for file2 in package-configs/$OpenWrt_PATCH_FILE_DIR/*.config; do     echo "# ADD SDK
 CONFIG_IB=y
@@ -286,6 +313,26 @@ CONFIG_IB=y
 		echo "----$Matrix_Target----KERNEL-6.6---"
 		set_testing_kernel_config
 		echo "KERNEL66_NAME=_KERNEL66" >> $GITHUB_ENV
+	fi
+
+	if [ -n "${IPQ_Firmware:-}" ]; then
+		local firmware_version
+		case "$IPQ_Firmware" in
+			ipq-nss-12-5) firmware_version=12_5 ;;
+			ipq-nss-12-2) firmware_version=12_2 ;;
+			ipq-nss-12-1) firmware_version=12_1 ;;
+			ipq-nss-11-4) firmware_version=11_4 ;;
+			*) firmware_version= ;;
+		esac
+		if [ -n "$firmware_version" ]; then
+			for config_file in machine-configs/$OpenWrt_PATCH_FILE_DIR/*.config; do
+				grep -qx "CONFIG_NSS_FIRMWARE_VERSION_${firmware_version}=y" "$config_file" || sed -i "1iCONFIG_NSS_FIRMWARE_VERSION_${firmware_version}=y" "$config_file"
+				for other_version in 11_4 12_1 12_2 12_5; do
+					[ "$other_version" = "$firmware_version" ] || sed -i "/^CONFIG_NSS_FIRMWARE_VERSION_${other_version}=/d" "$config_file"
+				done
+			done
+			echo "----$Matrix_Target--IPQ--Firmware-${firmware_version//_}---"
+		fi
 	fi
 
 }
@@ -312,8 +359,8 @@ function add_openwrt_sfe_2512() {
 	local turboacc_package_commit="c56760174a4b25e2a4f7566e3e4058e75e4ac9f8"
 	local temp_dir
 
-	if [ "$OpenWrt_PATCH_FILE_DIR" != "openwrt-2512" ]; then
-		device_config_error "add-openwrt-sfe-2512 requires openwrt-2512"
+	if [ "$OpenWrt_PATCH_FILE_DIR" != "openwrt-2512" ] && [ "$OpenWrt_PATCH_FILE_DIR" != "openwrt-ipq" ]; then
+		device_config_error "add-openwrt-sfe-2512 requires openwrt-2512 or openwrt-ipq"
 		return 1
 	fi
 	if [[ "$Matrix_Target" != *-iptables && "$Matrix_Target" != *-nftables ]]; then
@@ -407,6 +454,14 @@ function apply_openwrt_patch_dir() {
 	patch_files=("$patch_dir"/*.patch)
 	shopt -u nullglob
 	for patch_file in "${patch_files[@]}"; do
+		if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-ipq" ]; then
+			case "${patch_file##*/}" in
+				0001-ipq807x-add-support-for-Aliyun-AP8220-mod-for-ipq-24.patch|0001-tools-add-liblzo-dependency-to-ccache.patch)
+					echo "Skipping already included IPQ 25.12 patch: $patch_file"
+					continue
+					;;
+			esac
+		fi
 		echo "Applying $patch_file"
 		patch -p1 --no-backup-if-mismatch --quiet < "$patch_file" || return 1
 	done
