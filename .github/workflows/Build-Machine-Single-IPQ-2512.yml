@@ -95,7 +95,7 @@ jobs:
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
-          chmod +x core.sh core-2512.sh gen-sha256sum.sh after_build.sh archive/diy-openwrt-ipq.sh
+          chmod +x core-2512.sh gen-sha256sum.sh after_build.sh archive/diy-openwrt-ipq.sh
           "$GITHUB_WORKSPACE/core-2512.sh" init-pkg-env
 
       - name: Export build options
@@ -134,18 +134,14 @@ jobs:
         id: sfe
         if: env.SFE_INPUT_STATUS == 'true'
         run: |
-          if [ "$KERNEL66" = "1" ]; then
-            "$GITHUB_WORKSPACE/core.sh" add-openwrt-sfe-2410-ipq
-          else
-            "$GITHUB_WORKSPACE/core-2512.sh" add-openwrt-sfe-2512
-          fi
+          "$GITHUB_WORKSPACE/core-2512.sh" add-openwrt-sfe-2512
           echo "SFE=_SFE" >> "$GITHUB_ENV"
           echo "status=success" >> "$GITHUB_OUTPUT"
 
       - name: Add non-SFE IPQ packages
         if: env.SFE_INPUT_STATUS != 'true'
         run: |
-          "$GITHUB_WORKSPACE/core.sh" add-openwrt-nosfe-2410-ipq
+          "$GITHUB_WORKSPACE/core-2512.sh" add-openwrt-nosfe-ipq-2512
 
       - name: Add repository files and patches
         if: steps.clone.outputs.status == 'success'

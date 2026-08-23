@@ -351,7 +351,123 @@ function ln_openwrt() {
 	echo "-------"
 	ls -l /workdir/openwrt
 }
-function add_openwrt_sfe_2512() {
+function add_openwrt_ipq_sfe_66_compat() {
+	local patch_root="$OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6"
+	local target_dir="openwrt/target/linux/qualcommax/patches-6.6"
+	local patch_file
+
+	[ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-ipq" ] || return 0
+	for patch_file in \
+		"$patch_root/202603/0600-1-qca-nss-ecm-support-CORE.patch" \
+		"$patch_root/202603/0603-1-qca-nss-clients-add-qdisc-support.patch" \
+		"$patch_root/202601/0981-0-qca-skbuff-revert.patch"; do
+		if [ ! -s "$patch_file" ]; then
+			device_config_error "Missing IPQ SFE compatibility patch: $patch_file"
+			return 1
+		fi
+	done
+
+	mkdir -p "$target_dir"
+	cp -f "$patch_root/202603/0600-1-qca-nss-ecm-support-CORE.patch" "$target_dir/"
+	cp -f "$patch_root/202603/0603-1-qca-nss-clients-add-qdisc-support.patch" "$target_dir/"
+	cp -f "$patch_root/202601/0981-0-qca-skbuff-revert.patch" "$target_dir/"
+	mkdir -p openwrt/package/qca
+}
+function add_openwrt_sfe_66_2512() {
+	local config_name="${Target_CFG_Machine}-${Matrix_Target}.config"
+	local config_file="package-configs/$OpenWrt_PATCH_FILE_DIR/$config_name"
+	local kernel_config="openwrt/target/linux/generic/config-6.6"
+	local turboacc_luci_commit="530092c532839efb96e9f328d34dbf3adff4b557"
+	local turboacc_package_commit="c56760174a4b25e2a4f7566e3e4058e75e4ac9f8"
+	local old_driver_hash="659fa82a431e15af797a6c7069faeee02810453ad8b576c51c29f95a1761a045"
+	local driver_hash="0a73db82801fc0406a5bb7ff36e7e1b03f6550797b1aca0e8ea0cec3af465d2b"
+	local temp_dir
+
+	if [ ! -s "$config_file" ]; then
+		device_config_error "Missing package config: $config_file"
+		return 1
+	fi
+	if [ ! -f "$kernel_config" ]; then
+		device_config_error "OpenWrt 6.6 kernel config not found: $kernel_config"
+		return 1
+	fi
+
+	temp_dir="$(mktemp -d)" || return 1
+	(
+		trap 'rm -rf "$temp_dir"' EXIT
+		mkdir -p "$temp_dir/package" openwrt/package \
+			openwrt/target/linux/generic/pending-6.6 \
+			openwrt/target/linux/generic/hack-6.6 || exit 1
+		curl -fsSL "https://codeload.github.com/chenmozhijin/turboacc/tar.gz/$turboacc_package_commit" \
+			-o "$temp_dir/package.tar.gz" || exit 1
+		tar -xzf "$temp_dir/package.tar.gz" -C "$temp_dir/package" --strip-components=1 || exit 1
+
+		rm -rf openwrt/package/shortcut-fe
+		cp -r "$temp_dir/package/shortcut-fe" openwrt/package/ || exit 1
+		sed -i "s/$old_driver_hash/$driver_hash/" \
+			openwrt/package/shortcut-fe/simulated-driver/Makefile
+		cp -f "$temp_dir/package/pending-6.6/613-netfilter_optional_tcp_window_check.patch" \
+			openwrt/target/linux/generic/pending-6.6/ || exit 1
+		cp -f "$temp_dir/package/hack-6.6/952-add-net-conntrack-events-support-multiple-registrant.patch" \
+			openwrt/target/linux/generic/hack-6.6/ || exit 1
+		cp -f "$temp_dir/package/hack-6.6/953-net-patch-linux-kernel-to-support-shortcut-fe.patch" \
+			openwrt/target/linux/generic/hack-6.6/ || exit 1
+
+		if [[ "$Matrix_Target" == *-nftables ]]; then
+			mkdir -p "$temp_dir/luci" openwrt/package/turboacc || exit 1
+			curl -fsSL "https://codeload.github.com/chenmozhijin/turboacc/tar.gz/$turboacc_luci_commit" \
+				-o "$temp_dir/luci.tar.gz" || exit 1
+			tar -xzf "$temp_dir/luci.tar.gz" -C "$temp_dir/luci" --strip-components=1 || exit 1
+			rm -rf openwrt/package/turboacc/luci-app-turboacc
+			cp -r "$temp_dir/luci/luci-app-turboacc" openwrt/package/turboacc/ || exit 1
+		fi
+	) || return 1
+
+	grep -q 'CONFIG_NF_CONNTRACK_CHAIN_EVENTS' "$kernel_config" || \
+		echo '# CONFIG_NF_CONNTRACK_CHAIN_EVENTS is not set' >> "$kernel_config"
+	grep -q 'CONFIG_SHORTCUT_FE' "$kernel_config" || \
+		echo '# CONFIG_SHORTCUT_FE is not set' >> "$kernel_config"
+
+	if [[ "$Matrix_Target" == *-iptables ]]; then
+		if ! grep -q '^CONFIG_PACKAGE_luci-app-turboacc-ipt=y$' "$config_file"; then
+			cat >> "$config_file" <<'EOF'
+
+# SFE acceleration for kernel 6.6 (iptables)
+CONFIG_PACKAGE_luci-app-turboacc-ipt=y
+# CONFIG_PACKAGE_luci-app-turboacc-ipt_INCLUDE_PDNSD is not set
+CONFIG_PACKAGE_kmod-ipt-offload=y
+CONFIG_PACKAGE_kmod-fast-classifier=y
+CONFIG_PACKAGE_kmod-shortcut-fe=y
+# CONFIG_PACKAGE_kmod-shortcut-fe-cm is not set
+EOF
+		fi
+	elif [[ "$Matrix_Target" == *-nftables ]]; then
+		if ! grep -q '^CONFIG_PACKAGE_luci-app-turboacc=y$' "$config_file"; then
+			cat >> "$config_file" <<'EOF'
+
+# SFE acceleration for kernel 6.6 (nftables)
+CONFIG_PACKAGE_luci-app-turboacc=y
+# CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_OFFLOADING is not set
+CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_SHORTCUT_FE=y
+# CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_SHORTCUT_FE_CM is not set
+# CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_SHORTCUT_FE_DRV is not set
+CONFIG_PACKAGE_kmod-nft-offload=y
+CONFIG_PACKAGE_kmod-fast-classifier=y
+CONFIG_PACKAGE_kmod-shortcut-fe=y
+# CONFIG_PACKAGE_kmod-shortcut-fe-cm is not set
+CONFIG_PACKAGE_kmod-nft-fullcone=y
+EOF
+		fi
+	else
+		device_config_error "Unsupported SFE matrix target: $Matrix_Target"
+		return 1
+	fi
+
+	add_openwrt_ipq_sfe_66_compat || return 1
+	add_openwrt_sfe_kmods
+	echo "----$Matrix_Target-----SFE-6.6----"
+}
+function add_openwrt_sfe_612_2512() {
 	local config_name="${Target_CFG_Machine}-${Matrix_Target}.config"
 	local config_file="package-configs/$OpenWrt_PATCH_FILE_DIR/$config_name"
 	local kernel_config="openwrt/target/linux/generic/config-6.12"
@@ -424,6 +540,59 @@ EOF
 
 	add_openwrt_sfe_kmods
 	echo "----$Matrix_Target-----SFE-6.12----"
+}
+function add_openwrt_sfe_2512() {
+	if kernel66_enabled; then
+		add_openwrt_sfe_66_2512
+	else
+		add_openwrt_sfe_612_2512
+	fi
+}
+function add_openwrt_nosfe_ipq_2512() {
+	local config_name="${Target_CFG_Machine}-${Matrix_Target}.config"
+	local config_file="package-configs/$OpenWrt_PATCH_FILE_DIR/$config_name"
+
+	if [ "$OpenWrt_PATCH_FILE_DIR" != "openwrt-ipq" ]; then
+		device_config_error "add-openwrt-nosfe-ipq-2512 requires openwrt-ipq"
+		return 1
+	fi
+	if [ ! -s "$config_file" ]; then
+		device_config_error "Missing package config: $config_file"
+		return 1
+	fi
+
+	mkdir -p openwrt/package/qca
+	if [[ "$Matrix_Target" == *-iptables ]]; then
+		if ! grep -q '^CONFIG_PACKAGE_luci-app-turboacc-ipt=y$' "$config_file"; then
+			cat >> "$config_file" <<'EOF'
+
+# TurboACC without SFE (iptables)
+CONFIG_PACKAGE_luci-app-turboacc-ipt=y
+# CONFIG_PACKAGE_luci-app-turboacc-ipt_INCLUDE_PDNSD is not set
+# CONFIG_PACKAGE_luci-app-turboacc-ipt_INCLUDE_SHORTCUT_FE_DRV is not set
+EOF
+		fi
+		[ -n "${DIY_SH:-}" ] && [ -f "$DIY_SH" ] && \
+			sed -i 's/"feeds\/lunatic7\/shortcut-fe"//g' "$DIY_SH"
+	elif [[ "$Matrix_Target" == *-nftables ]]; then
+		if ! grep -q '^CONFIG_PACKAGE_luci-app-turboacc=y$' "$config_file"; then
+			cat >> "$config_file" <<'EOF'
+
+# TurboACC without SFE (nftables)
+CONFIG_PACKAGE_luci-app-turboacc=y
+# CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_PDNSD is not set
+# CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_SHORTCUT_FE_DRV is not set
+EOF
+		fi
+		if [ -n "${DIY_SH:-}" ] && [ -f "$DIY_SH" ]; then
+			sed -i 's/"feeds\/lunatic7\/luci-app-turboacc"//g' "$DIY_SH"
+			sed -i 's/"feeds\/lunatic7\/shortcut-fe"//g' "$DIY_SH"
+		fi
+	else
+		device_config_error "Unsupported non-SFE matrix target: $Matrix_Target"
+		return 1
+	fi
+	echo "----$Matrix_Target-----TurboACC-without-SFE----"
 }
 function add_openwrt_sfe_kmods() {
 	sed -i 's/kmod-shortcut-fe-cm,kmod-shortcut-fe,kmod-fast-classifier,kmod-fast-classifier-noload,kmod-shortcut-fe-drv,//g' package-configs/kmod_exclude_list*
@@ -765,6 +934,9 @@ case "${1:-}" in
 	add-openwrt-sfe-2512)
 		add_openwrt_sfe_2512
 		;;
+	add-openwrt-nosfe-ipq-2512)
+		add_openwrt_nosfe_ipq_2512
+		;;
 	add-openwrt-files)
 		add_openwrt_files
 		patch_openwrt_core_pre || exit 1
@@ -780,7 +952,7 @@ case "${1:-}" in
 		awk_openwrt_config
 		;;
 	*)
-		echo "Usage: $0 {resolve-build-matrix|init-pkg-env|init-gh-env|init-openwrt-patch|ln-openwrt|add-openwrt-sfe-2512|add-openwrt-files|add-openwrt-kmods|fix-openwrt-feeds|awk-openwrt-config}" >&2
+		echo "Usage: $0 {resolve-build-matrix|init-pkg-env|init-gh-env|init-openwrt-patch|ln-openwrt|add-openwrt-sfe-2512|add-openwrt-nosfe-ipq-2512|add-openwrt-files|add-openwrt-kmods|fix-openwrt-feeds|awk-openwrt-config}" >&2
 		exit 1
 		;;
 esac

@@ -177,7 +177,7 @@ jobs:
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
-        chmod +x gen-sha256sum.sh add-test-packages.sh add-sfe-packages.sh core-2512.sh core.sh
+        chmod +x gen-sha256sum.sh add-test-packages.sh add-sfe-packages.sh core-2512.sh
         $GITHUB_WORKSPACE/core-2512.sh init-pkg-env
 
     - name: 设置GITHUB_ENV
@@ -222,11 +222,7 @@ jobs:
       if: github.event.inputs.SFE_BUILDIN == 'true'
       id: sfe
       run: |
-        if [ "$KERNEL66" = "1" ]; then
-        $GITHUB_WORKSPACE/core.sh add-openwrt-sfe-2410
-        else
         $GITHUB_WORKSPACE/core-2512.sh add-openwrt-sfe-2512
-        fi
         echo "status=success" >> $GITHUB_OUTPUT
         echo "SFE=_SFE" >> $GITHUB_ENV
 
