@@ -4,21 +4,13 @@ Date: Sun, 29 Dec 2019 03:39:12 +0800
 Subject: [PATCH] fullconenat-ipt: add package
 
 ---
- package/network/config/firewall/Makefile      |   2 +-
- .../config/firewall/files/firewall.config     |   1 +
- .../config/firewall/patches/fullconenat.patch |  58 +++
- package/network/utils/fullconenat/Makefile    |  68 ++++
- .../network/utils/fullconenat/files/Makefile  |  11 +
- .../001-fix-init-Repeat-definition.patch      |  20 +
- .../patches/001-linux-6.1-support.patch       |  26 ++
- ...k-events-support-multiple-registrant.patch | 352 ++++++++++++++++++
- 8 files changed, 537 insertions(+), 1 deletion(-)
- create mode 100644 package/network/config/firewall/patches/fullconenat.patch
+ package/network/config/firewall/Makefile              |  2 +-
+ package/network/config/firewall/files/firewall.config |  1 +
+ .../config/firewall/patches/100-fullconenat.patch      | 64 ++++++++++++++++++
+ package/network/utils/fullconenat/Makefile             | 56 +++++++++++++++
+ 4 files changed, 122 insertions(+), 1 deletion(-)
+ create mode 100644 package/network/config/firewall/patches/100-fullconenat.patch
  create mode 100644 package/network/utils/fullconenat/Makefile
- create mode 100644 package/network/utils/fullconenat/files/Makefile
- create mode 100644 package/network/utils/fullconenat/patches/001-fix-init-Repeat-definition.patch
- create mode 100644 package/network/utils/fullconenat/patches/001-linux-6.1-support.patch
- create mode 100644 target/linux/generic/hack-6.6/952-add-net-conntrack-events-support-multiple-registrant.patch
 
 diff --git a/package/network/config/firewall/Makefile b/package/network/config/firewall/Makefile
 index a4b17f0b531..d3fc787027e 100644
@@ -115,3 +107,65 @@ index 0000000000..cc51193ae5
 + 				}
 + 			}
 + 		}
+diff --git a/package/network/utils/fullconenat/Makefile b/package/network/utils/fullconenat/Makefile
+new file mode 100644
+index 0000000000..65c0deca9b
+--- /dev/null
++++ b/package/network/utils/fullconenat/Makefile
+@@ -0,0 +1,56 @@
++#
++# Copyright (C) 2022 Chion Tang <tech@chionlab.moe>
++#
++# This is free software, licensed under the GNU General Public License v2.
++# See /LICENSE for more information.
++#
++
++include $(TOPDIR)/rules.mk
++
++PKG_NAME:=fullconenat
++PKG_RELEASE:=1
++
++PKG_SOURCE_PROTO:=git
++PKG_SOURCE_DATE:=2023-01-01
++PKG_SOURCE_URL:=https://github.com/llccd/netfilter-full-cone-nat
++PKG_SOURCE_VERSION:=74c5e6f3c7faaf33ece451697537c81781781c20
++PKG_MIRROR_HASH:=8bad0cf5d90c52b81b9083e4f1b15ac28312f767fcffe692c606d87d8c3facfc
++
++PKG_LICENSE:=GPL-2.0
++PKG_LICENSE_FILES:=LICENSE
++PKG_MAINTAINER:=Chion Tang <tech@chionlab.moe>
++
++include $(INCLUDE_DIR)/kernel.mk
++include $(INCLUDE_DIR)/package.mk
++
++define KernelPackage/ipt-fullconenat
++  SUBMENU:=Netfilter Extensions
++  TITLE:=FULLCONENAT netfilter module
++  DEPENDS:=+kmod-nf-ipt +kmod-nf-nat
++  KCONFIG:=  \
++	CONFIG_NF_CONNTRACK_EVENTS=y \
++	CONFIG_NF_CONNTRACK_CHAIN_EVENTS=y
++  FILES:=$(PKG_BUILD_DIR)/xt_FULLCONENAT.ko
++  AUTOLOAD:=$(call AutoProbe,xt_FULLCONENAT)
++endef
++
++define Package/iptables-mod-fullconenat
++  SECTION:=net
++  CATEGORY:=Network
++  SUBMENU:=Firewall
++  TITLE:=FULLCONENAT iptables extension
++  DEPENDS:=+libxtables +kmod-ipt-fullconenat
++endef
++
++define Package/iptables-mod-fullconenat/install
++	$(INSTALL_DIR) $(1)/usr/lib/iptables
++	$(INSTALL_BIN) $(PKG_BUILD_DIR)/libipt_FULLCONENAT.so $(1)/usr/lib/iptables
++endef
++
++define Build/Compile
++	+$(KERNEL_MAKE) M="$(PKG_BUILD_DIR)" modules
++	$(call Build/Compile/Default)
++endef
++
++$(eval $(call KernelPackage,ipt-fullconenat))
++$(eval $(call BuildPackage,iptables-mod-fullconenat))
