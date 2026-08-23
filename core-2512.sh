@@ -616,7 +616,9 @@ function add_openwrt_sfe_kmods() {
 }
 function add_openwrt_files() {
 	mkdir -p openwrt/feeds/lunatic7
-
+	if [ "$OpenWrt_REPO_ENV_FILE" = "openwrt-ipq-2512" ]; then
+	mv -f openwrt-2512/mypatch-core/0001-tools-add-liblzo-dependency-to-ccache.patch openwrt-ipq/mypatch-core/0001-tools-add-liblzo-dependency-to-ccache.patch
+	fi
 	mkdir -p openwrt/package/firmware/ipq-wifi/src
 	# [ -d $OpenWrt_PATCH_FILE_DIR/bin-files ] && cp -r $OpenWrt_PATCH_FILE_DIR/bin-files/ipq-wifi/src/* openwrt/package/firmware/ipq-wifi/src
 	[ -d package ] && cp -r package/* openwrt/package
@@ -640,7 +642,7 @@ function apply_openwrt_patch_dir() {
 	patch_files=("$patch_dir"/*.patch)
 	shopt -u nullglob
 	for patch_file in "${patch_files[@]}"; do
-		if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-ipq" ]; then
+		if [ "$OpenWrt_REPO_ENV_FILE" = "openwrt-ipq-2512" ]; then
 			case "${patch_file##*/}" in
 				0001-generic-138-139-fix-in-6.6.patch|0001-ipq807x-add-support-for-Aliyun-AP8220-mod-for-ipq-24.patch|0003-CVE-2026-31431-FIX.patch)
 					echo "Skipping already included IPQ 25.12 patch: $patch_file"
