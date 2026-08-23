@@ -526,6 +526,12 @@ function add_machine_package_config() {
 	fi
 
 	cat "$machine_config" "$package_config" >> openwrt/.config
+	if [[ "$Matrix_Target" == *-iptables ]]; then
+		cat >> openwrt/.config <<'EOF'
+CONFIG_PACKAGE_firewall=y
+# CONFIG_PACKAGE_firewall4 is not set
+EOF
+	fi
 }
 function change_qca_start_order() {
 
