@@ -36,7 +36,7 @@ on:
       patch_repo:
         description: 'IPQ 25.12 branch and feature options'
         required: true
-        default: '{"Branch":"25.12-nss-6.6-dev","IPQ_Firmware":"ipq-nss-12-5","OPENSSL_3_5":"0","BCM_FULLCONE":"1","TRY_BBR_V3":"1","KERNEL66":"1","Firewall_Allow_WAN":"0","ADD_IB":"1","ADD_SDK":"1","ADD_eBPF":"0","ADD_SKB_RECYCLER":"1","DOCKER_BUILDIN":"0"}'
+        default: '{"Branch":"25.12-nss-6.6-dev","IPQ_Firmware":"ipq-nss-12-5","BCM_FULLCONE":"1","TRY_BBR_V3":"1","KERNEL66":"1","Firewall_Allow_WAN":"0","ADD_IB":"1","ADD_SDK":"1","ADD_eBPF":"0","ADD_SKB_RECYCLER":"1","DOCKER_BUILDIN":"0"}'
       SETIP:
         description: 'Set LAN IP address'
         default: '192.168.17.1'
