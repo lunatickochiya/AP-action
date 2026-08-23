@@ -384,6 +384,8 @@ CONFIG_PACKAGE_kmod-shortcut-fe-cm=n
 		echo "# CONFIG_SHORTCUT_FE is not set" >> "./target/linux/generic/config-6.6"
 		git clone --depth=1 --single-branch --branch "package" https://github.com/chenmozhijin/turboacc
 		mv -n turboacc/shortcut-fe ./package
+		sed -i 's/659fa82a431e15af797a6c7069faeee02810453ad8b576c51c29f95a1761a045/0a73db82801fc0406a5bb7ff36e7e1b03f6550797b1aca0e8ea0cec3af465d2b/' \
+			./package/shortcut-fe/simulated-driver/Makefile
 		rm -rf turboacc
 		cd ../
 	fi
