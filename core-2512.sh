@@ -594,6 +594,23 @@ EOF
 	fi
 	echo "----$Matrix_Target-----TurboACC-without-SFE----"
 }
+function add_openwrt_ipq_sfe_feed_66_compat() {
+	local patch_source="$OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/qca-nss-ecm/patches/1001-ecm-support-conntrack-chain-events.patch"
+	local patch_dir="openwrt/feeds/nss_packages/qca-nss-ecm/patches"
+
+	[ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-ipq" ] || return 0
+	kernel66_enabled || return 0
+	[ "${SFE_INPUT_STATUS:-false}" = "true" ] || return 0
+	if [ ! -s "$patch_source" ]; then
+		device_config_error "Missing qca-nss-ecm SFE compatibility patch: $patch_source"
+		return 1
+	fi
+	if [ ! -d "$patch_dir" ]; then
+		device_config_error "qca-nss-ecm feed is missing: $patch_dir"
+		return 1
+	fi
+	cp -f "$patch_source" "$patch_dir/"
+}
 function add_openwrt_sfe_kmods() {
 	sed -i 's/kmod-shortcut-fe-cm,kmod-shortcut-fe,kmod-fast-classifier,kmod-fast-classifier-noload,kmod-shortcut-fe-drv,//g' package-configs/kmod_exclude_list*
 }
@@ -648,6 +665,7 @@ function patch_openwrt_core_pre() {
 	cd ../
 }
 function fix_openwrt_feeds() {
+	add_openwrt_ipq_sfe_feed_66_compat || return 1
 	# [ -e package-configs ] && cp -r package-configs openwrt/package-configs
 	[ -d $OpenWrt_PATCH_FILE_DIR/lunatic7-revert ] && mv -f $OpenWrt_PATCH_FILE_DIR/lunatic7-revert openwrt/feeds/lunatic7/lunatic7-revert
 	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-luci-patch ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-luci-patch openwrt/feeds/luci/feeds-luci-patch
