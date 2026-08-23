@@ -291,7 +291,7 @@ jobs:
       if: env.Cache == '1' && !cancelled()
       with:
         ccache: 'true'
-        mixkey: ${{ matrix.target }}${{ env.SFE }}${{ env.eBPF }}${{ env.Branch }}
+        mixkey: ${{ matrix.target }}${{ env.eBPF }}${{ env.Branch }}
         prefix: ${{ github.workspace }}/openwrt
         skip_saving: ${{ env.CacheSave }}
 
