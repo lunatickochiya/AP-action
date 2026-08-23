@@ -642,7 +642,7 @@ function apply_openwrt_patch_dir() {
 	for patch_file in "${patch_files[@]}"; do
 		if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-ipq" ]; then
 			case "${patch_file##*/}" in
-				0001-generic-138-139-fix-in-6.6.patch|0001-ipq807x-add-support-for-Aliyun-AP8220-mod-for-ipq-24.patch|0001-tools-add-liblzo-dependency-to-ccache.patch|0003-CVE-2026-31431-FIX.patch)
+				0001-generic-138-139-fix-in-6.6.patch|0001-ipq807x-add-support-for-Aliyun-AP8220-mod-for-ipq-24.patch|0003-CVE-2026-31431-FIX.patch)
 					echo "Skipping already included IPQ 25.12 patch: $patch_file"
 					continue
 					;;
