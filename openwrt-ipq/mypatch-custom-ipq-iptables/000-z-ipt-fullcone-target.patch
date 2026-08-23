@@ -164,7 +164,7 @@ index 0000000000..65c0deca9b
 +
 +define Build/Compile
 +	+$(KERNEL_MAKE) M="$(PKG_BUILD_DIR)" modules
-+	$(call Build/Compile/Default)
++	$(call Build/Compile/Default,libipt_FULLCONENAT.so)
 +endef
 +
 +$(eval $(call KernelPackage,ipt-fullconenat))
