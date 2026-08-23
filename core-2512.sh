@@ -373,6 +373,81 @@ function add_openwrt_ipq_sfe_66_compat() {
 	cp -f "$patch_root/202601/0981-0-qca-skbuff-revert.patch" "$target_dir/"
 	mkdir -p openwrt/package/qca
 }
+function add_openwrt_ipq_sfe_612_compat() {
+	local patch_root="$OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.12"
+	local target_dir="openwrt/target/linux/qualcommax/patches-6.12"
+	local patch_file
+
+	[ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-ipq" ] || return 0
+	for patch_file in \
+		"$patch_root/20250425/0600-1-qca-nss-ecm-support-CORE.patch" \
+		"$patch_root/20250425/0981-0-qca-skbuff-revert.patch"; do
+		if [ ! -s "$patch_file" ]; then
+			device_config_error "Missing IPQ SFE compatibility patch: $patch_file"
+			return 1
+		fi
+	done
+
+	mkdir -p "$target_dir" openwrt/package/qca
+	cp -f "$patch_root/20250425/0600-1-qca-nss-ecm-support-CORE.patch" "$target_dir/"
+	cp -f "$patch_root/20250425/0981-0-qca-skbuff-revert.patch" "$target_dir/"
+}
+function copy_openwrt_turboacc_nft_packages() {
+	local package_source="$1"
+	local firewall4_version nftables_version libnftnl_version package_dir
+
+	if [ ! -d "$package_source" ]; then
+		device_config_error "TurboACC package source not found: $package_source"
+		return 1
+	fi
+	for package_dir in nft-fullcone; do
+		if [ ! -d "$package_source/$package_dir" ]; then
+			device_config_error "Missing TurboACC nft package: $package_source/$package_dir"
+			return 1
+		fi
+	done
+
+	mkdir -p openwrt/package/turboacc
+	cp -r "$package_source/nft-fullcone" openwrt/package/turboacc/ || return 1
+
+	if [ ! -f openwrt/package/network/config/firewall4/Makefile ] || \
+		[ ! -f openwrt/package/network/utils/nftables/Makefile ] || \
+		[ ! -f openwrt/package/libs/libnftnl/Makefile ]; then
+		device_config_error "OpenWrt nft package Makefiles are missing"
+		return 1
+	fi
+	firewall4_version=$(grep -o 'PKG_SOURCE_VERSION:=.*' openwrt/package/network/config/firewall4/Makefile | cut -d '=' -f 2)
+	nftables_version=$(grep -o 'PKG_VERSION:=.*' openwrt/package/network/utils/nftables/Makefile | cut -d '=' -f 2)
+	libnftnl_version=$(grep -o 'PKG_VERSION:=.*' openwrt/package/libs/libnftnl/Makefile | cut -d '=' -f 2)
+
+	if [ ! -d "$package_source/firewall4-$firewall4_version" ]; then
+		firewall4_version=$(grep -o 'FIREWALL4_VERSION=.*' "$package_source/version" | cut -d '=' -f 2)
+	fi
+	if [ ! -d "$package_source/nftables-$nftables_version" ]; then
+		nftables_version=$(grep -o 'NFTABLES_VERSION=.*' "$package_source/version" | cut -d '=' -f 2)
+	fi
+	if [ ! -d "$package_source/libnftnl-$libnftnl_version" ]; then
+		libnftnl_version=$(grep -o 'LIBNFTNL_VERSION=.*' "$package_source/version" | cut -d '=' -f 2)
+	fi
+
+	for package_dir in \
+		"firewall4-$firewall4_version/firewall4" \
+		"nftables-$nftables_version/nftables" \
+		"libnftnl-$libnftnl_version/libnftnl"; do
+		if [ ! -d "$package_source/$package_dir" ]; then
+			device_config_error "Missing TurboACC nft replacement: $package_source/$package_dir"
+			return 1
+		fi
+	done
+
+	rm -rf openwrt/package/libs/libnftnl \
+		openwrt/package/network/config/firewall4 \
+		openwrt/package/network/utils/nftables
+	mkdir -p openwrt/package/libs openwrt/package/network/config openwrt/package/network/utils
+	cp -RT "$package_source/firewall4-$firewall4_version/firewall4" openwrt/package/network/config/firewall4 || return 1
+	cp -RT "$package_source/libnftnl-$libnftnl_version/libnftnl" openwrt/package/libs/libnftnl || return 1
+	cp -RT "$package_source/nftables-$nftables_version/nftables" openwrt/package/network/utils/nftables || return 1
+}
 function add_openwrt_sfe_66_2512() {
 	local config_name="${Target_CFG_Machine}-${Matrix_Target}.config"
 	local config_file="package-configs/$OpenWrt_PATCH_FILE_DIR/$config_name"
@@ -420,6 +495,7 @@ function add_openwrt_sfe_66_2512() {
 			tar -xzf "$temp_dir/luci.tar.gz" -C "$temp_dir/luci" --strip-components=1 || exit 1
 			rm -rf openwrt/package/turboacc/luci-app-turboacc
 			cp -r "$temp_dir/luci/luci-app-turboacc" openwrt/package/turboacc/ || exit 1
+			copy_openwrt_turboacc_nft_packages "$temp_dir/package" || exit 1
 		fi
 	) || return 1
 
@@ -495,7 +571,10 @@ function add_openwrt_sfe_612_2512() {
 	temp_dir="$(mktemp -d)" || return 1
 	(
 		trap 'rm -rf "$temp_dir"' EXIT
-		mkdir -p "$temp_dir/luci" "$temp_dir/package" openwrt/package/turboacc || exit 1
+		mkdir -p "$temp_dir/luci" "$temp_dir/package" \
+			openwrt/package/turboacc \
+			openwrt/target/linux/generic/pending-6.12 \
+			openwrt/target/linux/generic/hack-6.12 || exit 1
 		curl -fsSL "https://codeload.github.com/chenmozhijin/turboacc/tar.gz/$turboacc_luci_commit" \
 			-o "$temp_dir/luci.tar.gz" || exit 1
 		curl -fsSL "https://codeload.github.com/chenmozhijin/turboacc/tar.gz/$turboacc_package_commit" \
@@ -507,6 +586,9 @@ function add_openwrt_sfe_612_2512() {
 		cp -r "$temp_dir/luci/luci-app-turboacc" openwrt/package/turboacc/ || exit 1
 		cp -r "$temp_dir/package/shortcut-fe" openwrt/package/turboacc/ || exit 1
 		rm -rf openwrt/package/turboacc/shortcut-fe/simulated-driver
+		if [[ "$Matrix_Target" == *-nftables ]]; then
+			copy_openwrt_turboacc_nft_packages "$temp_dir/package" || exit 1
+		fi
 
 		cp -f "$temp_dir/package/pending-6.12/613-netfilter_optional_tcp_window_check.patch" \
 			openwrt/target/linux/generic/pending-6.12/ || exit 1
@@ -521,23 +603,49 @@ function add_openwrt_sfe_612_2512() {
 	grep -q 'CONFIG_SHORTCUT_FE' "$kernel_config" || \
 		echo '# CONFIG_SHORTCUT_FE is not set' >> "$kernel_config"
 
-	if ! grep -q '^CONFIG_PACKAGE_luci-app-turboacc=y$' "$config_file"; then
-		cat >> "$config_file" <<'EOF'
+	if [[ "$Matrix_Target" == *-iptables ]]; then
+		if ! grep -q '^CONFIG_PACKAGE_luci-app-turboacc-ipt=y$' "$config_file"; then
+			cat >> "$config_file" <<'EOF'
 
-# SFE acceleration
+# SFE acceleration for kernel 6.12 (iptables)
+CONFIG_PACKAGE_luci-app-turboacc-ipt=y
+# CONFIG_PACKAGE_luci-app-turboacc-ipt_INCLUDE_PDNSD is not set
+# CONFIG_PACKAGE_luci-app-turboacc-ipt_INCLUDE_OFFLOADING is not set
+CONFIG_PACKAGE_luci-app-turboacc-ipt_INCLUDE_SHORTCUT_FE=y
+# CONFIG_PACKAGE_luci-app-turboacc-ipt_INCLUDE_SHORTCUT_FE_CM is not set
+# CONFIG_PACKAGE_luci-app-turboacc-ipt_INCLUDE_SHORTCUT_FE_DRV is not set
+CONFIG_PACKAGE_luci-app-turboacc-ipt_INCLUDE_BBR_CCA=y
+# CONFIG_PACKAGE_luci-app-turboacc-ipt_INCLUDE_IPT_FULLCONE is not set
+CONFIG_PACKAGE_kmod-fast-classifier=y
+CONFIG_PACKAGE_kmod-shortcut-fe=y
+# CONFIG_PACKAGE_kmod-shortcut-fe-cm is not set
+EOF
+		fi
+	elif [[ "$Matrix_Target" == *-nftables ]]; then
+		if ! grep -q '^CONFIG_PACKAGE_luci-app-turboacc=y$' "$config_file"; then
+			cat >> "$config_file" <<'EOF'
+
+# SFE acceleration for kernel 6.12 (nftables)
 CONFIG_PACKAGE_luci-app-turboacc=y
 # CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_OFFLOADING is not set
 CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_SHORTCUT_FE=y
 # CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_SHORTCUT_FE_CM is not set
 # CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_SHORTCUT_FE_DRV is not set
 CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_BBR_CCA=y
-# CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_NFT_FULLCONE is not set
+CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_NFT_FULLCONE=y
+CONFIG_PACKAGE_kmod-nft-offload=y
 CONFIG_PACKAGE_kmod-fast-classifier=y
 CONFIG_PACKAGE_kmod-shortcut-fe=y
 # CONFIG_PACKAGE_kmod-shortcut-fe-cm is not set
+CONFIG_PACKAGE_kmod-nft-fullcone=y
 EOF
+		fi
+	else
+		device_config_error "Unsupported SFE matrix target: $Matrix_Target"
+		return 1
 	fi
 
+	add_openwrt_ipq_sfe_612_compat || return 1
 	add_openwrt_sfe_kmods
 	echo "----$Matrix_Target-----SFE-6.12----"
 }
