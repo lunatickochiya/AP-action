@@ -56,7 +56,7 @@ on:
 
 env:
   TZ: Asia/Shanghai
-  OpenWrt_PATCH_FILE_DIR: openwrt-2512
+  OpenWrt_PATCH_FILE_DIR: openwrt-ipq
   OpenWrt_REPO_ENV_FILE: openwrt-ipq-2512
   KERNEL66_REPO_TOKEN: ${{ secrets.MY_SECRET_TOKEN }}
 
@@ -162,7 +162,7 @@ jobs:
         run: |
           cd openwrt
           ./scripts/feeds update -a
-          (cp -r $GITHUB_WORKSPACE/$OpenWrt_PATCH_FILE_DIR/feeds-replace/luci/* feeds/luci/ && echo "luci-lib-docker Re-add")
+          (cp -r $GITHUB_WORKSPACE/openwrt-2512/feeds-replace/luci/* feeds/luci/ && echo "luci-lib-docker Re-add")
           rm -rf feeds/luci.index
           ./scripts/feeds update luci
           ./scripts/feeds install -a
