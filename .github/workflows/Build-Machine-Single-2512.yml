@@ -328,7 +328,7 @@ jobs:
       id: organize
       if: env.UPLOAD_FIRMWARE == 'true' && steps.afb.outputs.status == 'success' && !cancelled()
       run: |
-        mkdir firmware ipks
+        mkdir -p firmware ipks
         [ ${{ env.UPLOAD_RELEASE}} = 1 ] && cp -u -f openwrt/kernelipks.zip firmware
         [ ${{ env.UPLOAD_RELEASE}} = 1 ] && cp -u -f openwrt/ipks.zip firmware
         cp -u -f openwrt/kernelipks.zip ipks
