@@ -9,10 +9,6 @@ function init_openwrt_patch_file_dir_2410() {
 OpenWrt_PATCH_FILE_DIR="openwrt-2410"
 }
 
-function init_openwrt_patch_file_dir_2410_nss() {
-OpenWrt_PATCH_FILE_DIR="openwrt-ipq"
-}
-
 function device_config_error() {
 	echo "::error title=Device config error::$*" >&2
 	return 1
@@ -114,24 +110,8 @@ function init_gh_env_2410() {
 	echo -e "ADD_eBPF=$(echo $PATCH_JSON_INPUT | jq -r ".ADD_eBPF")" >> "$GITHUB_ENV"
 }
 
-function init_gh_env_2410_ipq() {
-	source "${GITHUB_WORKSPACE}/env/common.txt"
-	source "${GITHUB_WORKSPACE}/env/$OpenWrt_PATCH_FILE_DIR.repo"
-	echo -e "Branch=$(echo $PATCH_JSON_INPUT | jq -r ".Branch")" >> $GITHUB_ENV
-	echo -e "IPQ_Firmware=$(echo $PATCH_JSON_INPUT | jq -r ".IPQ_Firmware")" >> $GITHUB_ENV
-	echo -e "ADD_eBPF=$(echo $PATCH_JSON_INPUT | jq -r ".ADD_eBPF")" >> "$GITHUB_ENV"
-	echo -e "ADD_SKB_RECYCLER=$(echo $PATCH_JSON_INPUT | jq -r ".ADD_SKB_RECYCLER")" >> "$GITHUB_ENV"
-}
-
 function init_gh_env_by_config_set() {
-	case "$OpenWrt_PATCH_FILE_DIR" in
-		openwrt-ipq)
-			init_gh_env_2410_ipq
-			;;
-		*)
-			init_gh_env_2410
-			;;
-	esac
+	init_gh_env_2410
 	config_json_input_set
 	patch_json_input_set
 	init_gh_env_common
@@ -307,43 +287,6 @@ CONFIG_TESTING_KERNEL=y\nCONFIG_HAS_TESTING_KERNEL=y' machine-configs/$OpenWrt_P
 		echo "Kernel_Test=_Kernel_Test_Ver" >> $GITHUB_ENV
 	fi
 
-	if [ "$Branch" = "24.10-nss-6.12" ]; then
-	sed -i '1i\
-CONFIG_TESTING_KERNEL=y\nCONFIG_HAS_TESTING_KERNEL=y' machine-configs/$OpenWrt_PATCH_FILE_DIR/*
-	echo "----$Matrix_Target--IPQ--TEST-KERNEL---"
-	fi
-
-	if [ "$IPQ_Firmware" = "ipq-nss-12-5" ]; then
-	sed -i '1i\
-CONFIG_NSS_FIRMWARE_VERSION_12_5=y\nCONFIG_NSS_FIRMWARE_VERSION_11_4=n' machine-configs/$OpenWrt_PATCH_FILE_DIR/*
-	echo "----$Matrix_Target--IPQ--Firmware-125---"
-	sed -i "18i \\\tset wireless.@wifi-iface[0].encryption='psk2'\n\tset wireless.@wifi-iface[0].key='12345678'\n\tset wireless.@wifi-iface[1].encryption='psk2'\n\tset wireless.@wifi-iface[1].key='12345678'" package/kochiya/autoset/files/def_uci/zzz-autoset-ipq
-	fi
-
-	if [ "$IPQ_Firmware" = "ipq-nss-12-2" ]; then
-	sed -i '1i\
-CONFIG_NSS_FIRMWARE_VERSION_12_2=y\nCONFIG_NSS_FIRMWARE_VERSION_11_4=n' machine-configs/$OpenWrt_PATCH_FILE_DIR/*
-	echo "----$Matrix_Target--IPQ--Firmware-122---"
-	fi
-
-	if [ "$IPQ_Firmware" = "ipq-nss-12-1" ]; then
-	sed -i '1i\
-CONFIG_NSS_FIRMWARE_VERSION_12_1=y\nCONFIG_NSS_FIRMWARE_VERSION_11_4=n' machine-configs/$OpenWrt_PATCH_FILE_DIR/*
-	echo "----$Matrix_Target--IPQ--Firmware-121---"
-	fi
-
-	if [ "$IPQ_Firmware" = "ipq-nss-11-4" ]; then
-	sed -i '1i\
-CONFIG_NSS_FIRMWARE_VERSION_11_4=y' machine-configs/$OpenWrt_PATCH_FILE_DIR/*
-	echo "----$Matrix_Target--IPQ--Firmware-114---"
-	fi
-
-	if [ "$Branch" = "24.10-nss-dev-618" ]; then
-	mkdir -p $OpenWrt_PATCH_FILE_DIR/feeds-routing-patch
-	[ -d batman-2410 ] && cp -r batman-2410/* $OpenWrt_PATCH_FILE_DIR/feeds-routing-patch
-	echo "----$Matrix_Target----mac80211-6-18---"
-	fi
-
 }
 
 function ln_openwrt() {
@@ -420,68 +363,6 @@ function add_openwrt_sfe_kernel_k612() {
 		rm -rf package/turboacc/shortcut-fe/simulated-driver
 		cd ../
 	fi
-	if [ "$Branch" = "24.10-nss-6.12" ]; then
-		cd openwrt
-		wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/pending-6.12/613-netfilter_optional_tcp_window_check.patch -P target/linux/generic/pending-6.12/
-		wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/hack-6.12/952-add-net-conntrack-events-support-multiple-registrant.patch -P target/linux/generic/hack-6.12/
-		wget -N https://raw.githubusercontent.com/chenmozhijin/turboacc/refs/heads/package/hack-6.12/953-net-patch-linux-kernel-to-support-shortcut-fe.patch -P target/linux/generic/hack-6.12/
-		rm -rf package/turboacc/shortcut-fe/simulated-driver
-		rm -rf package/shortcut-fe/simulated-driver
-		cd ../
-	fi
-
-}
-
-function add_openwrt_sfe_kernel_nss_patch() {
-		mkdir -p openwrt/target/linux/qualcommax/patches-6.6
-		mkdir -p openwrt/target/linux/qualcommax/patches-6.12
-	if [ "$Branch" = "24.10-nss-6.12" ]; then
-		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.12/20250425/0600-1-qca-nss-ecm-support-CORE.patch openwrt/target/linux/qualcommax/patches-6.12/0600-1-qca-nss-ecm-support-CORE.patch
-		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.12/20250425/0981-0-qca-skbuff-revert.patch openwrt/target/linux/qualcommax/patches-6.12/0981-0-qca-skbuff-revert.patch
-	fi
-
-	if [ "$Branch" = "24.10-nss-202502" ] || [ "$Branch" = "24.10-nss-202503" ] || [ "$Branch" = "24.10-nss-202504" ]; then
-		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/202502/0600-1-qca-nss-ecm-support-CORE.patch openwrt/target/linux/qualcommax/patches-6.6/0600-1-qca-nss-ecm-support-CORE.patch
-		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/202502/0603-1-qca-nss-clients-add-qdisc-support.patch openwrt/target/linux/qualcommax/patches-6.6/0603-1-qca-nss-clients-add-qdisc-support.patch
-	elif [ "$Branch" = "24.10-nss-202601" ] || [ "$Branch" = "24.10-nss-dev" ] || [ "$Branch" = "24.10-nss-dev-nn6000" ]; then
-		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/202601/0600-1-qca-nss-ecm-support-CORE.patch openwrt/target/linux/qualcommax/patches-6.6/0600-1-qca-nss-ecm-support-CORE.patch
-		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/202601/0603-1-qca-nss-clients-add-qdisc-support.patch openwrt/target/linux/qualcommax/patches-6.6/0603-1-qca-nss-clients-add-qdisc-support.patch
-		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/202601/0981-0-qca-skbuff-revert.patch openwrt/target/linux/qualcommax/patches-6.6/0981-0-qca-skbuff-revert.patch
-	else
-		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/20250425/0600-1-qca-nss-ecm-support-CORE.patch openwrt/target/linux/qualcommax/patches-6.6/0600-1-qca-nss-ecm-support-CORE.patch
-		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/20250425/0603-1-qca-nss-clients-add-qdisc-support.patch openwrt/target/linux/qualcommax/patches-6.6/0603-1-qca-nss-clients-add-qdisc-support.patch
-		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/20250425/0981-0-qca-skbuff-revert.patch openwrt/target/linux/qualcommax/patches-6.6/0981-0-qca-skbuff-revert.patch
-	fi
-
-	if [ "$Branch" = "24.10-nss-dev" ] || [ "$Branch" = "24.10-nss-dev-618" ]; then
-		cp -f $OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/202603/0600-1-qca-nss-ecm-support-CORE.patch openwrt/target/linux/qualcommax/patches-6.6/0600-1-qca-nss-ecm-support-CORE.patch
-	fi
-		mkdir -p openwrt/package/qca
-		echo "SFE=_SFE" >> $GITHUB_ENV
-}
-function add_openwrt_nosfe_nss_pkgs() {
-		mkdir -p openwrt/package/qca
-
-	if [[ "$Matrix_Target" == *iptables ]]; then
-		for file6 in package-configs/$OpenWrt_PATCH_FILE_DIR/*-iptables.config; do     echo "# ADD TURBOACC
-CONFIG_PACKAGE_luci-app-turboacc-ipt=y
-# CONFIG_PACKAGE_luci-app-turboacc-ipt_INCLUDE_PDNSD is not set
-# CONFIG_PACKAGE_luci-app-turboacc-ipt_INCLUDE_SHORTCUT_FE_DRV is not set
-" >> "$file6"; done
-		sed -i 's/"feeds\/lunatic7\/shortcut-fe"//g' "$DIY_SH"
-		echo "----$Matrix_Target-----BBR-acc--nosfe--"
-	fi
-	if [[ "$Matrix_Target" == *nftables ]]; then
-		for file7 in package-configs/$OpenWrt_PATCH_FILE_DIR/*-nftables.config; do     echo "# ADD TURBOACC
-CONFIG_PACKAGE_luci-app-turboacc=y
-# CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_PDNSD is not set
-# CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_SHORTCUT_FE_DRV is not set
-" >> "$file7"; done
-		sed -i 's/"feeds\/lunatic7\/luci-app-turboacc"//g' "$DIY_SH"
-		sed -i 's/"feeds\/lunatic7\/shortcut-fe"//g' "$DIY_SH"
-		echo "----$Matrix_Target-----BBR-acc--nosfe--"
-	fi
-
 }
 
 function add_openwrt_sfe_patch_fix_66() {
@@ -527,8 +408,6 @@ function add_openwrt_sfe_kmods() {
 function add_openwrt_files() {
 	mkdir -p openwrt/feeds/lunatic7
 
-	mkdir -p openwrt/package/firmware/ipq-wifi/src
-	# [ -d $OpenWrt_PATCH_FILE_DIR/bin-files ] && cp -r $OpenWrt_PATCH_FILE_DIR/bin-files/ipq-wifi/src/* openwrt/package/firmware/ipq-wifi/src
 	[ -d package ] && cp -r package/* openwrt/package
 	[ -d $OpenWrt_PATCH_FILE_DIR/package-for-$OpenWrt_PATCH_FILE_DIR ] && cp -r $OpenWrt_PATCH_FILE_DIR/package-for-$OpenWrt_PATCH_FILE_DIR/* openwrt/package
 	[ -d $OpenWrt_PATCH_FILE_DIR/mypatch-core ] && mv -f $OpenWrt_PATCH_FILE_DIR/mypatch-core openwrt/mypatch-core
@@ -545,15 +424,6 @@ function add_openwrt_files() {
 	fi
 	fi
 # for 2410 end
-
-# for 2410 ipq
-	if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-ipq" ]; then
-	[ -d $OpenWrt_PATCH_FILE_DIR/package-for-$OpenWrt_PATCH_FILE_DIR ] && cp -r $OpenWrt_PATCH_FILE_DIR/package-for-$OpenWrt_PATCH_FILE_DIR/* openwrt/package
-	fi
-
-	# if [ "$Target_CFG_Machine" = "jdcloud_re-ss-01" ]; then
-	# [ -d $OpenWrt_PATCH_FILE_DIR/ipq6000-jd-re-ss-01 ] && cp -r $OpenWrt_PATCH_FILE_DIR/ipq6000-jd-re-ss-01/* openwrt/mypatch-core
-	# fi
 
 	[ -e files ] && mv files openwrt/files
 }
@@ -601,22 +471,8 @@ function patch_openwrt_core_pre() {
 		echo "# CONFIG_NF_CONNTRACK_CHAIN_EVENTS is not set" >> "./target/linux/generic/config-6.12"
 		echo "# CONFIG_SHORTCUT_FE is not set" >> "./target/linux/generic/config-6.12"
 	fi
-# for 2410 ipq
-	if [ "$SFE_INPUT_STATUS" = "true" ] && [ "$Branch" = "24.10-nss-6.12" ]; then
-		echo "# CONFIG_NF_CONNTRACK_CHAIN_EVENTS is not set" >> "./target/linux/generic/config-6.12"
-		echo "# CONFIG_SHORTCUT_FE is not set" >> "./target/linux/generic/config-6.12"
-	fi
-
 	cd ../
 	test_kernel_mediatek_dts_fix
-}
-
-function fix_openwrt_nss_sfe_feeds() {
-	if [ "$SFE_INPUT_STATUS" = "true" ]; then
-		sed -i '/CONFIG_NF_CONNTRACK_EVENTS=y/ a\
-CONFIG_NF_CONNTRACK_CHAIN_EVENTS=y \\' openwrt/feeds/nss_packages/qca-nss-ecm/Makefile
-		rm -rf openwrt/feeds/nss_packages/qca-nss-ecm/patches/0006-treewide-rework-notifier-changes-for-5.15.patch
-    fi
 }
 
 function fix_openwrt_feeds() {
@@ -632,7 +488,6 @@ function fix_openwrt_feeds() {
 	remove_error_package_not_install
 	patch_openwrt_feeds
 	patch_lunatic7
-	change_qca_start_order
 	if [ "$Matrix_Target" == 'ramips-iptables' ] || [ "$Matrix_Target" == 'ramips-nftables' ] || \
 		[ "$Matrix_Target" == 'ath79-iptables' ] || [ "$Matrix_Target" == 'ath79-nftables' ]; then
 		rm -rf feeds/lunatic7/luci-app-cupsd/root/www/cups.pdf
@@ -643,12 +498,6 @@ function fix_openwrt_feeds() {
 }
 
 function autosetver() {
-	if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-ipq" ]; then
-		case "${Branch:-}" in
-			25.12-*) version=25.12-NSS ;;
-			*) version=24.10-NSS ;;
-		esac
-	fi
 	if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-2410" ]; then
 		version=24.10
 	fi
@@ -678,23 +527,6 @@ function add_machine_package_config() {
 	fi
 
 	cat "$machine_config" "$package_config" >> openwrt/.config
-}
-
-function change_qca_start_order() {
-
-NSS_DRV="feeds/nss_packages/qca-nss-drv/files/qca-nss-drv.init"
-if [ -f "$NSS_DRV" ]; then
-	sed -i 's/START=.*/START=85/g' $NSS_DRV
-
-	echo "qca-nss-drv has been fixed!"
-fi
-
-NSS_PBUF="package/kernel/mac80211/files/qca-nss-pbuf.init"
-if [ -f "$NSS_PBUF" ]; then
-	sed -i 's/START=.*/START=86/g' $NSS_PBUF
-
-	echo "qca-nss-pbuf has been fixed!"
-fi
 }
 
 function patch_openwrt_feeds() {
@@ -814,18 +646,6 @@ cd ../
 fix_openwrt_config_eror
 }
 
-function add_all_ipq_nss_kmod_config() {
-
-if [ "$Branch" = "24.10-nss-6.12" ]; then
-KMOD_Compile_Exclude_List_Route=package-configs/kmod_exclude_list_6_12.config
-echo "The List exclude route is $KMOD_Compile_Exclude_List_Route"
-else
-KMOD_Compile_Exclude_List_Route=package-configs/kmod_exclude_list_ipq_nss.config
-echo "The List exclude route is $KMOD_Compile_Exclude_List_Route"
-fi
-all_kmod_config_core
-}
-
 function add_all_kmod_config() {
 
 if [[ "$Matrix_Target" == ramips-* ]]; then
@@ -833,9 +653,6 @@ KMOD_Compile_Exclude_List_Route=package-configs/kmod_exclude_list_ramips.config
 echo "The exclude List route is $KMOD_Compile_Exclude_List_Route"
 elif [[ "$Matrix_Target" == ath79-* ]]; then
 KMOD_Compile_Exclude_List_Route=package-configs/kmod_exclude_list_ath79.config
-echo "The exclude List route is $KMOD_Compile_Exclude_List_Route"
-elif [[ "$Matrix_Target" == ipq-* ]]; then
-KMOD_Compile_Exclude_List_Route=package-configs/kmod_exclude_list_ipq.config
 echo "The exclude List route is $KMOD_Compile_Exclude_List_Route"
 elif [ "$TEST_KERNEL" = "1" ]; then
 KMOD_Compile_Exclude_List_Route=package-configs/kmod_exclude_list_6_12.config
@@ -875,15 +692,6 @@ fi
 
 
 function add_openwrt_kmods() {
-	if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-ipq" ]; then
-	add_all_ipq_nss_kmod_config
-	cd openwrt && make defconfig && cd ../
-	add_all_ipq_nss_kmod_config
-	cd openwrt && make defconfig && cd ../
-	add_all_ipq_nss_kmod_config
-	cd openwrt && make defconfig && cd ../
-	fi
-
 	if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-2410" ]; then
 	add_all_kmod_config
 	cd openwrt && make defconfig && cd ../
@@ -943,19 +751,10 @@ case "${1:-}" in
 		patch_json_input_set
 		init_gh_env_common
 		;;
-	init-gh-env-2410-ipq)
-		init_gh_env_2410_ipq
-		config_json_input_set
-		patch_json_input_set
-		init_gh_env_common
-		;;
 	init-openwrt-pkg-config)
 		init_openwrt_pkg_config
 		;;
-	init-openwrt-pkg-config-nss)
-		init_openwrt_pkg_config_nss
-		;;
-	init-openwrt-patch|init-openwrt-patch-2410|init-openwrt-patch-2410-ipq)
+	init-openwrt-patch|init-openwrt-patch-2410)
 		init_openwrt_patch_common
 		;;
 	ln-openwrt)
@@ -967,22 +766,6 @@ case "${1:-}" in
 		add_openwrt_sfe_kernel_k612
 		add_openwrt_sfe_kmods
 		;;
-	add-openwrt-sfe-2410-ipq)
-		add_openwrt_sfe_ipt_k66
-		add_openwrt_sfe_nft_k66
-		add_openwrt_sfe_kernel_k612
-		add_openwrt_sfe_kmods
-		# The private OpenWrt 25.12 IPQ branches already carry their
-		# qualcommax/NSS kernel patches. Keep the generic turboacc setup,
-		# but do not overlay the older 24.10 patch set.
-		case "${Branch:-}" in
-			25.12-*) ;;
-			*) add_openwrt_sfe_kernel_nss_patch ;;
-		esac
-		;;
-	add-openwrt-nosfe-2410-ipq)
-		add_openwrt_nosfe_nss_pkgs
-		;;
 	add-openwrt-files|add-openwrt-files-2410)
 		add_openwrt_files
 		patch_openwrt_core_pre || exit 1
@@ -992,7 +775,6 @@ case "${1:-}" in
 		add_openwrt_kmods
 		;;
 	fix-openwrt-feeds)
-		fix_openwrt_nss_sfe_feeds
 		fix_openwrt_feeds
 		refine_openwrt_config
 		;;

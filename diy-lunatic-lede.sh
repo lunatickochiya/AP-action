@@ -251,16 +251,6 @@ echo "$(cat package-configs/ar71xx-common-iptables.config)" >> package-configs/.
 mv -f package-configs/.config .config
 }
 
-function add_ipq_iptables_packages() {
-echo "$(cat package-configs/ipq-common-iptables.config)" >> package-configs/.config
-mv -f package-configs/.config .config
-}
-
-function add_ipq_nftables_packages() {
-echo "$(cat package-configs/ipq-common-nftables.config)" >> package-configs/.config
-mv -f package-configs/.config .config
-}
-
 function add_ath79_iptables_packages() {
 echo "$(cat package-configs/ath79-common-iptables.config)" >> package-configs/.config
 mv -f package-configs/.config .config
@@ -314,23 +304,6 @@ mv -f package-configs/.config .config
 function add_test_kernel_config() {
 sed -i '1i\
 CONFIG_TESTING_KERNEL=y\nCONFIG_HAS_TESTING_KERNEL=y' machine-configs/single/*
-}
-
-function change_qca_start_order() {
-
-NSS_DRV="feeds/nss_packages/qca-nss-drv/files/qca-nss-drv.init"
-if [ -f "$NSS_DRV" ]; then
-	sed -i 's/START=.*/START=85/g' $NSS_DRV
-
-	echo "qca-nss-drv has been fixed!"
-fi
-
-NSS_PBUF="package/kernel/mac80211/files/qca-nss-pbuf.init"
-if [ -f "$NSS_PBUF" ]; then
-	sed -i 's/START=.*/START=86/g' $NSS_PBUF
-
-	echo "qca-nss-pbuf has been fixed!"
-fi
 }
 
 if [ "$1" == "mt798x-iptables" ]; then
@@ -403,22 +376,6 @@ patch_package
 patch_luci
 patch_lunatic7
 add_ath79_nftables_packages
-elif [ "$1" == "ipq-iptables" ]; then
-autosetver
-remove_error_package_not_install
-patch_package
-patch_luci
-patch_lunatic7
-add_ipq_iptables_packages
-change_qca_start_order
-elif [ "$1" == "ipq-nftables" ]; then
-autosetver
-remove_error_package_not_install
-patch_package
-patch_luci
-patch_lunatic7
-add_ipq_nftables_packages
-change_qca_start_order
 elif [ "$1" == "patch-openwrt" ]; then
 patch_openwrt_lunatic-lede
 patch_openwrt

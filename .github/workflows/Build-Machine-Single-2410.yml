@@ -28,7 +28,6 @@ on:
         - 'd-team_newifi-d2'
         - 'lenovo_newifi-y1'
         - 'domywifi_dw33d'
-        - 'aliyun_ap8220'
         - 'ath79_generic-multi'
         - 'lunaticbox'
         - 'raisecom_msg1500'

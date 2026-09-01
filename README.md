@@ -28,8 +28,9 @@ ubootmod：https://github.com/hanwckf/bl-mt798x/releases/download/20231124/mt798
 ## 关于ath79
 测试机器 dw33d
 
-## 关于ipq
-测试机器 ap8220
+## IPQ 支持
+
+IPQ 设备的构建工作流、配置和补丁已迁移到 [AP-action-IPQ](https://github.com/lunatickochiya/AP-action-IPQ)。
 
 ## 更新
 
@@ -45,14 +46,7 @@ ubootmod：https://github.com/hanwckf/bl-mt798x/releases/download/20231124/mt798
 ```
 luci-app-n2n,n2n,n2n-edge,n2n-supernode,luci-app-passwall2,luci-app-nps,luci-app-npc,luci-app-frps,luci-app-frpc,luci-app-openvpn-server,luci-app-netdata
 ```
-使用json定义ipq的firmware版本及分支
-
-默认： 11.4 firmware
-# 20260201
-IPQ:加入nn6000 v2 编译 支持12M和6M两种版本 同时拓展京东云亚瑟支持
-IPQ已知BUG：12.5firmware 在开放网络有无法连接无线的情况 需要设置无线网络加密wpa2或wpa3 
-11.4firmware没有上述BUG 
- 目前mt7981系列不再维护 因为我手里没这类机器了 
+目前 mt7981 系列不再维护，因为手里没有这类机器了。
 ## 源码更新交流学习：
  - 点击链接加入群聊 ：https://jq.qq.com/?_wv=1027&k=5QgVYsC
  - 群号： 286754582

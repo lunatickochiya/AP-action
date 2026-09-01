@@ -117,19 +117,12 @@ function init_gh_env_2512() {
 	source "${GITHUB_WORKSPACE}/env/$repo_env_file.repo"
 	local kernel66
 	kernel66=$(echo "$PATCH_JSON_INPUT" | jq -r '.KERNEL66 // "0"')
-	local branch firmware
-	branch=$(echo "$PATCH_JSON_INPUT" | jq -r '.Branch // empty')
-	if [ "$repo_env_file" = "openwrt-ipq-2512" ] && [ -n "$branch" ]; then
-		REPO_BRANCH="$branch"
-	fi
 	if [ "$kernel66" = "1" ]; then
 		REPO_URL="${KERNEL66_REPO_URL:-$REPO_URL}"
 		REPO_BRANCH="${KERNEL66_REPO_BRANCH:-$REPO_BRANCH}"
 	fi
-	firmware=$(echo "$PATCH_JSON_INPUT" | jq -r '.IPQ_Firmware // empty')
 	echo -e "KERNEL66=$kernel66" >> "$GITHUB_ENV"
-	echo -e "Branch=${branch:-$REPO_BRANCH}" >> "$GITHUB_ENV"
-	echo -e "IPQ_Firmware=${firmware:-ipq-nss-12-5}" >> "$GITHUB_ENV"
+	echo -e "Branch=$REPO_BRANCH" >> "$GITHUB_ENV"
 	echo -e "ADD_SKB_RECYCLER=$(echo "$PATCH_JSON_INPUT" | jq -r '.ADD_SKB_RECYCLER // "0"')" >> "$GITHUB_ENV"
 	echo -e "ADD_eBPF=$(echo $PATCH_JSON_INPUT | jq -r ".ADD_eBPF")" >> "$GITHUB_ENV"
 }
@@ -181,14 +174,10 @@ function init_gh_env_common() {
 	echo "The MATH Matrix_Target is: $Target_CFG_Machine"
 }
 function init_openwrt_patch_2512() {
-	case "$OpenWrt_PATCH_FILE_DIR" in
-		openwrt-2512|openwrt-ipq)
-			;;
-		*)
-			device_config_error "This script only supports openwrt-2512 or openwrt-ipq"
-			return 1
-			;;
-	esac
+	if [ "$OpenWrt_PATCH_FILE_DIR" != "openwrt-2512" ]; then
+		device_config_error "This script only supports openwrt-2512"
+		return 1
+	fi
 	if [ "$Firewall_Allow_WAN" = "1" ]; then
 		sed -i '/^	commit$/i\
 		set firewall.@zone[1].input="ACCEPT"
@@ -202,12 +191,7 @@ function init_openwrt_patch_2512() {
 			device_config_error "BBR v3 requires KERNEL66=1"
 			return 1
 		fi
-		local bbr_patch_dir
-		if [ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-ipq" ]; then
-			bbr_patch_dir="$OpenWrt_PATCH_FILE_DIR/mypatch-bbr-v3"
-		else
-			bbr_patch_dir="$OpenWrt_PATCH_FILE_DIR/mypatch-core-66/mypatch-bbr-v3"
-		fi
+		local bbr_patch_dir="$OpenWrt_PATCH_FILE_DIR/mypatch-core-66/mypatch-bbr-v3"
 		if [ ! -d "$bbr_patch_dir" ] || [ ! -d "$OpenWrt_PATCH_FILE_DIR/mypatch-core" ]; then
 			device_config_error "BBR v3 patch directory is incomplete"
 			return 1
@@ -315,26 +299,6 @@ CONFIG_IB=y
 		echo "KERNEL66_NAME=_KERNEL66" >> $GITHUB_ENV
 	fi
 
-	if [ -n "${IPQ_Firmware:-}" ]; then
-		local firmware_version
-		case "$IPQ_Firmware" in
-			ipq-nss-12-5) firmware_version=12_5 ;;
-			ipq-nss-12-2) firmware_version=12_2 ;;
-			ipq-nss-12-1) firmware_version=12_1 ;;
-			ipq-nss-11-4) firmware_version=11_4 ;;
-			*) firmware_version= ;;
-		esac
-		if [ -n "$firmware_version" ]; then
-			for config_file in machine-configs/$OpenWrt_PATCH_FILE_DIR/*.config; do
-				grep -qx "CONFIG_NSS_FIRMWARE_VERSION_${firmware_version}=y" "$config_file" || sed -i "1iCONFIG_NSS_FIRMWARE_VERSION_${firmware_version}=y" "$config_file"
-				for other_version in 11_4 12_1 12_2 12_5; do
-					[ "$other_version" = "$firmware_version" ] || sed -i "/^CONFIG_NSS_FIRMWARE_VERSION_${other_version}=/d" "$config_file"
-				done
-			done
-			echo "----$Matrix_Target--IPQ--Firmware-${firmware_version//_}---"
-		fi
-	fi
-
 }
 function ln_openwrt() {
 	sudo mkdir -p -m 777 /mnt/openwrt/dl /mnt/openwrt/bin /mnt/openwrt/staging_dir /mnt/openwrt/build_dir
@@ -350,47 +314,6 @@ function ln_openwrt() {
 	readlink openwrt
 	echo "-------"
 	ls -l /workdir/openwrt
-}
-function add_openwrt_ipq_sfe_66_compat() {
-	local patch_root="$OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6"
-	local target_dir="openwrt/target/linux/qualcommax/patches-6.6"
-	local patch_file
-
-	[ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-ipq" ] || return 0
-	for patch_file in \
-		"$patch_root/202603/0600-1-qca-nss-ecm-support-CORE.patch" \
-		"$patch_root/202603/0603-1-qca-nss-clients-add-qdisc-support.patch" \
-		"$patch_root/202601/0981-0-qca-skbuff-revert.patch"; do
-		if [ ! -s "$patch_file" ]; then
-			device_config_error "Missing IPQ SFE compatibility patch: $patch_file"
-			return 1
-		fi
-	done
-
-	mkdir -p "$target_dir"
-	cp -f "$patch_root/202603/0600-1-qca-nss-ecm-support-CORE.patch" "$target_dir/"
-	cp -f "$patch_root/202603/0603-1-qca-nss-clients-add-qdisc-support.patch" "$target_dir/"
-	cp -f "$patch_root/202601/0981-0-qca-skbuff-revert.patch" "$target_dir/"
-	mkdir -p openwrt/package/qca
-}
-function add_openwrt_ipq_sfe_612_compat() {
-	local patch_root="$OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.12"
-	local target_dir="openwrt/target/linux/qualcommax/patches-6.12"
-	local patch_file
-
-	[ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-ipq" ] || return 0
-	for patch_file in \
-		"$patch_root/20250425/0600-1-qca-nss-ecm-support-CORE.patch" \
-		"$patch_root/20250425/0981-0-qca-skbuff-revert.patch"; do
-		if [ ! -s "$patch_file" ]; then
-			device_config_error "Missing IPQ SFE compatibility patch: $patch_file"
-			return 1
-		fi
-	done
-
-	mkdir -p "$target_dir" openwrt/package/qca
-	cp -f "$patch_root/20250425/0600-1-qca-nss-ecm-support-CORE.patch" "$target_dir/"
-	cp -f "$patch_root/20250425/0981-0-qca-skbuff-revert.patch" "$target_dir/"
 }
 function copy_openwrt_turboacc_nft_packages() {
 	local package_source="$1"
@@ -539,7 +462,6 @@ EOF
 		return 1
 	fi
 
-	add_openwrt_ipq_sfe_66_compat || return 1
 	add_openwrt_sfe_kmods
 	echo "----$Matrix_Target-----SFE-6.6----"
 }
@@ -551,8 +473,8 @@ function add_openwrt_sfe_612_2512() {
 	local turboacc_package_commit="c56760174a4b25e2a4f7566e3e4058e75e4ac9f8"
 	local temp_dir
 
-	if [ "$OpenWrt_PATCH_FILE_DIR" != "openwrt-2512" ] && [ "$OpenWrt_PATCH_FILE_DIR" != "openwrt-ipq" ]; then
-		device_config_error "add-openwrt-sfe-2512 requires openwrt-2512 or openwrt-ipq"
+	if [ "$OpenWrt_PATCH_FILE_DIR" != "openwrt-2512" ]; then
+		device_config_error "add-openwrt-sfe-2512 requires openwrt-2512"
 		return 1
 	fi
 	if [[ "$Matrix_Target" != *-iptables && "$Matrix_Target" != *-nftables ]]; then
@@ -645,7 +567,6 @@ EOF
 		return 1
 	fi
 
-	add_openwrt_ipq_sfe_612_compat || return 1
 	add_openwrt_sfe_kmods
 	echo "----$Matrix_Target-----SFE-6.12----"
 }
@@ -656,79 +577,11 @@ function add_openwrt_sfe_2512() {
 		add_openwrt_sfe_612_2512
 	fi
 }
-function add_openwrt_nosfe_ipq_2512() {
-	local config_name="${Target_CFG_Machine}-${Matrix_Target}.config"
-	local config_file="package-configs/$OpenWrt_PATCH_FILE_DIR/$config_name"
-
-	if [ "$OpenWrt_PATCH_FILE_DIR" != "openwrt-ipq" ]; then
-		device_config_error "add-openwrt-nosfe-ipq-2512 requires openwrt-ipq"
-		return 1
-	fi
-	if [ ! -s "$config_file" ]; then
-		device_config_error "Missing package config: $config_file"
-		return 1
-	fi
-
-	mkdir -p openwrt/package/qca
-	if [[ "$Matrix_Target" == *-iptables ]]; then
-		if ! grep -q '^CONFIG_PACKAGE_luci-app-turboacc-ipt=y$' "$config_file"; then
-			cat >> "$config_file" <<'EOF'
-
-# TurboACC without SFE (iptables)
-CONFIG_PACKAGE_luci-app-turboacc-ipt=y
-# CONFIG_PACKAGE_luci-app-turboacc-ipt_INCLUDE_PDNSD is not set
-# CONFIG_PACKAGE_luci-app-turboacc-ipt_INCLUDE_SHORTCUT_FE_DRV is not set
-EOF
-		fi
-		[ -n "${DIY_SH:-}" ] && [ -f "$DIY_SH" ] && \
-			sed -i 's/"feeds\/lunatic7\/shortcut-fe"//g' "$DIY_SH"
-	elif [[ "$Matrix_Target" == *-nftables ]]; then
-		if ! grep -q '^CONFIG_PACKAGE_luci-app-turboacc=y$' "$config_file"; then
-			cat >> "$config_file" <<'EOF'
-
-# TurboACC without SFE (nftables)
-CONFIG_PACKAGE_luci-app-turboacc=y
-# CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_PDNSD is not set
-# CONFIG_PACKAGE_luci-app-turboacc_INCLUDE_SHORTCUT_FE_DRV is not set
-EOF
-		fi
-		if [ -n "${DIY_SH:-}" ] && [ -f "$DIY_SH" ]; then
-			sed -i 's/"feeds\/lunatic7\/luci-app-turboacc"//g' "$DIY_SH"
-			sed -i 's/"feeds\/lunatic7\/shortcut-fe"//g' "$DIY_SH"
-		fi
-	else
-		device_config_error "Unsupported non-SFE matrix target: $Matrix_Target"
-		return 1
-	fi
-	echo "----$Matrix_Target-----TurboACC-without-SFE----"
-}
-function add_openwrt_ipq_sfe_feed_66_compat() {
-	local patch_source="$OpenWrt_PATCH_FILE_DIR/sfe-ipq-6.6/qca-nss-ecm/patches/1001-ecm-support-conntrack-chain-events.patch"
-	local patch_dir="openwrt/feeds/nss_packages/qca-nss-ecm/patches"
-
-	[ "$OpenWrt_PATCH_FILE_DIR" = "openwrt-ipq" ] || return 0
-	kernel66_enabled || return 0
-	[ "${SFE_INPUT_STATUS:-false}" = "true" ] || return 0
-	if [ ! -s "$patch_source" ]; then
-		device_config_error "Missing qca-nss-ecm SFE compatibility patch: $patch_source"
-		return 1
-	fi
-	if [ ! -d "$patch_dir" ]; then
-		device_config_error "qca-nss-ecm feed is missing: $patch_dir"
-		return 1
-	fi
-	cp -f "$patch_source" "$patch_dir/"
-}
 function add_openwrt_sfe_kmods() {
 	sed -i 's/kmod-shortcut-fe-cm,kmod-shortcut-fe,kmod-fast-classifier,kmod-fast-classifier-noload,kmod-shortcut-fe-drv,//g' package-configs/kmod_exclude_list*
 }
 function add_openwrt_files() {
 	mkdir -p openwrt/feeds/lunatic7
-	if [ "$OpenWrt_REPO_ENV_FILE" = "openwrt-ipq-2512" ]; then
-	mv -f openwrt-2512/mypatch-core/0001-tools-add-liblzo-dependency-to-ccache.patch openwrt-ipq/mypatch-core/0001-tools-add-liblzo-dependency-to-ccache.patch
-	fi
-	mkdir -p openwrt/package/firmware/ipq-wifi/src
-	# [ -d $OpenWrt_PATCH_FILE_DIR/bin-files ] && cp -r $OpenWrt_PATCH_FILE_DIR/bin-files/ipq-wifi/src/* openwrt/package/firmware/ipq-wifi/src
 	[ -d package ] && cp -r package/* openwrt/package
 	[ -d $OpenWrt_PATCH_FILE_DIR/package-for-$OpenWrt_PATCH_FILE_DIR ] && cp -r $OpenWrt_PATCH_FILE_DIR/package-for-$OpenWrt_PATCH_FILE_DIR/* openwrt/package
 	[ -d $OpenWrt_PATCH_FILE_DIR/mypatch-core ] && mv -f $OpenWrt_PATCH_FILE_DIR/mypatch-core openwrt/mypatch-core
@@ -750,14 +603,6 @@ function apply_openwrt_patch_dir() {
 	patch_files=("$patch_dir"/*.patch)
 	shopt -u nullglob
 	for patch_file in "${patch_files[@]}"; do
-		if [ "$OpenWrt_REPO_ENV_FILE" = "openwrt-ipq-2512" ]; then
-			case "${patch_file##*/}" in
-				0001-generic-138-139-fix-in-6.6.patch|0001-ipq807x-add-support-for-Aliyun-AP8220-mod-for-ipq-24.patch|0003-CVE-2026-31431-FIX.patch)
-					echo "Skipping already included IPQ 25.12 patch: $patch_file"
-					continue
-					;;
-			esac
-		fi
 		echo "Applying $patch_file"
 		patch -p1 --no-backup-if-mismatch --quiet < "$patch_file" || return 1
 	done
@@ -775,7 +620,6 @@ function patch_openwrt_core_pre() {
 	cd ../
 }
 function fix_openwrt_feeds() {
-	add_openwrt_ipq_sfe_feed_66_compat || return 1
 	# [ -e package-configs ] && cp -r package-configs openwrt/package-configs
 	[ -d $OpenWrt_PATCH_FILE_DIR/lunatic7-revert ] && mv -f $OpenWrt_PATCH_FILE_DIR/lunatic7-revert openwrt/feeds/lunatic7/lunatic7-revert
 	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-luci-patch ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-luci-patch openwrt/feeds/luci/feeds-luci-patch
@@ -783,20 +627,11 @@ function fix_openwrt_feeds() {
 	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-telephony-patch ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-telephony-patch openwrt/feeds/telephony/feeds-telephony-patch
 	[ -d $OpenWrt_PATCH_FILE_DIR/feeds-routing-patch ] && mv -f $OpenWrt_PATCH_FILE_DIR/feeds-routing-patch openwrt/feeds/routing/feeds-routing-patch
 
-	if [ "$OpenWrt_REPO_ENV_FILE" = "openwrt-ipq-2512" ]; then
-	rm -rf openwrt/feeds/lunatic7/lunatic7-revert openwrt/feeds/luci/feeds-luci-patch openwrt/feeds/packages/feeds-packages-patch openwrt/feeds/telephony/feeds-telephony-patch openwrt/feeds/routing/feeds-routing-patch
-	[ -d openwrt-2512/lunatic7-revert ] && mv -f openwrt-2512/lunatic7-revert openwrt/feeds/lunatic7/lunatic7-revert
-	[ -d openwrt-2512/feeds-luci-patch ] && mv -f openwrt-2512/feeds-luci-patch openwrt/feeds/luci/feeds-luci-patch
-	[ -d openwrt-2512/feeds-packages-patch ] && mv -f openwrt-2512/feeds-packages-patch openwrt/feeds/packages/feeds-packages-patch
-	[ -d openwrt-2512/feeds-telephony-patch ] && mv -f openwrt-2512/feeds-telephony-patch openwrt/feeds/telephony/feeds-telephony-patch
-	[ -d openwrt-2512/feeds-routing-patch ] && mv -f openwrt-2512/feeds-routing-patch openwrt/feeds/routing/feeds-routing-patch
-	fi
 	cd openwrt
 	autosetver_2512
 	remove_error_package_not_install
 	patch_openwrt_feeds
 	patch_lunatic7
-	change_qca_start_order
 	if [ "$Matrix_Target" == 'ramips-iptables' ] || [ "$Matrix_Target" == 'ramips-nftables' ] || \
 		[ "$Matrix_Target" == 'ath79-iptables' ] || [ "$Matrix_Target" == 'ath79-nftables' ]; then
 		rm -rf feeds/lunatic7/luci-app-cupsd/root/www/cups.pdf
@@ -837,22 +672,6 @@ CONFIG_PACKAGE_firewall=y
 # CONFIG_PACKAGE_firewall4 is not set
 EOF
 	fi
-}
-function change_qca_start_order() {
-
-NSS_DRV="feeds/nss_packages/qca-nss-drv/files/qca-nss-drv.init"
-if [ -f "$NSS_DRV" ]; then
-	sed -i 's/START=.*/START=85/g' $NSS_DRV
-
-	echo "qca-nss-drv has been fixed!"
-fi
-
-NSS_PBUF="package/kernel/mac80211/files/qca-nss-pbuf.init"
-if [ -f "$NSS_PBUF" ]; then
-	sed -i 's/START=.*/START=86/g' $NSS_PBUF
-
-	echo "qca-nss-pbuf has been fixed!"
-fi
 }
 function patch_openwrt_feeds() {
     for packagepatch in $( ls feeds/packages/feeds-packages-patch ); do
@@ -973,9 +792,6 @@ echo "The exclude List route is $KMOD_Compile_Exclude_List_Route"
 elif [[ "$Matrix_Target" == ath79-* ]]; then
 KMOD_Compile_Exclude_List_Route=package-configs/kmod_exclude_list_ath79.config
 echo "The exclude List route is $KMOD_Compile_Exclude_List_Route"
-elif [[ "$Matrix_Target" == ipq-* ]]; then
-KMOD_Compile_Exclude_List_Route=package-configs/kmod_exclude_list_ipq.config
-echo "The exclude List route is $KMOD_Compile_Exclude_List_Route"
 elif [ "$KERNEL66" = "1" ]; then
 KMOD_Compile_Exclude_List_Route=package-configs/kmod_exclude_list_6_12.config
 echo "The exclude List route is $KMOD_Compile_Exclude_List_Route"
@@ -1068,9 +884,6 @@ case "${1:-}" in
 	add-openwrt-sfe-2512)
 		add_openwrt_sfe_2512
 		;;
-	add-openwrt-nosfe-ipq-2512)
-		add_openwrt_nosfe_ipq_2512
-		;;
 	add-openwrt-files)
 		add_openwrt_files
 		patch_openwrt_core_pre || exit 1
@@ -1086,7 +899,7 @@ case "${1:-}" in
 		awk_openwrt_config
 		;;
 	*)
-		echo "Usage: $0 {resolve-build-matrix|init-pkg-env|init-gh-env|init-openwrt-patch|ln-openwrt|add-openwrt-sfe-2512|add-openwrt-nosfe-ipq-2512|add-openwrt-files|add-openwrt-kmods|fix-openwrt-feeds|awk-openwrt-config}" >&2
+		echo "Usage: $0 {resolve-build-matrix|init-pkg-env|init-gh-env|init-openwrt-patch|ln-openwrt|add-openwrt-sfe-2512|add-openwrt-files|add-openwrt-kmods|fix-openwrt-feeds|awk-openwrt-config}" >&2
 		exit 1
 		;;
 esac
