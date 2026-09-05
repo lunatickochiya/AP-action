@@ -718,6 +718,7 @@ function remove_error_package_not_install() {
 		"smartdns"
 		"luci-app-filebrowser"
 		"luci-app-filemanager"
+		"luci-app-dockerman"
 	)
 
 	for package in "${packages[@]}"; do
@@ -730,6 +731,7 @@ function remove_error_package_not_install() {
 		"feeds/luci/applications/luci-app-smartdns"
 		"feeds/luci/applications/luci-app-filebrowser"
 		"feeds/luci/applications/luci-app-filemanager"
+		"feeds/luci/applications/luci-app-dockerman"
 		"feeds/lunatic7/rtl8821cu"
 		"feeds/lunatic7/shortcut-fe"
 		"feeds/lunatic7/fullconenat-nft"
