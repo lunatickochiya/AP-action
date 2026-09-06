@@ -21,6 +21,7 @@ on:
         type: choice
         options:
         - 's20p'
+        - 's20p-lite'
         - 'lenovo_newifi-d1'
         - 'd-team_newifi-d2'
         - 'lenovo_newifi-y1'

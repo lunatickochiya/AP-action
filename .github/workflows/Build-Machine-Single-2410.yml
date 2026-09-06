@@ -21,6 +21,7 @@ on:
         type: choice
         options:
         - 's20p'
+        - 's20p-lite'
         - 'rax3000m-emmc'
         - 'rax3000m-nand'
         - 'nokia_ea0326gmp_ubootmod'
