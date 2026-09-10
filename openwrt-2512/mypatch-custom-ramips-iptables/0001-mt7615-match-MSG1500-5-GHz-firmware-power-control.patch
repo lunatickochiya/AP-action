@@ -1,0 +1,96 @@
+From f671e3d912fd127c6df0c71caf49c0b8136210a1 Mon Sep 17 00:00:00 2001
+From: lunatickochiya <125438787@qq.com>
+Date: Thu, 10 Sep 2026 21:24:27 +0800
+Subject: [PATCH] mt7615: match MSG1500 5 GHz firmware power control
+
+---
+ .../991-mt7615-msg1500-5g-tx-sku-fix.patch    | 77 +++++++++++++++++++
+ 1 file changed, 77 insertions(+)
+ create mode 100644 package/kernel/mt76/patches/991-mt7615-msg1500-5g-tx-sku-fix.patch
+
+diff --git a/package/kernel/mt76/patches/991-mt7615-msg1500-5g-tx-sku-fix.patch b/package/kernel/mt76/patches/991-mt7615-msg1500-5g-tx-sku-fix.patch
+new file mode 100644
+index 0000000000..9ae93a72fa
+--- /dev/null
++++ b/package/kernel/mt76/patches/991-mt7615-msg1500-5g-tx-sku-fix.patch
+@@ -0,0 +1,77 @@
++From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
++From: OpenWrt device support <openwrt@example.invalid>
++Date: Thu, 10 Sep 2026 17:00:00 +0800
++Subject: [PATCH] mt7615: match MSG1500 5 GHz firmware power control
++
++Padavan-KVR runs the MSG1500 MT7615 5 GHz band with SKU disabled:
++all rate limits are 0x3f and all spatial-stream offsets are zero.
++
++mt76 still programs a limited SKU through both the MT7615 channel-switch
++command and the generic Connac rate-power command.  On this external-PA
++board that overrides the EEPROM power table selected by patch 990.
++
++Match the known-good Padavan behavior only on the 5 GHz side of
++raisecom,msg1500-x-00.  Keep every other board and the 2.4 GHz band
++unchanged.  Also make the testmode EEPROM update use both 5 GHz chains.
++
++This patch depends on 990-mt7615-msg1500-ext-pa-fix.patch.
++
++---
++ mt76_connac_mcu.c | 9 +++++++--
++ mt7615/mcu.c      | 7 +++++++
++ mt7615/testmode.c | 3 ++-
++ 3 files changed, 16 insertions(+), 3 deletions(-)
++
++--- a/mt76_connac_mcu.c
+++++ b/mt76_connac_mcu.c
++@@ -1,6 +1,7 @@
++ // SPDX-License-Identifier: BSD-3-Clause-Clear
++ /* Copyright (C) 2020 MediaTek Inc. */
++ 
+++#include <linux/of.h>
++ #include <linux/firmware.h>
++ #include "mt76_connac2_mac.h"
++ #include "mt76_connac_mcu.h"
++@@ -2234,8 +2235,12 @@ mt76_connac_mcu_rate_txpower_band(struct
++ 							     tx_power);
++ 			sar_power = mt76_get_sar_power(phy, &chan, reg_power);
++ 
++-			mt76_get_rate_power_limits(phy, &chan, limits,
++-						   sar_power);
+++			if (band == NL80211_BAND_5GHZ &&
+++			    of_machine_is_compatible("raisecom,msg1500-x-00"))
+++				memset(limits, 0x3f, sizeof(*limits));
+++			else
+++				mt76_get_rate_power_limits(phy, &chan, limits,
+++							   sar_power);
++ 
++ 			tx_power_tlv.last_msg = ch_list[idx] == last_ch;
++ 			sku_tlbv.channel = ch_list[idx];
++--- a/mt7615/mcu.c
+++++ b/mt7615/mcu.c
++@@ -2074,6 +2074,13 @@ static void mt7615_mcu_set_txpower_sku(s
++ 					      &limits, tx_power);
++ 	mphy->txpower_cur = tx_power;
++ 
+++	/* Match Padavan: leave the MSG1500 5 GHz rate-SKU unrestricted. */
+++	if (mphy->chandef.chan &&
+++	    mt7615_msg1500_ext_pa_5g(mphy->chandef.chan->band)) {
+++		memset(sku, 0x3f, MT_SKU_1SS_DELTA);
+++		memset(&sku[MT_SKU_1SS_DELTA], 0, 4);
+++		return;
+++	}
++ 	if (is_mt7663(mphy->dev)) {
++ 		memset(sku, tx_power, MT_SKU_4SS_DELTA + 1);
++ 		return;
++--- a/mt7615/testmode.c
+++++ b/mt7615/testmode.c
++@@ -78,7 +78,8 @@ mt7615_tm_set_tx_power(struct mt7615_phy
++ 	skb_put_data(skb, &req_hdr, sizeof(req_hdr));
++ 	data = skb_put_data(skb, eep + MT_EE_NIC_CONF_0, len);
++ 
++-	target_chains = mt7615_ext_pa_enabled(dev, band) ? 1 : n_chains;
+++	target_chains = mt7615_ext_pa_enabled(dev, band) &&
+++			 !mt7615_msg1500_ext_pa_5g(band) ? 1 : n_chains;
++ 	for (i = 0; i < target_chains; i++) {
++ 		ret = mt7615_eeprom_get_target_power_index(dev, chandef->chan, i);
++ 		if (ret < 0) {
+-- 
+2.55.0
+
