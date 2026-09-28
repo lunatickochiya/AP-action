@@ -1,9 +1,12 @@
 #!/bin/sh
 . /etc/openwrt_release
 
+# 板级标识：OPENWRT_BOARD 优先（如 airoha/an7581），老固件退回 DISTRIB_TARGET
+BOARD="${OPENWRT_BOARD:-$DISTRIB_TARGET}"
+
 cpu_usage="$(busybox top -n1 | awk '/^CPU/ {printf("%d", 100 - $8)}')"
 
-case "$DISTRIB_TARGET" in
+case "$BOARD" in
 
 qualcommax/*)
 NSS_PATH="/sys/kernel/debug/qca-nss-drv/stats"
@@ -35,7 +38,7 @@ else
 fi
 	;;
 
-mediatek/*)
+mediatek/*|airoha/*)
 
 read -r usr sys < <(top -bn1 | awk 'NR==2 {print $2, $4}')
 output="USR: ${usr} SYS: ${sys}"
