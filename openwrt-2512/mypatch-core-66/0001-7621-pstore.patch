@@ -1,0 +1,47 @@
+diff --git a/target/linux/ramips/dts/mt7621.dtsi b/target/linux/ramips/dts/mt7621.dtsi
+index 24e80835dd..64421f56f4 100644
+--- a/target/linux/ramips/dts/mt7621.dtsi
++++ b/target/linux/ramips/dts/mt7621.dtsi
+@@ -38,6 +38,18 @@
+ 		compatible = "mti,cpu-interrupt-controller";
+ 	};
+ 
++	reserved-memory {
++		#address-cells = <0x1>;
++		#size-cells = <0x1>;
++		ranges;
++
++		ramoops@3f00000 {
++			compatible = "ramoops";
++			reg = <0x3f00000 0x10000>;
++			record-size = <0x2000>;
++		};
++	};
++
+ 	chosen {
+ 		bootargs = "console=ttyS0,57600";
+ 	};
+diff --git a/target/linux/ramips/mt7621/config-6.6 b/target/linux/ramips/mt7621/config-6.6
+index 7a3e68ef45..cf55c24d57 100644
+--- a/target/linux/ramips/mt7621/config-6.6
++++ b/target/linux/ramips/mt7621/config-6.6
+@@ -236,6 +236,9 @@ CONFIG_PINCTRL_SX150X=y
+ CONFIG_POWER_RESET=y
+ CONFIG_POWER_RESET_GPIO=y
+ CONFIG_POWER_SUPPLY=y
++CONFIG_PSTORE=y
++CONFIG_PSTORE_COMPRESS=y
++CONFIG_PSTORE_RAM=y
+ CONFIG_PREEMPT_NONE_BUILD=y
+ CONFIG_PTP_1588_CLOCK_OPTIONAL=y
+ CONFIG_QCOM_NET_PHYLIB=y
+@@ -245,6 +248,9 @@ CONFIG_RALINK=y
+ # CONFIG_RALINK_WDT is not set
+ CONFIG_RANDSTRUCT_NONE=y
+ CONFIG_RATIONAL=y
++CONFIG_REED_SOLOMON=y
++CONFIG_REED_SOLOMON_DEC8=y
++CONFIG_REED_SOLOMON_ENC8=y
+ CONFIG_REGMAP=y
+ CONFIG_REGMAP_I2C=y
+ CONFIG_REGMAP_MMIO=y
