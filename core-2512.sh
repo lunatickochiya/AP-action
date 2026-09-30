@@ -305,7 +305,7 @@ CONFIG_IB=y
 	if kernel66_enabled; then
 		echo "----$Matrix_Target----KERNEL-6.6---"
 		set_testing_kernel_config
-		cp -f "$OpenWrt_PATCH_FILE_DIR/mypatch-core-66/*.patch" "$OpenWrt_PATCH_FILE_DIR/mypatch-core/"
+		cp -f $OpenWrt_PATCH_FILE_DIR/mypatch-core-66/k66/*.patch ./$OpenWrt_PATCH_FILE_DIR/mypatch-core/
 		echo "KERNEL66_NAME=_KERNEL66" >> $GITHUB_ENV
 	fi
 
