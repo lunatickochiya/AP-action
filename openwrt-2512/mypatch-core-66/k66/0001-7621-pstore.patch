@@ -2,7 +2,7 @@ diff --git a/target/linux/ramips/dts/mt7621.dtsi b/target/linux/ramips/dts/mt762
 index 24e80835dd..64421f56f4 100644
 --- a/target/linux/ramips/dts/mt7621.dtsi
 +++ b/target/linux/ramips/dts/mt7621.dtsi
-@@ -38,6 +38,18 @@
+@@ -38,6 +38,19 @@
  		compatible = "mti,cpu-interrupt-controller";
  	};
  
@@ -13,8 +13,9 @@ index 24e80835dd..64421f56f4 100644
 +
 +		ramoops@3f00000 {
 +			compatible = "ramoops";
-+			reg = <0x3f00000 0x10000>;
-+			record-size = <0x2000>;
++			reg = <0x3f00000 0x40000>;
++			record-size = <0x10000>;
++			console-size = <0x10000>;
 +		};
 +	};
 +
