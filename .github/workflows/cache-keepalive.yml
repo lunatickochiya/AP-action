@@ -5,6 +5,9 @@ name: Keep Cache Alive
 #   <target><eBPF><Branch>-cache-openwrt-<toolchain-hash>-<timestamp>
 # 每 5 天用 lookup-only（只查询不下载）触碰各 target 的最近缓存，
 # 保证常用机型不用每次重编工具链。
+# 注意：缓存匹配是 (key, version)，version 由 path 计算（sha256(paths+压缩+盐)）。
+# path 必须与 cachewrtbuild 保存时完全一致：staging_dir/host*、staging_dir/tool*、
+# .ccache（ccache: 'true'），否则 restore-keys 前缀再对也永远 miss。
 # 参考：qwe3017/Actions-OpenWrt-AN758X/.github/workflows/cache-keepalive.yml
 on:
   schedule:
@@ -20,7 +23,10 @@ jobs:
         continue-on-error: true
         uses: actions/cache/restore@v5
         with:
-          path: /tmp/dummy
+          path: |
+            staging_dir/host*
+            staging_dir/tool*
+            .ccache
           key: ar71xx-iptables_eBPF
           restore-keys: ar71xx-iptables_eBPF
           lookup-only: true
@@ -30,7 +36,10 @@ jobs:
         continue-on-error: true
         uses: actions/cache/restore@v5
         with:
-          path: /tmp/dummy
+          path: |
+            staging_dir/host*
+            staging_dir/tool*
+            .ccache
           key: ar71xx-iptables
           restore-keys: ar71xx-iptables
           lookup-only: true
@@ -40,7 +49,10 @@ jobs:
         continue-on-error: true
         uses: actions/cache/restore@v5
         with:
-          path: /tmp/dummy
+          path: |
+            staging_dir/host*
+            staging_dir/tool*
+            .ccache
           key: ath79-iptables_eBPF
           restore-keys: ath79-iptables_eBPF
           lookup-only: true
@@ -50,7 +62,10 @@ jobs:
         continue-on-error: true
         uses: actions/cache/restore@v5
         with:
-          path: /tmp/dummy
+          path: |
+            staging_dir/host*
+            staging_dir/tool*
+            .ccache
           key: ath79-iptables
           restore-keys: ath79-iptables
           lookup-only: true
@@ -60,7 +75,10 @@ jobs:
         continue-on-error: true
         uses: actions/cache/restore@v5
         with:
-          path: /tmp/dummy
+          path: |
+            staging_dir/host*
+            staging_dir/tool*
+            .ccache
           key: ath79-nftables_eBPF
           restore-keys: ath79-nftables_eBPF
           lookup-only: true
@@ -70,7 +88,10 @@ jobs:
         continue-on-error: true
         uses: actions/cache/restore@v5
         with:
-          path: /tmp/dummy
+          path: |
+            staging_dir/host*
+            staging_dir/tool*
+            .ccache
           key: ath79-nftables
           restore-keys: ath79-nftables
           lookup-only: true
@@ -80,7 +101,10 @@ jobs:
         continue-on-error: true
         uses: actions/cache/restore@v5
         with:
-          path: /tmp/dummy
+          path: |
+            staging_dir/host*
+            staging_dir/tool*
+            .ccache
           key: mt798x-iptables_eBPF
           restore-keys: mt798x-iptables_eBPF
           lookup-only: true
@@ -90,7 +114,10 @@ jobs:
         continue-on-error: true
         uses: actions/cache/restore@v5
         with:
-          path: /tmp/dummy
+          path: |
+            staging_dir/host*
+            staging_dir/tool*
+            .ccache
           key: mt798x-iptables
           restore-keys: mt798x-iptables
           lookup-only: true
@@ -100,7 +127,10 @@ jobs:
         continue-on-error: true
         uses: actions/cache/restore@v5
         with:
-          path: /tmp/dummy
+          path: |
+            staging_dir/host*
+            staging_dir/tool*
+            .ccache
           key: mt798x-nftables_eBPF
           restore-keys: mt798x-nftables_eBPF
           lookup-only: true
@@ -110,7 +140,10 @@ jobs:
         continue-on-error: true
         uses: actions/cache/restore@v5
         with:
-          path: /tmp/dummy
+          path: |
+            staging_dir/host*
+            staging_dir/tool*
+            .ccache
           key: mt798x-nftables
           restore-keys: mt798x-nftables
           lookup-only: true
@@ -120,7 +153,10 @@ jobs:
         continue-on-error: true
         uses: actions/cache/restore@v5
         with:
-          path: /tmp/dummy
+          path: |
+            staging_dir/host*
+            staging_dir/tool*
+            .ccache
           key: mt798x-nousb-iptables_eBPF
           restore-keys: mt798x-nousb-iptables_eBPF
           lookup-only: true
@@ -130,7 +166,10 @@ jobs:
         continue-on-error: true
         uses: actions/cache/restore@v5
         with:
-          path: /tmp/dummy
+          path: |
+            staging_dir/host*
+            staging_dir/tool*
+            .ccache
           key: mt798x-nousb-iptables
           restore-keys: mt798x-nousb-iptables
           lookup-only: true
@@ -140,7 +179,10 @@ jobs:
         continue-on-error: true
         uses: actions/cache/restore@v5
         with:
-          path: /tmp/dummy
+          path: |
+            staging_dir/host*
+            staging_dir/tool*
+            .ccache
           key: mt798x-nousb-nftables_eBPF
           restore-keys: mt798x-nousb-nftables_eBPF
           lookup-only: true
@@ -150,7 +192,10 @@ jobs:
         continue-on-error: true
         uses: actions/cache/restore@v5
         with:
-          path: /tmp/dummy
+          path: |
+            staging_dir/host*
+            staging_dir/tool*
+            .ccache
           key: mt798x-nousb-nftables
           restore-keys: mt798x-nousb-nftables
           lookup-only: true
@@ -160,7 +205,10 @@ jobs:
         continue-on-error: true
         uses: actions/cache/restore@v5
         with:
-          path: /tmp/dummy
+          path: |
+            staging_dir/host*
+            staging_dir/tool*
+            .ccache
           key: ramips-iptables_eBPF
           restore-keys: ramips-iptables_eBPF
           lookup-only: true
@@ -170,7 +218,10 @@ jobs:
         continue-on-error: true
         uses: actions/cache/restore@v5
         with:
-          path: /tmp/dummy
+          path: |
+            staging_dir/host*
+            staging_dir/tool*
+            .ccache
           key: ramips-iptables
           restore-keys: ramips-iptables
           lookup-only: true
@@ -180,7 +231,10 @@ jobs:
         continue-on-error: true
         uses: actions/cache/restore@v5
         with:
-          path: /tmp/dummy
+          path: |
+            staging_dir/host*
+            staging_dir/tool*
+            .ccache
           key: ramips-nftables_eBPF
           restore-keys: ramips-nftables_eBPF
           lookup-only: true
@@ -190,7 +244,10 @@ jobs:
         continue-on-error: true
         uses: actions/cache/restore@v5
         with:
-          path: /tmp/dummy
+          path: |
+            staging_dir/host*
+            staging_dir/tool*
+            .ccache
           key: ramips-nftables
           restore-keys: ramips-nftables
           lookup-only: true
