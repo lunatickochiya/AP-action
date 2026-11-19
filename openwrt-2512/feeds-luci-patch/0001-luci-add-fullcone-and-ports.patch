@@ -1,0 +1,100 @@
+From 43c6fba00f4a522c103b440e63eb43ec7deed178 Mon Sep 17 00:00:00 2001
+From: lunatickochiya <125438787@qq.com>
+Date: Fri, 20 Nov 2026 07:51:14 +0800
+Subject: [PATCH] luci: add fullcone detection and improve ethernet port
+ enumeration
+
+- luci-base: detect xt_FULLCONENAT/nft_fullcone for the firewall page
+- luci-base: rework getBuiltinEthernetPorts to fall back to ubus
+  network.device.status on targets without board.json port enumeration
+
+The CPU info/temperature/usage/online-users/source-code additions were
+dropped because the autoset status card now provides them.
+---
+ .../luci-base/root/usr/share/rpcd/ucode/luci  | 59 +++++++++----------
+ 1 file changed, 29 insertions(+), 30 deletions(-)
+
+diff --git a/modules/luci-base/root/usr/share/rpcd/ucode/luci b/modules/luci-base/root/usr/share/rpcd/ucode/luci
+index b54011a..523a312 100644
+--- a/modules/luci-base/root/usr/share/rpcd/ucode/luci
++++ b/modules/luci-base/root/usr/share/rpcd/ucode/luci
+@@ -229,6 +229,7 @@ const methods = {
+ 				bonding:    access('/sys/module/bonding'),
+ 				mii_tool:   access('/usr/sbin/mii-tool'),
+ 				offloading: access('/sys/module/xt_FLOWOFFLOAD/refcnt') == true || access('/sys/module/nft_flow_offload/refcnt') == true,
++				fullcone:   access('/sys/module/xt_FULLCONENAT/refcnt') == true || access('/sys/module/nft_fullcone/refcnt') == true,
+ 				br2684ctl:  access('/usr/sbin/br2684ctl') == true,
+ 				swconfig:   access('/sbin/swconfig') == true,
+ 				zram:       access('/sys/class/zram-control') == true,
+@@ -616,40 +617,38 @@ const methods = {
+ 
+ 	getBuiltinEthernetPorts: {
+ 		call: function() {
+-			let fd = open('/etc/board.json', 'r');
+-			let board = fd ? json(fd) : {};
++			const ubus = connect();
++			const sysboard = ubus.call('system', 'board');
+ 			let ports = [];
+ 
+-			for (let k in [ 'lan', 'wan' ]) {
+-				if (!board?.network?.[k])
+-					continue;
+-
+-				if (type(board.network[k].ports) == 'array') {
+-					for (let ifname in board.network[k].ports) {
+-						push(ports, { role: k, device: ifname });
+-					}
+-				}
+-				else if (type(board.network[k].device) == 'string') {
+-					push(ports, { role: k, device: board.network[k].device });
+-				}
+-			}
+-
+-			/* Workaround for targets that do not enumerate  all netdevs in board.json */
+-			if (uname().machine in [ 'x86_64' ] &&
+-			    match(ports[0]?.device, /^eth\d+$/)) {
+-				let bus = realpath(`/sys/class/net/${ports[0].device}/device/subsystem`);
+-
+-				for (let netdev in lsdir('/sys/class/net')) {
+-					if (!match(netdev, /^eth\d+$/))
+-						continue;
+-
+-					if (length(filter(ports, port => port.device == netdev)))
+-						continue;
+-
+-					if (realpath(`/sys/class/net/${netdev}/device/subsystem`) != bus)
++			if (
++				(type(sysboard) !== 'object') ||
++				match(sysboard.release.target, /^(armsr|bcm27xx|mvebu|rockchip|sifiveu|sunxi|x86)/)
++			) {
++				const stat = ubus.call('network.device', 'status') || {};
++				map(keys(stat), (ifname) => {
++					if (
++						ifname &&
++						stat[ifname]?.devtype in ['ethernet', 'dsa'] && (
++							length(stat[ifname]['link-advertising']) ||
++							match(ifname, /^eth\d+$/)
++						)
++					)
++						push(ports, { role: 'unknown', device: ifname });
++				});
++			} else {
++				const fd = open('/etc/board.json', 'r');
++				const board = fd ? json(fd) : {};
++				for (let k in [ 'lan', 'wan' ]) {
++					if (!board?.network?.[k])
+ 						continue;
+ 
+-					push(ports, { role: 'unknown', device: netdev });
++					if (type(board.network[k].ports) == 'array') {
++						for (let ifname in board.network[k].ports)
++							push(ports, { role: k, device: ifname });
++					} else if (type(board.network[k].device) == 'string') {
++						push(ports, { role: k, device: board.network[k].device });
++					}
+ 				}
+ 			}
+ 
+-- 
+2.56.0
+

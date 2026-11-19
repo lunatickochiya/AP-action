@@ -3,7 +3,10 @@
 		"description": "Grant access to autoset",
 		"read": {
 			"ubus": {
-				"luci": [ "getCPUInfo", "getTempInfo" ]
+				"file": [ "exec" ]
+			},
+			"file": {
+				"/usr/libexec/autoset/sysinfo": [ "exec" ]
 			}
 		}
 	}
