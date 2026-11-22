@@ -1,0 +1,75 @@
+From: lunatickochiya <125438787@qq.com>
+Subject: [PATCH] luajit2: avoid recursive dependency from luajit provider
+
+luajit2 declares PROVIDES:=luajit, so every consumer of "+luajit"
+(dnsdist/dnsdist-full, knot-resolver, snort3/openappid) is treated as a
+multi-provider dependency. package-metadata.pl then emits:
+
+  depends on !(PACKAGE_luajit2<PACKAGE_<consumer>) || ...
+
+kconfig counts both sides of the comparison as dependency edges, so the
+consumer ends up depending on itself:
+
+  recursive dependency detected!
+  symbol PACKAGE_dnsdist depends on PACKAGE_dnsdist
+
+This is fatal with RECURSIVE_DEP_IS_ERROR=1 and noisy otherwise.
+
+Drop the PROVIDES alias and pin the consumers explicitly:
+  - non-riscv64: luajit
+  - riscv64: luajit2 (luajit has @!riscv64)
+
+This keeps the previous riscv64 provider behaviour while removing the
+self-referencing provider rank.
+---
+diff --git a/lang/lua/luajit2/Makefile b/lang/lua/luajit2/Makefile
+index a46dfee..639dc21 100644
+--- a/lang/lua/luajit2/Makefile
++++ b/lang/lua/luajit2/Makefile
+@@ -30,7 +30,6 @@ define Package/luajit2
+  TITLE:=LuaJIT from OpenResty
+  URL:=https://www.luajit.org
+  DEPENDS:=@HAS_LUAJIT_ARCH
+- PROVIDES:=luajit
+ endef
+ 
+ define Package/luajit2/description
+diff --git a/net/dnsdist/Makefile b/net/dnsdist/Makefile
+index f5e73b0..e1013c6 100644
+--- a/net/dnsdist/Makefile
++++ b/net/dnsdist/Makefile
+@@ -35,7 +35,7 @@ define Package/dnsdist/Default
+ 	  +libatomic \
+ 	  +libcap \
+ 	  +libstdcpp \
+-	  @HAS_LUAJIT_ARCH +luajit
++	  @HAS_LUAJIT_ARCH +!riscv64:luajit +riscv64:luajit2
+   URL:=https://dnsdist.org/
+   VARIANT:=$(1)
+   PROVIDES:=dnsdist
+diff --git a/net/knot-resolver/Makefile b/net/knot-resolver/Makefile
+index 20dedaa..a910fbe 100644
+--- a/net/knot-resolver/Makefile
++++ b/net/knot-resolver/Makefile
+@@ -37,7 +37,7 @@ define Package/knot-resolver
+     +knot-libs \
+     +knot-libzscanner \
+     +libuv \
+-    @HAS_LUAJIT_ARCH +luajit \
++    @HAS_LUAJIT_ARCH +!riscv64:luajit +riscv64:luajit2 \
+     +luasec \
+     +luasocket \
+     +libstdcpp \
+diff --git a/net/snort3/Makefile b/net/snort3/Makefile
+index 5b2dc6c..a33c0b3 100644
+--- a/net/snort3/Makefile
++++ b/net/snort3/Makefile
+@@ -26,7 +26,7 @@ define Package/snort3
+   SECTION:=net
+   CATEGORY:=Network
+   DEPENDS:=+libstdcpp +libdaq3 +libdnet +libopenssl +libpcap +libpcre2 \
+-    +libpthread +libuuid +zlib +libhwloc +USE_MUSL:libtirpc @HAS_LUAJIT_ARCH +luajit +libatomic \
++    +libpthread +libuuid +zlib +libhwloc +USE_MUSL:libtirpc @HAS_LUAJIT_ARCH +!riscv64:luajit +riscv64:luajit2 +libatomic \
+     +kmod-nft-queue +liblzma +ucode +ucode-mod-fs +ucode-mod-uci \
+     +PACKAGE_gperftools:gperftools \
+     +PACKAGE_vectorscan:vectorscan

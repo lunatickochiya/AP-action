@@ -1,0 +1,33 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: LunaticKochiya <125438787@qq.com>
+Date: Fri, 23 Oct 2026 00:00:00 +0800
+Subject: [PATCH] kernel: config-6.18: explicitly disable CONFIG_TCP_CONG_BBR1
+
+The BBRv3 backport (hack-6.18/951-net-tcp-bbr3-support.patch) adds a new
+TCP_CONG_BBR1 Kconfig symbol for the legacy BBRv1 module. Since
+target/linux/generic/config-6.18 has no entry for it, the non-interactive
+kernel configuration asks for a value and aborts the build:
+
+  * Restart config...
+  BBRv1 TCP (TCP_CONG_BBR1) [N/m/y/?] (NEW)
+  make[8]: *** [scripts/kconfig/Makefile:85: syncconfig] Error 1
+
+BBRv3 registers itself as "bbr" (CONFIG_TCP_CONG_BBR) and that is the
+only module packaged by kmod-tcp-bbr, so disable the unused BBR1 module.
+
+Signed-off-by: LunaticKochiya <125438787@qq.com>
+---
+diff --git a/target/linux/generic/config-6.18 b/target/linux/generic/config-6.18
+--- a/target/linux/generic/config-6.18
++++ b/target/linux/generic/config-6.18
+@@ -7106,6 +7106,7 @@
+ # CONFIG_TCP_AO is not set
+ CONFIG_TCP_CONG_ADVANCED=y
+ # CONFIG_TCP_CONG_BBR is not set
++# CONFIG_TCP_CONG_BBR1 is not set
+ # CONFIG_TCP_CONG_BIC is not set
+ # CONFIG_TCP_CONG_CDG is not set
+ CONFIG_TCP_CONG_CUBIC=y
+-- 
+2.43.0
+
