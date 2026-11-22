@@ -286,7 +286,27 @@ jobs:
       working-directory: ./openwrt
       run: |
         echo -e "$(nproc) thread toolchain compile"
+        # 磁盘看门狗：预热（rust/llvm）最容易把 runner 磁盘写满，低了就收手
+        (
+          while true; do
+            avail=$(df --output=avail -BG / 2>/dev/null | tail -n1 | tr -dc '0-9')
+            if [ -n "$avail" ] && [ "$avail" -lt 6 ]; then
+              echo "::error ::磁盘剩余仅 ${avail}G，主动终止预热（保存已编出的缓存）"
+              pkill -TERM -x make 2>/dev/null || true
+              sleep 5
+              pkill -KILL -x make 2>/dev/null || true
+              break
+            fi
+            sleep 60
+          done
+        ) &
+        disk_watchdog=$!
+        set +e
         make -j$(nproc) tools/install toolchain/install
+        rc=$?
+        kill "$disk_watchdog" 2>/dev/null || true
+        set -e
+        [ "$rc" -eq 0 ] || exit "$rc"
 
     - name: 打包并上传工具链缓存到 Release
       working-directory: ./openwrt

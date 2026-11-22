@@ -142,6 +142,11 @@ jobs:
       Target_CFG_Machine: ${{ needs.prepare.outputs.machine }}
 
     steps:
+    - name: 记录 build job 开始时间
+      # 6h 是 build job 的总时限。编译步骤从这里算剩余预算，到 5h55m 主动失败，
+      # 留 5 分钟给缓存 post 上传（cancelled 状态下不会保存缓存）。
+      run: echo "BUILD_JOB_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
+
     - name: 检查
       uses: actions/checkout@main
 
@@ -310,6 +315,39 @@ jobs:
         cd openwrt
         make download -j$(nproc)
         find dl -size -1024c -exec rm -f {} \;
+        # make download 可能因某个包失败而留下不完整的 kernel 包；
+        # 校验 xz/gz，坏文件删掉，让 compile 阶段重新下载，避免 .prepared 解压失败。
+        for f in dl/linux-*.tar.xz; do
+          [ -e "$f" ] || continue
+          if ! xz -t "$f" >/dev/null 2>&1; then
+            echo "Removing corrupt kernel tarball: $f"
+            rm -f "$f"
+          fi
+        done
+        for f in dl/linux-*.tar.gz; do
+          [ -e "$f" ] || continue
+          if ! gzip -t "$f" >/dev/null 2>&1; then
+            echo "Removing corrupt kernel tarball: $f"
+            rm -f "$f"
+          fi
+        done
+        # package download 失败时 target/linux download 可能没跑完；单独重试 kernel 包。
+        for attempt in 1 2 3; do
+          make target/linux/download -j1 V=s >/tmp/kernel-download.log 2>&1 || true
+          bad=0
+          for f in dl/linux-*.tar.xz; do
+            [ -e "$f" ] || continue
+            xz -t "$f" >/dev/null 2>&1 || { bad=1; rm -f "$f"; }
+          done
+          for f in dl/linux-*.tar.gz; do
+            [ -e "$f" ] || continue
+            gzip -t "$f" >/dev/null 2>&1 || { bad=1; rm -f "$f"; }
+          done
+          [ "$bad" = 0 ] && break
+          echo "kernel download incomplete (attempt $attempt), retrying..."
+          tail -20 /tmp/kernel-download.log || true
+          sleep 5
+        done
 
     - name: 缓存staging
       id: cache
@@ -363,11 +401,71 @@ jobs:
       id: compile
       working-directory: ./openwrt
       env:
-        # 每个包的 prepare/configure/compile/install 起止时间
+        # 6h 是 build job 的总时限；从 build job 开始算，5h55m 必须停止编译，
+        # 留 5 分钟给缓存 post 上传。SETUP_MARGIN 用于补偿"job 开始->第一步"的
+        # setup 时间（通常十几秒，这里按 60s 保守估算）。
+        BUILD_JOB_STOP_SECONDS: '21300'
+        CACHE_RESERVE_SECONDS: '300'
+        BUILD_JOB_SETUP_MARGIN_SECONDS: '60'
+        # 每个包的 prepare/configure/compile/install 起止时间，编译后汇总 Top 30
         BUILD_TIME_LOG: 'build-time.tsv'
+        # ccache 上限 6G：太小内核对象会被后续包挤出（内核冷编 40+ 分钟），
+        # 太大又会把 runner 磁盘和 10G 缓存配额吃满（曾出现 runner 直接崩溃）。
+        CCACHE_MAXSIZE: '6G'
       run: |
-        echo -e "$(($(nproc)+1)) thread compile"
-        make -j$(($(nproc)+1)) || make -j1 V=s
+        start=${BUILD_JOB_START_EPOCH:-$(date +%s)}
+        elapsed=$(( $(date +%s) - start + BUILD_JOB_SETUP_MARGIN_SECONDS ))
+        budget=$(( BUILD_JOB_STOP_SECONDS - elapsed ))
+        echo "build job 已运行约 ${elapsed}s，本次编译预算 ${budget}s（build job 开始后 5h55m 停止编译，留 5min 存缓存）"
+        if [ "$budget" -le 0 ]; then
+          echo "::error ::build job 已运行 ${elapsed}s（超过 5h55m 阈值），直接失败以便保存缓存"
+          exit 1
+        fi
+        set +e
+        # 磁盘看门狗：剩余低于 6G 时主动终止编译。runner 磁盘被写满会直接崩，
+        # 崩溃的 job 连日志/缓存都保不住（之前有 job 的 compile 步骤没有结论、
+        # 日志 BlobNotFound）。主动失败至少能保存 compile.log 和 ccache。
+        (
+          while true; do
+            avail=$(df --output=avail -BG / 2>/dev/null | tail -n1 | tr -dc '0-9')
+            if [ -n "$avail" ] && [ "$avail" -lt 6 ]; then
+              echo "::error ::磁盘剩余仅 ${avail}G，主动终止编译（保存日志/缓存）"
+              pkill -TERM -x make 2>/dev/null || true
+              sleep 5
+              pkill -KILL -x make 2>/dev/null || true
+              break
+            fi
+            sleep 60
+          done
+        ) &
+        disk_watchdog=$!
+        # V=1（=V=w）：子 make 以 -s 运行、不回显每条命令（没有 V=s 的降速/海量输出），
+        # stdout 照常丢弃，只保留 stderr；把 stderr 写进 openwrt/compile.log，
+        # 和本地 `make ... 2> compile.log` 一样是一份几十 KB 的报错日志。
+        # CI 日志只有正常进度行（make[N] -C ...）和 time: 行。
+        timeout --signal=TERM --kill-after=60s "$budget" \
+          bash -c 'make -j$(($(nproc)+1)) V=1' \
+          2> >(gawk '{ print strftime("[%H:%M:%S]"), $0; fflush() }' > compile.log)
+        rc=$?
+        if [ "$rc" -ne 0 ] && [ "$rc" -ne 124 ] && [ "$rc" -ne 137 ] \
+          && grep -qE "target/linux/(compile|failed)" compile.log; then
+          echo "::warning ::target/linux 失败，重跑 make -j1 V=s target/linux/compile 以获取详细错误"
+          timeout 600 make -j1 V=s target/linux/compile 2>&1 | tail -120 | tee -a compile.log || true
+        fi
+        kill "$disk_watchdog" 2>/dev/null || true
+        sleep 1
+        set -e
+        if [ "$rc" -ne 0 ]; then
+          # 失败时把 compile.log 复制一份到工作区根目录供 artifact 上传。
+          cp -f compile.log "$GITHUB_WORKSPACE/compile.log" || true
+        fi
+        if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
+          echo "::error ::编译到达 build job 开始后 5h55m 阈值，主动中断（本次预算 ${budget}s），留 5min 给缓存保存"
+          exit 1
+        fi
+        [ "$rc" -eq 0 ] || exit "$rc"
+        # rust 的 sccache 命中率（没有 rust 构建时输出为 0）
+        sccache --show-stats 2>/dev/null | head -20 || true
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 生成编译耗时报告
@@ -392,6 +490,17 @@ jobs:
       with:
         name: build-time-${{ matrix.target }}
         path: build-time-report.txt
+        if-no-files-found: ignore
+        retention-days: 7
+
+    - name: 上传编译日志
+      # 只在失败时上传；compile.log 是编译过程的 stderr（真实报错），通常很小
+      if: failure()
+      continue-on-error: true
+      uses: actions/upload-artifact@main
+      with:
+        name: compile-log-${{ matrix.target }}
+        path: compile.log
         if-no-files-found: ignore
         retention-days: 7
 
