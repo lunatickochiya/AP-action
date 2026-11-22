@@ -1,0 +1,139 @@
+#!/bin/sh
+# AIC8800D80 "Pandora 88M80" adapters ship in USB mass-storage mode as
+# 1111:1111 and must be switched to a69c:8d80 by sending two vendor SCSI
+# CDBs (F3 followed by F2).  Other devices also use 1111:1111, so only
+# act when the USB product string starts with 88M80.
+#
+# Bringing the radio up afterwards is handled by
+# /etc/hotplug.d/ieee80211/30-aic8800-radio, which runs when the driver
+# registers the phy.  Do not wait for the phy here: USB interface events
+# of the same plug run this script as well, and a sleeping instance would
+# block the procd hotplug queue and delay everything behind it.
+
+[ "$ACTION" = add ] || exit 0
+
+case "$PRODUCT" in
+	1111/1111/*)
+		;;
+	*)
+		exit 0
+		;;
+esac
+
+# USB interface events carry the same PRODUCT but a DEVPATH pointing at
+# the interface; only the device directory has idVendor/product files.
+[ -r "/sys$DEVPATH/idVendor" ] || exit 0
+
+product="$(cat "/sys$DEVPATH/product" 2>/dev/null)"
+case "$product" in
+	88M80*)
+		;;
+	*)
+		exit 0
+		;;
+esac
+
+[ -x /sbin/usbmode ] || exit 0
+
+# Rate-limit retries caused by the forced re-enumeration below.  A normal
+# unplug/replug after the window is still handled.
+stamp=/tmp/aic8800-modeswitch.last
+now=$(date +%s)
+last=$(cat "$stamp" 2>/dev/null || echo 0)
+case "$last" in
+	''|*[!0-9]*) last=0 ;;
+esac
+[ $((now - last)) -lt 30 ] && exit 0
+echo "$now" > "$stamp"
+
+# Match the exact product string, so usbmode does not touch another
+# 1111:1111 device that happens to be present at the same time.
+product="$(printf '%s' "$product" | sed 's/[\\"]//g')"
+
+msg_f3=555342438765432100000000000010fd0000000000000000000000000000f3
+msg_f2=555342438765432100000000000010fd0000000000000000000000000000f2
+
+# usbmode detaches usb-storage, sends the messages and releases the device
+# again; the kernel then re-probes the virtual CD-ROM, which puts the
+# firmware back into storage state.  Both CDBs therefore have to be sent in
+# a single usbmode run, back to back.
+#
+# "response" must stay off: the adapter never sends the CSW that usbmode
+# would wait for, so it would block for the 3 second timeout and then skip
+# every remaining message, which is why the F2 CDB never reached the
+# device and the adapter stayed in mass-storage mode.
+send_cdb() {
+	file=/tmp/aic8800-1111-usb-mode.$$.json
+	{
+		printf '{\n\t"messages": [\n'
+		sep=''
+		for m in "$@"; do
+			printf '%s\t\t"%s"' "$sep" "$m"
+			sep=',
+'
+		done
+		printf '\n\t],\n\t"devices": {\n\t\t"1111:1111": {\n'
+		printf '\t\t\t"uPr=%s": {\n' "$product"
+		printf '\t\t\t\t"msg": [ '
+		sep=''
+		n=0
+		for m in "$@"; do
+			printf '%s%d' "$sep" "$n"
+			sep=', '
+			n=$((n + 1))
+		done
+		printf ' ]\n\t\t\t}\n\t\t}\n\t}\n}\n'
+	} > "$file"
+	/sbin/usbmode -c "$file" -s
+	rm -f "$file"
+}
+
+# Wait for the adapter to re-enumerate.  It comes back as a69c:8d80 in
+# loader mode and aic_load_fw turns it into a69c:8d81 once the firmware
+# has been uploaded.
+wait_switched() {
+	i=0
+	while [ $i -lt "$1" ]; do
+		[ -r "/sys$DEVPATH/idVendor" ] || return 0
+		[ "$(cat "/sys$DEVPATH/idVendor" 2>/dev/null)" != "1111" ] && return 0
+		sleep 1
+		i=$((i + 1))
+	done
+	return 1
+}
+
+# Give usb-storage time to finish probing the virtual CD-ROM.  Sending the
+# vendor CDBs too early is ignored by the device.
+sleep 2
+
+logger -t aic8800 "switching 1111:1111 ($product) to Wi-Fi mode"
+send_cdb "$msg_f3" "$msg_f2"
+
+wait_switched 10
+
+if [ "$(cat "/sys$DEVPATH/idVendor" 2>/dev/null)" = "1111" ]; then
+	sleep 1
+	logger -t aic8800 "still in storage mode, retrying with F2"
+	send_cdb "$msg_f2"
+	wait_switched 5
+fi
+
+# Some units only apply the new mode after they are re-enumerated.  Do it
+# only when the device is still in mass-storage mode.
+if [ "$(cat "/sys$DEVPATH/idVendor" 2>/dev/null)" = "1111" ]; then
+	logger -t aic8800 "re-enumerating $DEVPATH"
+	echo 0 > "/sys$DEVPATH/authorized" 2>/dev/null
+	sleep 1
+	echo 1 > "/sys$DEVPATH/authorized" 2>/dev/null
+	sleep 3
+fi
+
+if [ "$(cat "/sys$DEVPATH/idVendor" 2>/dev/null)" = "1111" ]; then
+	logger -t aic8800 "mode switch failed, adapter left in storage mode"
+else
+	logger -t aic8800 "mode switch done"
+fi
+
+# The phy comes up a few seconds later; the ieee80211 hotplug takes over
+# from here.
+exit 0

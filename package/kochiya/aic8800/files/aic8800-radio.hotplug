@@ -1,0 +1,53 @@
+#!/bin/sh
+# Bring the radio of an AIC8800 USB adapter up when its phy appears.
+# Runs for every phy registration; everything that is not an AIC USB
+# adapter returns immediately.
+
+[ "$ACTION" = add ] || exit 0
+
+dev="$(readlink -f "/sys$DEVPATH/device" 2>/dev/null)"
+[ -r "$dev/idVendor" ] || exit 0
+case "$(cat "$dev/idVendor" 2>/dev/null)" in
+	a69c|368b)
+		;;
+	*)
+		exit 0
+		;;
+esac
+
+# "wifi config" creates the radio section of a newly detected adapter with
+# its AP iface disabled (mac80211.uc: disabled='${defaults ? 0 : 1}') and
+# boards without board.json wlan defaults never get one enabled, so a
+# freshly plugged adapter would never come up.  Enable the iface while it
+# is still in that untouched state; a section the user renamed or secured
+# is left alone.
+enable_default_ap() {
+	[ -s /etc/config/wireless ] || return 0
+	for i in $(uci -q show wireless | sed -n "s/^wireless\.\([^.=]*\)=wifi-iface$/\1/p"); do
+		[ "$(uci -q get "wireless.${i}.device")" = "$1" ] || continue
+		[ "$(uci -q get "wireless.${i}.disabled")" = "1" ] || continue
+		ssid="$(uci -q get "wireless.${i}.ssid")"
+		enc="$(uci -q get "wireless.${i}.encryption")"
+		[ "$ssid" = "OpenWrt" ] || continue
+		[ -z "$enc" ] || [ "$enc" = "none" ] || continue
+		uci -q set "wireless.${i}.disabled=0"
+		uci -q commit wireless
+		logger -t aic8800 "enabled default AP on $1"
+	done
+}
+
+path="${dev#/sys/devices/}"
+radio=""
+for s in $(uci -q show wireless 2>/dev/null | sed -n "s/^wireless\.\([^.=]*\)=wifi-device$/\1/p"); do
+	[ "$(uci -q get "wireless.${s}.path")" = "$path" ] && radio="$s"
+done
+[ -n "$radio" ] || exit 0
+
+# The radio section still refers to the phy of the previous enumeration,
+# so netifd does not bring the AP back by itself: neither "wifi config"
+# nor the network.wireless retry rebinds a radio whose current phy has
+# disappeared, and a plain "reconf" leaves a radio that has been up
+# without interfaces for a while untouched.  "wifi up" does the
+# down/reload/up cycle that rebinds it to the new phy.
+enable_default_ap "$radio"
+/sbin/wifi up "$radio" >/dev/null 2>&1
