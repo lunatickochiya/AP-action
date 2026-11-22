@@ -681,6 +681,7 @@ function fix_openwrt_feeds() {
 	remove_error_package_not_install
 	patch_openwrt_feeds
 	patch_lunatic7
+	fix_lunatic7_syncthing
 	if [ "$Matrix_Target" == 'ramips-iptables' ] || [ "$Matrix_Target" == 'ramips-nftables' ] || \
 		[ "$Matrix_Target" == 'ath79-iptables' ] || [ "$Matrix_Target" == 'ath79-nftables' ]; then
 		rm -rf feeds/lunatic7/luci-app-cupsd/root/www/cups.pdf
@@ -750,6 +751,22 @@ function patch_openwrt_feeds() {
         patch -p1 --no-backup-if-mismatch --quiet < feeds-routing-patch/$routingpatch
     cd ../..
     done
+}
+function fix_lunatic7_syncthing() {
+	# luci-app-syncthing 和 syncthing 包都安装 /etc/config/syncthing，
+	# 同时选中会在 package/install 阶段报 "trying to overwrite ..."。
+	# syncthing 包的配置更完整，保留它；去掉 LuCI 端的副本和 conffiles 声明。
+	# （conffiles 用通用匹配，feed 改名后不会失效。）
+	local d="feeds/lunatic7/luci-app-syncthing"
+	[ -d "$d" ] || return 0
+	if [ -f "$d/root/etc/config/syncthing" ]; then
+		rm -f "$d/root/etc/config/syncthing"
+		echo "Removed duplicate /etc/config/syncthing from luci-app-syncthing"
+	fi
+	if grep -q '^define Package/.*/conffiles$' "$d/Makefile" 2>/dev/null; then
+		sed -i '/^define Package\/.*\/conffiles$/,/^endef$/d' "$d/Makefile"
+		echo "Removed luci-app-syncthing conffiles block"
+	fi
 }
 function patch_lunatic7() {
     for lunatic7patch in $( ls feeds/lunatic7/lunatic7-revert ); do
