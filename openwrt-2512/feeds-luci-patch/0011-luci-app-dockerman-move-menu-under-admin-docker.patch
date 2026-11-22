@@ -1,0 +1,317 @@
+From: lunatickochiya <125438787@qq.com>
+Subject: [PATCH] luci-app-dockerman: move JS menu under admin/docker to match Lua version
+
+上游 JS 版 dockerman 挂在「服务 → Dockerman JS」(admin/services/dockerman，
+且 order 写成字符串 "60"，不会通过 LuCI 菜单 schema 的 int 校验)；参考的
+Lua 版位于顶级菜单「Docker」(admin/docker，order 40)。本补丁将菜单根节点、
+各子项 order 及 common.js 的 dockerman_url 一并调整为 Lua 版结构：
+overview 2 / containers 3 / images 4 / networks 5 / volumes 6 / events 7 /
+configuration 8。
+
+diff --git a/applications/luci-app-dockerman/htdocs/luci-static/resources/dockerman/common.js b/applications/luci-app-dockerman/htdocs/luci-static/resources/dockerman/common.js
+index c2ffb8d..ea60fc8 100644
+--- a/applications/luci-app-dockerman/htdocs/luci-static/resources/dockerman/common.js
++++ b/applications/luci-app-dockerman/htdocs/luci-static/resources/dockerman/common.js
+@@ -438,7 +438,7 @@ const dv = view.extend({
+ 	outputText: '', // Initialize output text
+ 
+ 	get dockerman_url() {
+-		return L.url('admin/services/dockerman');
++		return L.url('admin/docker');
+ 	},
+ 
+ 	parseHeaders(headers, array) {
+diff --git a/applications/luci-app-dockerman/root/usr/share/luci/menu.d/luci-app-dockerman.json b/applications/luci-app-dockerman/root/usr/share/luci/menu.d/luci-app-dockerman.json
+index 9fa0e7e..759e4a6 100644
+--- a/applications/luci-app-dockerman/root/usr/share/luci/menu.d/luci-app-dockerman.json
++++ b/applications/luci-app-dockerman/root/usr/share/luci/menu.d/luci-app-dockerman.json
+@@ -1,7 +1,7 @@
+ {
+-	"admin/services/dockerman": {
+-		"title": "Dockerman JS",
+-		"order": "60",
++	"admin/docker": {
++		"title": "Docker",
++		"order": 40,
+ 		"action": {
+ 			"type": "firstchild"
+ 		},
+@@ -15,9 +15,9 @@
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/overview": {
++	"admin/docker/overview": {
+ 		"title": "Overview",
+-		"order": 1,
++		"order": 2,
+ 		"action": {
+ 			"type": "view",
+ 			"path": "dockerman/overview"
+@@ -27,9 +27,9 @@
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/configuration": {
++	"admin/docker/configuration": {
+ 		"title": "Configuration",
+-		"order": 2,
++		"order": 8,
+ 		"action": {
+ 			"type": "view",
+ 			"path": "dockerman/configuration"
+@@ -39,17 +39,17 @@
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/container/archive/*": {
++	"admin/docker/container/archive/*": {
+ 		"action": {
+ 			"type": "alias",
+-			"path": "admin/services/dockerman/containers"
++			"path": "admin/docker/containers"
+ 		},
+ 		"depends": {
+ 			"acl": [ "luci-app-dockerman" ]
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/container/archive/put/*": {
++	"admin/docker/container/archive/put/*": {
+ 		"action": {
+ 			"type": "function",
+ 			"module": "luci.controller.docker",
+@@ -64,7 +64,7 @@
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/container/archive/get/*": {
++	"admin/docker/container/archive/get/*": {
+ 		"action": {
+ 			"type": "function",
+ 			"module": "luci.controller.docker",
+@@ -79,7 +79,7 @@
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/container/export/*": {
++	"admin/docker/container/export/*": {
+ 		"action": {
+ 			"type": "function",
+ 			"module": "luci.controller.docker",
+@@ -94,7 +94,7 @@
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/container/*": {
++	"admin/docker/container/*": {
+ 		"title_hide": "Container",
+ 		"action": {
+ 			"type": "view",
+@@ -105,7 +105,7 @@
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/containers": {
++	"admin/docker/containers": {
+ 		"title": "Containers",
+ 		"order": 3,
+ 		"action": {
+@@ -117,7 +117,7 @@
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/containers/prune": {
++	"admin/docker/containers/prune": {
+ 		"action": {
+ 			"type": "function",
+ 			"module": "luci.controller.docker",
+@@ -133,17 +133,17 @@
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/container": {
++	"admin/docker/container": {
+ 		"action": {
+ 			"type": "alias",
+-			"path": "admin/services/dockerman/containers"
++			"path": "admin/docker/containers"
+ 		},
+ 		"depends": {
+ 			"acl": [ "luci-app-dockerman" ]
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/container_new": {
++	"admin/docker/container_new": {
+ 		"title_hide": "Container",
+ 		"action": {
+ 			"type": "view",
+@@ -154,7 +154,7 @@
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/images/build": {
++	"admin/docker/images/build": {
+ 		"action": {
+ 			"type": "function",
+ 			"module": "luci.controller.docker",
+@@ -170,7 +170,7 @@
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/images/build/prune": {
++	"admin/docker/images/build/prune": {
+ 		"action": {
+ 			"type": "function",
+ 			"module": "luci.controller.docker",
+@@ -186,7 +186,7 @@
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/images/get/*": {
++	"admin/docker/images/get/*": {
+ 		"action": {
+ 			"type": "function",
+ 			"module": "luci.controller.docker",
+@@ -201,7 +201,7 @@
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/images/load": {
++	"admin/docker/images/load": {
+ 		"action": {
+ 			"type": "function",
+ 			"module": "luci.controller.docker",
+@@ -217,7 +217,7 @@
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/images/prune": {
++	"admin/docker/images/prune": {
+ 		"action": {
+ 			"type": "function",
+ 			"module": "luci.controller.docker",
+@@ -233,7 +233,7 @@
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/images": {
++	"admin/docker/images": {
+ 		"title": "Images",
+ 		"order": 4,
+ 		"action": {
+@@ -242,7 +242,7 @@
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/images/create": {
++	"admin/docker/images/create": {
+ 		"action": {
+ 			"type": "function",
+ 			"module": "luci.controller.docker",
+@@ -258,7 +258,7 @@
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/images/push/*": {
++	"admin/docker/images/push/*": {
+ 		"action": {
+ 			"type": "function",
+ 			"module": "luci.controller.docker",
+@@ -274,17 +274,17 @@
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/image": {
++	"admin/docker/image": {
+ 		"action": {
+ 			"type": "alias",
+-			"path": "admin/services/dockerman/images"
++			"path": "admin/docker/images"
+ 		},
+ 		"depends": {
+ 			"acl": [ "luci-app-dockerman" ]
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/network/*": {
++	"admin/docker/network/*": {
+ 		"title_hide": "Network",
+ 		"action": {
+ 			"type": "view",
+@@ -295,7 +295,7 @@
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/networks": {
++	"admin/docker/networks": {
+ 		"title": "Networks",
+ 		"order": 5,
+ 		"action": {
+@@ -307,7 +307,7 @@
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/networks/prune": {
++	"admin/docker/networks/prune": {
+ 		"action": {
+ 			"type": "function",
+ 			"module": "luci.controller.docker",
+@@ -323,7 +323,7 @@
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/network_new": {
++	"admin/docker/network_new": {
+ 		"title_hide": "Network",
+ 		"action": {
+ 			"type": "view",
+@@ -334,17 +334,17 @@
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/network": {
++	"admin/docker/network": {
+ 		"action": {
+ 			"type": "alias",
+-			"path": "admin/services/dockerman/networks"
++			"path": "admin/docker/networks"
+ 		},
+ 		"depends": {
+ 			"acl": [ "luci-app-dockerman" ]
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/volumes": {
++	"admin/docker/volumes": {
+ 		"title": "Volumes",
+ 		"order": 6,
+ 		"action": {
+@@ -356,7 +356,7 @@
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/volumes/prune": {
++	"admin/docker/volumes/prune": {
+ 		"action": {
+ 			"type": "function",
+ 			"module": "luci.controller.docker",
+@@ -372,7 +372,7 @@
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/docker/events": {
++	"admin/docker/docker/events": {
+ 		"action": {
+ 			"type": "function",
+ 			"module": "luci.controller.docker",
+@@ -388,7 +388,7 @@
+ 		}
+ 	},
+ 
+-	"admin/services/dockerman/events": {
++	"admin/docker/events": {
+ 		"title": "Events",
+ 		"order": 7,
+ 		"action": {

@@ -1,0 +1,31 @@
+From: lunatickochiya <125438787@qq.com>
+Subject: [PATCH] luci-app-weechat: depend on weechat-minimal instead of virtual weechat
+
+openwrt/packages 的 weechat 是变体包（weechat-minimal 为默认变体 / weechat-full），
+并且带有 Config.in 条件依赖（WEECHAT_PERL 等）。luci-app-weechat 依赖虚拟包
+"+weechat" 时，package-metadata.pl 会把 provider 选择条件写进 depends on：
+
+  depends on !(PACKAGE_weechat-full<PACKAGE_luci-app-weechat && WEECHAT_PERL) || !arc
+
+kconfig 认为 PACKAGE_luci-app-weechat 依赖它自己，直接报错：
+
+  tmp/.config-package.in:74614:error: recursive dependency detected!
+  symbol PACKAGE_luci-app-weechat depends on PACKAGE_luci-app-weechat
+
+导致 .config/menuconfig 生成失败，整次构建在 "make world" 前就挂掉
+（见 RK-action run 40108465500，6.6 与 6.18 两个画像都会中招）。
+
+改成依赖默认变体 +weechat-minimal（与虚拟包原来的默认选择等价），
+生成的配置变成单向 `select PACKAGE_weechat-minimal`，不再自引用。
+
+--- a/applications/luci-app-weechat/Makefile
++++ b/applications/luci-app-weechat/Makefile
+@@ -3,7 +3,7 @@
+ include $(TOPDIR)/rules.mk
+ 
+ LUCI_TITLE:=LuCI support for WeeChat IRC client
+-LUCI_DEPENDS:=+luci-base +weechat +rpcd-mod-ucode
++LUCI_DEPENDS:=+luci-base +weechat-minimal +rpcd-mod-ucode
+ 
+ PKG_LICENSE:=Apache-2.0
+ PKG_MAINTAINER:=Josef Schlehofer <pepe.schlehofer@gmail.com>

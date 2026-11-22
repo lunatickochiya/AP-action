@@ -1,0 +1,789 @@
+From 813faff8b3464005b4fcb2d0cd557c7107624806 Mon Sep 17 00:00:00 2001
+From: lunatickochiya <125438787@qq.com>
+Date: Tue, 20 Oct 2026 08:25:55 +0800
+Subject: [PATCH 8/9] luci-app-dockerman: sync with istoreos-25.12
+
+- handle Docker multiplexed streams in JS API and rpcd
+- add max concurrent downloads and USTC registry mirror
+- set MemorySwap=-1 when a memory limit is configured
+- wrap container log output and extend uhttpd script timeout
+- mark the package as hold
+- add zh_Hans/zh_Hant translations for the new options
+---
+ applications/luci-app-dockerman/Makefile      |   2 +
+ .../luci-static/resources/dockerman/api.js    |  33 ++++
+ .../resources/view/dockerman/configuration.js |   6 +
+ .../resources/view/dockerman/container.js     |   9 +-
+ .../resources/view/dockerman/container_new.js |   1 +
+ .../po/templates/dockerman.pot                | 152 +++++++++---------
+ .../po/zh_Hans/dockerman.po                   |   6 +
+ .../po/zh_Hant/dockerman.po                   |   6 +
+ .../root/etc/uci-defaults/luci-app-dockerman  |   6 +
+ .../root/usr/share/rpcd/ucode/docker_rpc.uc   |  19 +++
+ 10 files changed, 166 insertions(+), 74 deletions(-)
+ create mode 100755 applications/luci-app-dockerman/root/etc/uci-defaults/luci-app-dockerman
+
+diff --git a/applications/luci-app-dockerman/Makefile b/applications/luci-app-dockerman/Makefile
+index 920fd1b..f496dfc 100644
+--- a/applications/luci-app-dockerman/Makefile
++++ b/applications/luci-app-dockerman/Makefile
+@@ -1,5 +1,7 @@
+ include $(TOPDIR)/rules.mk
+ 
++PKG_FLAGS:=hold
++
+ LUCI_TITLE:=LuCI Support for docker
+ LUCI_DEPENDS:=@(aarch64||arm||x86_64) \
+ 	+luci-base \
+diff --git a/applications/luci-app-dockerman/htdocs/luci-static/resources/dockerman/api.js b/applications/luci-app-dockerman/htdocs/luci-static/resources/dockerman/api.js
+index 24b2218..457feb3 100644
+--- a/applications/luci-app-dockerman/htdocs/luci-static/resources/dockerman/api.js
++++ b/applications/luci-app-dockerman/htdocs/luci-static/resources/dockerman/api.js
+@@ -116,6 +116,28 @@ function processLines(buffer, onChunk) {
+ 	return buffer;
+ }
+ 
++// Parse the docker multiplexed stream format, https://docs.docker.com/reference/api/engine/version/v1.43/#stream-format
++function parse_multiplexed_stream(buffer) {
++	const output = [];
++	// Only three stream types are defined: 0=stdin, 1=stdout, 2=stderr.
++	const decoders = [new TextDecoder(), new TextDecoder(), new TextDecoder()];
++
++	while (buffer.length > 0) {
++		if (buffer.length < 8) break; // Not enough data for header
++		let stream_type = buffer[0];
++		let payload_length = ((buffer[4] << 24) | (buffer[5] << 16) | (buffer[6] << 8) | buffer[7]) >>> 0; // Convert to unsigned
++		if (buffer.length < 8 + payload_length) break; // Not enough data for payload
++		if (stream_type <= 2) {
++			let payload = buffer.subarray(8, 8 + payload_length);
++			output.push({ type: stream_type, payload: decoders[stream_type].decode(payload, { stream: true }) });
++		} else {
++			console.warn(`Unknown stream type ${stream_type} in multiplexed stream, ignoring`);
++		}
++		buffer = buffer.subarray(8 + payload_length);
++	}
++
++	return output;
++}
+ 
+ function call_docker(method, path, options = {}) {
+ 	return loadPromise.then(() => {
+@@ -223,6 +245,17 @@ function call_docker(method, path, options = {}) {
+ 					headersObj[key] = value;
+ 				}
+ 
++				if ("application/vnd.docker.multiplexed-stream" === headersObj['content-type']) {
++					return response.arrayBuffer().then(buffer => {
++						const parsed = parse_multiplexed_stream(new Uint8Array(buffer));
++						return {
++							code: response.status,
++							body: parsed,
++							headers: headersObj,
++						};
++					});
++				}
++
+ 				return response.text().then(text => {
+ 					const safeText = (typeof text === 'string') ? text : '';
+ 					let parsed = safeText || text;
+diff --git a/applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js b/applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js
+index e2e30c5..44251df 100644
+--- a/applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js
++++ b/applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js
+@@ -66,6 +66,12 @@ return L.view.extend({
+ 		o.value('https://docker.io');
+ 		o.value('https://ghcr.io');
+ 		o.value('https://hub-mirror.c.163.com');
++		o.value('https://ustc-edu-cn.mirror.aliyuncs.com');
++
++		o = s.taboption('globals', form.Value, 'max_concurrent_downloads',
++			_('Max Concurrent Downloads'), _('Set threads for docker pull, 0 means default'));
++		o.placeholder = 0;
++		o.datatype = 'uinteger';
+ 
+ 		o = s.taboption('globals', form.ListValue, 'log_level',
+ 			_('Log Level'),
+diff --git a/applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js b/applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js
+index 66f412a..39c5b65 100644
+--- a/applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js
++++ b/applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js
+@@ -1190,7 +1190,7 @@ return dm2.dv.extend({
+ 				]),
+ 				E('div', {
+ 					'id': 'container-logs-text',
+-					'style': 'width: 100%; font-family: monospace; padding: 10px; border: 1px solid #ccc; overflow: auto;',
++					'style': 'width: 100%; font-family: monospace; padding: 10px; border: 1px solid #ccc; overflow: auto; white-space: pre-wrap;',
+ 					'innerHTML': ''
+ 				})
+ 			]);
+@@ -1684,7 +1684,12 @@ return dm2.dv.extend({
+ 					return false;
+ 				}
+ 
+-				const logText = response?.body || _('No logs available');
++				let logText = response?.body;
++				if ("application/vnd.docker.multiplexed-stream" === response?.headers?.['content-type']) {
++					logText = (response?.body || []).map(frame => frame.payload).join('');
++				}
++				logText = logText || _('No logs available');
++
+ 				// Convert ANSI codes to HTML and set innerHTML
+ 				logsDiv.innerHTML = dm2.ansiToHtml(logText);
+ 				logsDiv.scrollTop = logsDiv.scrollHeight;
+diff --git a/applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container_new.js b/applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container_new.js
+index ce778c9..b0e4bbf 100644
+--- a/applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container_new.js
++++ b/applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container_new.js
+@@ -884,6 +884,7 @@ return dm2.dv.extend({
+ 						} },
+ 					}
+ 				};
++				if (createBody.HostConfig.Memory) createBody.HostConfig.MemorySwap = -1;
+ 
+ 				// Parse volume entries and populate Mounts
+ 				const volumeEntries = get('volume') || [];
+diff --git a/applications/luci-app-dockerman/po/templates/dockerman.pot b/applications/luci-app-dockerman/po/templates/dockerman.pot
+index f48c74d..7db4f7b 100644
+--- a/applications/luci-app-dockerman/po/templates/dockerman.pot
++++ b/applications/luci-app-dockerman/po/templates/dockerman.pot
+@@ -13,7 +13,7 @@ msgstr ""
+ msgid "0"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:106
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:112
+ msgid "A Token is preferred over a Password."
+ msgstr ""
+ 
+@@ -25,7 +25,7 @@ msgstr ""
+ msgid "Action"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1824
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1829
+ msgid "Action unavailable:"
+ msgstr ""
+ 
+@@ -58,7 +58,7 @@ msgstr ""
+ msgid "Aliases"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1923
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1928
+ msgid "Aliases (optional):"
+ msgstr ""
+ 
+@@ -209,7 +209,7 @@ msgstr ""
+ msgid "CPUs"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1933
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1938
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container_new.js:517
+ msgid "Cancel"
+ msgstr ""
+@@ -246,7 +246,7 @@ msgstr ""
+ msgid "Click to view this network"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:81
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:87
+ msgid "Client connection"
+ msgstr ""
+ 
+@@ -292,15 +292,15 @@ msgstr ""
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:564
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1049
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1119
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1975
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1980
+ msgid "Connect"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1927
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1932
+ msgid "Connect Network"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1963
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1968
+ msgid "Connect network"
+ msgstr ""
+ 
+@@ -326,7 +326,7 @@ msgid "Console Connection"
+ msgstr ""
+ 
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1522
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1773
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1778
+ msgid "Console connected"
+ msgstr ""
+ 
+@@ -335,7 +335,7 @@ msgid "Console connection closed"
+ msgstr ""
+ 
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1559
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1794
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1799
+ msgid "Console disconnected"
+ msgstr ""
+ 
+@@ -364,7 +364,7 @@ msgstr ""
+ msgid "Container Statistics"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container_new.js:985
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container_new.js:986
+ msgid "Container created"
+ msgstr ""
+ 
+@@ -372,7 +372,7 @@ msgstr ""
+ msgid "Container detail"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container_new.js:985
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container_new.js:986
+ msgid "Container duplicated"
+ msgstr ""
+ 
+@@ -421,11 +421,11 @@ msgstr ""
+ msgid "Create"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container_new.js:979
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container_new.js:980
+ msgid "Create container"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container_new.js:1000
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container_new.js:1001
+ msgid "Create container failed"
+ msgstr ""
+ 
+@@ -461,7 +461,7 @@ msgstr ""
+ msgid "DNS Names"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:73
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:79
+ msgid "Debug"
+ msgstr ""
+ 
+@@ -481,7 +481,7 @@ msgstr ""
+ msgid "Delete this volume mount"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:104
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:110
+ msgid ""
+ "Destinations prefixed with a Registry host matching an entry in this table "
+ "invoke its corresponding credentials."
+@@ -509,11 +509,11 @@ msgstr ""
+ msgid "Disconnect"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1862
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1867
+ msgid "Disconnect network"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1852
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1857
+ msgid "Disconnect network \"%s\" from container?"
+ msgstr ""
+ 
+@@ -659,7 +659,7 @@ msgid "Environmental Variable(-e)"
+ msgstr ""
+ 
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/dockerman/common.js:1029
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:76
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:82
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1498
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1499
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1540
+@@ -672,16 +672,16 @@ msgstr ""
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1640
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1665
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1683
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1696
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1731
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1779
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1824
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1945
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1701
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1736
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1784
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1829
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1950
+ msgid "Error"
+ msgstr ""
+ 
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1681
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1695
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1700
+ msgid "Error loading logs:"
+ msgstr ""
+ 
+@@ -693,7 +693,7 @@ msgstr ""
+ msgid "Example:"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:84
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:90
+ msgid "Example: tcp://0.0.0.0:2375"
+ msgstr ""
+ 
+@@ -718,7 +718,7 @@ msgstr ""
+ msgid "Exposed Ports(-p)"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1778
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1783
+ msgid "Failed to connect to console"
+ msgstr ""
+ 
+@@ -731,7 +731,7 @@ msgid "Failed to load events: %s"
+ msgstr ""
+ 
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1683
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1694
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1699
+ msgid "Failed to load logs"
+ msgstr ""
+ 
+@@ -743,11 +743,11 @@ msgstr ""
+ msgid "Failed to send detach signal"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1730
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1735
+ msgid "Failed to start console"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:77
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:83
+ msgid "Fatal"
+ msgstr ""
+ 
+@@ -864,7 +864,7 @@ msgstr ""
+ msgid "IPv4 Address"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1919
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1924
+ msgid "IPv4 Address (optional):"
+ msgstr ""
+ 
+@@ -878,7 +878,7 @@ msgstr ""
+ msgid "IPv6 Address"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1921
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1926
+ msgid "IPv6 Address (optional):"
+ msgstr ""
+ 
+@@ -947,13 +947,13 @@ msgstr ""
+ msgid "Index Server Address"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:74
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:80
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:453
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1515
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1559
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1588
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1794
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1877
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1799
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1882
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/network.js:57
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/overview.js:161
+ msgid "Info"
+@@ -996,7 +996,7 @@ msgid ""
+ msgstr ""
+ 
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:382
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1804
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1809
+ msgid "Kill"
+ msgstr ""
+ 
+@@ -1016,7 +1016,7 @@ msgstr ""
+ msgid "L3 bridge"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:94
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:100
+ msgid "LAN connection"
+ msgstr ""
+ 
+@@ -1064,7 +1064,7 @@ msgstr ""
+ msgid "Log Driver"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:71
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:77
+ msgid "Log Level"
+ msgstr ""
+ 
+@@ -1100,6 +1100,10 @@ msgstr ""
+ msgid "Manage and view container configuration"
+ msgstr ""
+ 
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:72
++msgid "Max Concurrent Downloads"
++msgstr ""
++
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:739
+ msgid "Mem Stats"
+ msgstr ""
+@@ -1209,7 +1213,7 @@ msgstr ""
+ msgid "Network Name"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1967
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1972
+ msgid "Network connected"
+ msgstr ""
+ 
+@@ -1221,7 +1225,7 @@ msgstr ""
+ msgid "Network created with warning"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1866
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1871
+ msgid "Network disconnected"
+ msgstr ""
+ 
+@@ -1242,11 +1246,11 @@ msgstr ""
+ msgid "Networks overview"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container_new.js:987
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container_new.js:988
+ msgid "New container duplicated from"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container_new.js:988
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container_new.js:989
+ msgid "New container has been created."
+ msgstr ""
+ 
+@@ -1264,7 +1268,7 @@ msgstr ""
+ msgid "No"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1877
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1882
+ msgid "No additional networks available to connect"
+ msgstr ""
+ 
+@@ -1292,15 +1296,15 @@ msgstr ""
+ msgid "No images selected"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1687
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1691
+ msgid "No logs available"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container_new.js:972
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container_new.js:973
+ msgid "No name specified."
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1945
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1950
+ msgid "No network selected"
+ msgstr ""
+ 
+@@ -1317,7 +1321,7 @@ msgstr ""
+ msgid "No volumes available"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:83
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:89
+ msgid ""
+ "Note that dockerd no longer listens on IP:port without TLS options after v27."
+ msgstr ""
+@@ -1404,7 +1408,7 @@ msgstr ""
+ msgid "Pass-through (Mirror physical device to single MAC VLAN)"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:120
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:126
+ msgid "Password"
+ msgstr ""
+ 
+@@ -1424,7 +1428,7 @@ msgid "Path:"
+ msgstr ""
+ 
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:396
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1805
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1810
+ msgid "Pause"
+ msgstr ""
+ 
+@@ -1560,11 +1564,11 @@ msgstr ""
+ msgid "Read-write (rw)"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:125
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:131
+ msgid "Registry"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:100
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:106
+ msgid "Registry Auth"
+ msgstr ""
+ 
+@@ -1575,11 +1579,11 @@ msgstr ""
+ 
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/dockerman/common.js:426
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:424
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1807
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1812
+ msgid "Remove"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1814
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1819
+ msgid "Remove container?"
+ msgstr ""
+ 
+@@ -1605,7 +1609,7 @@ msgid "Resources"
+ msgstr ""
+ 
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:363
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1802
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1807
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/containers.js:242
+ msgid "Restart"
+ msgstr ""
+@@ -1667,7 +1671,7 @@ msgstr ""
+ msgid "Select image tag"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1917
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1922
+ msgid "Select network to connect:"
+ msgstr ""
+ 
+@@ -1688,11 +1692,15 @@ msgstr ""
+ msgid "Set environment variables inside the container"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:72
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:78
+ msgid "Set the logging level"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:95
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:72
++msgid "Set threads for docker pull, 0 means default"
++msgstr ""
++
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:101
+ msgid ""
+ "Set your LAN interface when docker listens on all addresses like 0.0.0.0 "
+ "or ::."
+@@ -1703,14 +1711,14 @@ msgstr ""
+ msgid "Size"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:82
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:88
+ msgid ""
+ "Specifies where the Docker daemon will listen for client connections. "
+ "default:"
+ msgstr ""
+ 
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:354
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1801
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1806
+ msgid "Start"
+ msgstr ""
+ 
+@@ -1746,7 +1754,7 @@ msgid "Stdout"
+ msgstr ""
+ 
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:372
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1803
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1808
+ msgid "Stop"
+ msgstr ""
+ 
+@@ -1783,7 +1791,7 @@ msgid "Subtype"
+ msgstr ""
+ 
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1522
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1773
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1778
+ msgid "Success"
+ msgstr ""
+ 
+@@ -1807,7 +1815,7 @@ msgstr ""
+ msgid "TTY (-t)"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1763
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1768
+ msgid "TTYd may still be starting up"
+ msgstr ""
+ 
+@@ -1823,7 +1831,7 @@ msgstr ""
+ msgid "Tag removed successfully"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:105
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:111
+ msgid "The first match is used."
+ msgstr ""
+ 
+@@ -1884,11 +1892,11 @@ msgstr ""
+ msgid "To"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:138
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:144
+ msgid "Token"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:107
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:113
+ msgid "Tokes and Passwords are not encrypted in the uci configuration."
+ msgstr ""
+ 
+@@ -1944,7 +1952,7 @@ msgid "Unless stopped"
+ msgstr ""
+ 
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:396
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1806
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1811
+ msgid "Unpause"
+ msgstr ""
+ 
+@@ -1978,11 +1986,11 @@ msgstr ""
+ msgid "Uploading…"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:103
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:109
+ msgid "Used for push/pull operations on custom registries."
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:115
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:121
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:479
+ msgid "User"
+ msgstr ""
+@@ -2027,8 +2035,8 @@ msgstr ""
+ msgid "Volumes overview"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:75
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1763
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/configuration.js:81
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1768
+ msgid "Warning"
+ msgstr ""
+ 
+@@ -2060,7 +2068,7 @@ msgstr ""
+ msgid "commit"
+ msgstr ""
+ 
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1835
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1840
+ msgid "completed"
+ msgstr ""
+ 
+@@ -2286,6 +2294,6 @@ msgid "volume name"
+ msgstr ""
+ 
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container.js:1360
+-#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container_new.js:991
++#: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container_new.js:992
+ msgid "with warnings"
+ msgstr ""
+diff --git a/applications/luci-app-dockerman/po/zh_Hans/dockerman.po b/applications/luci-app-dockerman/po/zh_Hans/dockerman.po
+index b336489..3f7af07 100644
+--- a/applications/luci-app-dockerman/po/zh_Hans/dockerman.po
++++ b/applications/luci-app-dockerman/po/zh_Hans/dockerman.po
+@@ -2301,3 +2301,9 @@ msgstr "卷名"
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container_new.js:991
+ msgid "with warnings"
+ msgstr "有警告"
++
++msgid "Max Concurrent Downloads"
++msgstr "最大下载线程数"
++
++msgid "Set threads for docker pull, 0 means default"
++msgstr "设置拉取镜像的线程数，0表示默认"
+diff --git a/applications/luci-app-dockerman/po/zh_Hant/dockerman.po b/applications/luci-app-dockerman/po/zh_Hant/dockerman.po
+index 3a4440d..7e0b842 100644
+--- a/applications/luci-app-dockerman/po/zh_Hant/dockerman.po
++++ b/applications/luci-app-dockerman/po/zh_Hant/dockerman.po
+@@ -2301,3 +2301,9 @@ msgstr "儲存區名稱"
+ #: applications/luci-app-dockerman/htdocs/luci-static/resources/view/dockerman/container_new.js:991
+ msgid "with warnings"
+ msgstr "有警告"
++
++msgid "Max Concurrent Downloads"
++msgstr "最大下載執行緒數"
++
++msgid "Set threads for docker pull, 0 means default"
++msgstr "設定拉取映像檔的執行緒數，0 表示預設"
+diff --git a/applications/luci-app-dockerman/root/etc/uci-defaults/luci-app-dockerman b/applications/luci-app-dockerman/root/etc/uci-defaults/luci-app-dockerman
+new file mode 100755
+index 0000000..3568164
+--- /dev/null
++++ b/applications/luci-app-dockerman/root/etc/uci-defaults/luci-app-dockerman
+@@ -0,0 +1,6 @@
++#!/bin/sh
++
++uci -q batch <<-EOF >/dev/null
++	set uhttpd.main.script_timeout="360"
++	commit uhttpd
++EOF
+diff --git a/applications/luci-app-dockerman/root/usr/share/rpcd/ucode/docker_rpc.uc b/applications/luci-app-dockerman/root/usr/share/rpcd/ucode/docker_rpc.uc
+index 5fb8539..da6bed5 100755
+--- a/applications/luci-app-dockerman/root/usr/share/rpcd/ucode/docker_rpc.uc
++++ b/applications/luci-app-dockerman/root/usr/share/rpcd/ucode/docker_rpc.uc
+@@ -100,6 +100,23 @@ function coerce_values_to_string(obj) {
+ 	return obj;
+ };
+ 
++// Parse the docker multiplexed stream format, https://docs.docker.com/reference/api/engine/version/v1.43/#stream-format
++function parse_multiplexed_stream(buffer) {
++	let output = [];
++
++	while (length(buffer) > 0) {
++		if (length(buffer) < 8) break; // Not enough data for header
++		let stream_type = ord(buffer, 0);
++		let payload_length = ord(buffer, 4) << 24 | ord(buffer, 5) << 16 | ord(buffer, 6) << 8 | ord(buffer, 7);
++		if (length(buffer) < 8 + payload_length) break; // Not enough data for payload
++		let payload = substr(buffer, 8, payload_length);
++		push(output, { type: stream_type, payload: payload });
++		buffer = substr(buffer, 8 + payload_length);
++	}
++
++	return output;
++};
++
+ function call_docker(method, path, options) {
+ 	options = options || {};
+ 	const headers = options.headers || {};
+@@ -277,6 +294,8 @@ function call_docker(method, path, options) {
+ 		} else {
+ 			response_body = data;
+ 		}
++	} else if (response_headers['content-type'] === 'application/vnd.docker.multiplexed-stream' && response_body) {
++		response_body = parse_multiplexed_stream(response_body);
+ 	}
+ 
+ 	return {
+-- 
+2.55.0
+
