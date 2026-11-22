@@ -110,7 +110,6 @@ on:
 env:
   TZ: Asia/Shanghai
   OpenWrt_PATCH_FILE_DIR: openwrt-2512
-  KERNEL66_REPO_TOKEN: ${{ secrets.MY_SECRET_TOKEN }}
 
 jobs:
   prepare:
@@ -198,8 +197,22 @@ jobs:
     - name: 克隆源代码
       working-directory: /workdir
       id: clone
+      env:
+        OPENWRT_REPO_SSH_KEY: ${{ secrets.OPENWRT_REPO_SSH_KEY }}
       run: |
         df -hT $PWD
+        case "$REPO_URL" in
+          git@*)
+            if [ -z "$OPENWRT_REPO_SSH_KEY" ]; then
+              echo "::error::secret OPENWRT_REPO_SSH_KEY 未设置（私有仓库只读 Deploy Key 私钥）"
+              exit 1
+            fi
+            mkdir -p ~/.ssh && chmod 700 ~/.ssh
+            printf '%s\n' "$OPENWRT_REPO_SSH_KEY" > ~/.ssh/openwrt_repo_key
+            chmod 600 ~/.ssh/openwrt_repo_key
+            export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/openwrt_repo_key -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new"
+            ;;
+        esac
         git clone $REPO_URL -b $REPO_BRANCH openwrt --single-branch
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
         cd openwrt
@@ -444,10 +457,15 @@ jobs:
           bash -c 'make -j$(($(nproc)+1)) V=1' \
           2> >(gawk '{ print strftime("[%H:%M:%S]"), $0; fflush() }' > compile.log)
         rc=$?
-        if [ "$rc" -ne 0 ] && [ "$rc" -ne 124 ] && [ "$rc" -ne 137 ] \
-          && grep -qE "target/linux/(compile|failed)" compile.log; then
-          echo "::warning ::target/linux 失败，重跑 make -j1 V=s target/linux/compile 以获取详细错误"
-          timeout 600 make -j1 V=s target/linux/compile 2>&1 | tail -120 | tee -a compile.log || true
+        if [ "$rc" -ne 0 ] && [ "$rc" -ne 124 ] && [ "$rc" -ne 137 ]; then
+          if grep -qE "target/linux failed|target/linux/compile.*Error" compile.log; then
+            echo "::warning ::target/linux 失败，重跑 make -j1 V=s target/linux/compile 以获取详细错误"
+            timeout 600 make -j1 V=s target/linux/compile 2>&1 | tail -120 | tee -a compile.log || true
+          fi
+          if grep -qE "package/kernel/linux failed|package/kernel/linux/compile.*Error" compile.log; then
+            echo "::warning ::package/kernel/linux 失败，重跑 make -j1 V=s package/kernel/linux/compile 以获取详细错误"
+            timeout 600 make -j1 V=s package/kernel/linux/compile 2>&1 | tail -120 | tee -a compile.log || true
+          fi
         fi
         kill "$disk_watchdog" 2>/dev/null || true
         sleep 1

@@ -1,6 +1,8 @@
 REPO_URL="https://github.com/openwrt/openwrt"
 REPO_BRANCH="openwrt-25.12"
-KERNEL66_REPO_URL="https://${KERNEL66_REPO_TOKEN}@github.com/lunatickochiya/openwrt-ipq-2410.git"
+# 私有仓库改用只读 Deploy Key（SSH）认证，私钥存放于 secret OPENWRT_REPO_SSH_KEY
+# （旧的 https+token 方式在仓库转私有后失效：clone 报 could not read Password）
+KERNEL66_REPO_URL="git@github.com:lunatickochiya/openwrt-ipq-2410.git"
 KERNEL66_REPO_BRANCH="openwrt-25.12-66"
 DIY_SH="diy-2410.sh"
 DIY_SH_AFB="after_build.sh"
