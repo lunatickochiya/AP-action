@@ -682,6 +682,7 @@ function fix_openwrt_feeds() {
 	patch_openwrt_feeds
 	patch_lunatic7
 	fix_lunatic7_syncthing
+	fix_lunatic7_automount
 	if [ "$Matrix_Target" == 'ramips-iptables' ] || [ "$Matrix_Target" == 'ramips-nftables' ] || \
 		[ "$Matrix_Target" == 'ath79-iptables' ] || [ "$Matrix_Target" == 'ath79-nftables' ]; then
 		rm -rf feeds/lunatic7/luci-app-cupsd/root/www/cups.pdf
@@ -766,6 +767,18 @@ function fix_lunatic7_syncthing() {
 	if grep -q '^define Package/.*/conffiles$' "$d/Makefile" 2>/dev/null; then
 		sed -i '/^define Package\/.*\/conffiles$/,/^endef$/d' "$d/Makefile"
 		echo "Removed luci-app-syncthing conffiles block"
+	fi
+}
+function fix_lunatic7_automount() {
+	# automount 仍依赖 6.6 内核已经移除的 legacy kmod-fs-ntfs，
+	# 25.12-66 只提供 kmod-fs-ntfs3，导致 package/install 阶段报：
+	#   kmod-fs-ntfs (no such package): required by automount
+	# 在 feeds 安装完成后直接把依赖换成 ntfs3 kmod。
+	local mk="feeds/lunatic7/automount/Makefile"
+	[ -f "$mk" ] || return 0
+	if grep -q '+kmod-fs-ntfs\b' "$mk"; then
+		sed -i 's/+kmod-fs-ntfs\b/+kmod-fs-ntfs3/' "$mk"
+		echo "automount: use kmod-fs-ntfs3 instead of legacy kmod-fs-ntfs"
 	fi
 }
 function patch_lunatic7() {
